@@ -1,0 +1,23 @@
+parameters:
+
+services:
+    _defaults:
+        autowire: true
+        public: false
+        autoconfigure: true
+
+    PassGeneratorBundle\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/PassGeneratorBundle.php'
+
+    pgb.default_pass_contents:
+        class: PassGeneratorBundle\Service\PassContents
+    PassGeneratorBundle\Service\PassContents: '@pgb.default_pass_contents'
+
+    pgb.password_generator:
+        class: PassGeneratorBundle\Service\PassGenerator
+        arguments:
+            $passContents: '@pgb.default_pass_contents'
+    PassGeneratorBundle\Service\PassGenerator: '@pgb.password_generator'
