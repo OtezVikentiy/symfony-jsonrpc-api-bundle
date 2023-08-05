@@ -1,0 +1,12 @@
+parameters:
+
+services:
+  _defaults:
+    autowire: false
+    public: false
+    autoconfigure: false
+
+  OV\JsonRPCAPIBundle\RPC\V1\:
+    resource: '../RPC/V1/'
+    tags:
+      - { name: ov.rpc.method, namespace: OV\JsonRPCAPIBundle\RPC\V1\, version: 1 }

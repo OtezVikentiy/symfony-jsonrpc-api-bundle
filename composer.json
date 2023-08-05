@@ -1,0 +1,38 @@
+{
+    "name": "otezvikentiy/json-rpc-api",
+    "description": "Symfony Json RPC API bundle",
+    "version": "1.0.0",
+    "stability": "stable",
+    "minimum-stability": "stable",
+    "keywords": ["symfony", "bundle"],
+    "type": "symfony-bundle",
+    "license": "MIT",
+    "support": {
+        "issues": "https://gitflic.ru/project/otezvikentiy/json-rpc-api/issue"
+    },
+    "autoload": {
+        "psr-4": {
+            "OV\\JsonRPCAPIBundle\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=8.1",
+        "doctrine/annotations": "^2.0",
+        "symfony/framework-bundle": "^6.0",
+        "symfony/yaml": "^6.0"
+    },
+    "require-dev": {
+        "php": ">=8.1",
+        "doctrine/annotations": "^2.0",
+        "symfony/framework-bundle": "^6.0",
+        "symfony/yaml": "^6.0"
+    },
+    "authors": [
+        {
+            "name": "l.groshev",
+            "email": "OtezVikentiy@gmail.com",
+            "homepage": "https://otezvikentiy.tech",
+            "role": "Creator"
+        }
+    ]
+}

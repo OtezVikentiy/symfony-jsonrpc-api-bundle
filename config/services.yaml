@@ -6,18 +6,27 @@ services:
         public: false
         autoconfigure: true
 
-    PassGeneratorBundle\:
+    OV\JsonRPCAPIBundle\:
         resource: '../src/'
         exclude:
             - '../src/DependencyInjection/'
-            - '../src/PassGeneratorBundle.php'
+            - '../src/OVJsonRPCAPIBundle.php'
 
-    pgb.default_pass_contents:
-        class: PassGeneratorBundle\Service\PassContents
-    PassGeneratorBundle\Service\PassContents: '@pgb.default_pass_contents'
+    OV\JsonRPCAPIBundle\RPC\V1\:
+        resource: '../src/RPC/V1/{*Method.php}'
+        tags:
+            - { name: ov.rpc.method, namespace: OV\JsonRPCAPIBundle\RPC\V1\, version: 1 }
 
-    pgb.password_generator:
-        class: PassGeneratorBundle\Service\PassGenerator
-        arguments:
-            $passContents: '@pgb.default_pass_contents'
-    PassGeneratorBundle\Service\PassGenerator: '@pgb.password_generator'
+    ov_json_rpc_api_index_controller:
+        class: OV\JsonRPCAPIBundle\Controller\OvJsonRpcApiController
+        autoconfigure: true
+        public: true
+        tags: ['controller.service_arguments']
+#    OV\JsonRPCAPIBundle\Controller\OvJsonRpcApiController:
+#        alias: '@ov_json_rpc_api_index_controller'
+
+#    pgb.password_generator:
+#        class: PassGeneratorBundle\Service\PassGenerator
+#        arguments:
+#            $passContents: '@pgb.default_pass_contents'
+#    PassGeneratorBundle\Service\PassGenerator: '@pgb.password_generator'
