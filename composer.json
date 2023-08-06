@@ -12,7 +12,8 @@
     },
     "autoload": {
         "psr-4": {
-            "OV\\JsonRPCAPIBundle\\": "src/"
+            "OV\\JsonRPCAPIBundle\\": "src/",
+            "OV\\JsonRPCAPIBundle\\Tests\\": "tests/"
         }
     },
     "require": {
@@ -25,7 +26,8 @@
         "php": ">=8.1",
         "doctrine/annotations": "^2.0",
         "symfony/framework-bundle": "^6.0",
-        "symfony/yaml": "^6.0"
+        "symfony/yaml": "^6.0",
+        "phpunit/phpunit": "^10.3"
     },
     "authors": [
         {
