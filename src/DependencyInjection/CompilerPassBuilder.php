@@ -6,14 +6,14 @@ use Doctrine\Common\Annotations\AnnotationReader;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\Serializer\NameConverter\CamelCaseToSnakeCaseNameConverter;
 
-class JsonRPCAPICompilerPassBuilder
+class CompilerPassBuilder
 {
     /**
      * @param ContainerBuilder $containerBuilder
-     * @return JsonRPCAPICompilerPass
+     * @return CompilerPass
      */
-    public static function build(ContainerBuilder $containerBuilder): JsonRPCAPICompilerPass
+    public static function build(ContainerBuilder $containerBuilder): CompilerPass
     {
-        return new JsonRPCAPICompilerPass(new AnnotationReader(), new CamelCaseToSnakeCaseNameConverter());
+        return new CompilerPass(new AnnotationReader(), new CamelCaseToSnakeCaseNameConverter());
     }
 }

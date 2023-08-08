@@ -12,7 +12,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
 
-class JsonRPCAPICompilerPass implements CompilerPassInterface
+class CompilerPass implements CompilerPassInterface
 {
     private const CALL_METHOD = 'call';
 

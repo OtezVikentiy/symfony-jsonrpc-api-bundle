@@ -2,7 +2,7 @@
 
 namespace OV\JsonRPCAPIBundle;
 
-use OV\JsonRPCAPIBundle\DependencyInjection\JsonRPCAPICompilerPassBuilder;
+use OV\JsonRPCAPIBundle\DependencyInjection\CompilerPassBuilder;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
 use OV\JsonRPCAPIBundle\DependencyInjection\OVJsonRPCAPIExtension;
@@ -24,6 +24,6 @@ class OVJsonRPCAPIBundle extends AbstractBundle
      */
     public function build(ContainerBuilder $container): void
     {
-        $container->addCompilerPass(JsonRPCAPICompilerPassBuilder::build($container));
+        $container->addCompilerPass(CompilerPassBuilder::build($container));
     }
 }

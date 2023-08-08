@@ -18,11 +18,11 @@ services:
             - { name: ov.rpc.method, namespace: OV\JsonRPCAPIBundle\RPC\V1\, version: 1 }
 
     ov_json_rpc_api_index_controller:
-        class: OV\JsonRPCAPIBundle\Controller\OvJsonRpcApiController
+        class: OV\JsonRPCAPIBundle\Controller\ApiController
         autoconfigure: true
         public: true
         tags: ['controller.service_arguments']
-#    OV\JsonRPCAPIBundle\Controller\OvJsonRpcApiController:
+#    OV\JsonRPCAPIBundle\Controller\ApiController:
 #        alias: '@ov_json_rpc_api_index_controller'
 
 #    pgb.password_generator:

@@ -4,7 +4,7 @@ namespace OV\JsonRPCAPIBundle\Core;
 
 use Exception;
 
-class JsonRPCAPIErrorResponse
+class ErrorResponse
 {
     public function __construct(
         private readonly int $code,

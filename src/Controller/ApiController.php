@@ -2,35 +2,28 @@
 
 namespace OV\JsonRPCAPIBundle\Controller;
 
-use OV\JsonRPCAPIBundle\Core\JsonRPCAPIBaseRequest;
-use OV\JsonRPCAPIBundle\Core\JsonRPCAPIErrorResponse;
-use OV\JsonRPCAPIBundle\Core\JsonRPCAPIException;
+use OV\JsonRPCAPIBundle\Core\{BaseRequest, ErrorResponse, JRPCException};
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\HttpFoundation\{JsonResponse, Request};
 use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Throwable;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Routing\Annotation\Route;
+use Throwable;
 
-class OvJsonRpcApiController extends AbstractController
+class ApiController extends AbstractController
 {
-    public function __construct(
-        private readonly MethodSpecCollection $specCollection,
-        private readonly ValidatorInterface $validator
-    ){
-    }
-
     #[Route('/api/v{version<\d+>}', name: 'ov_json_rpc_api_index', methods: ['POST'])]
     public function index(
-        Request $request
+        Request $request,
+        MethodSpecCollection $specCollection,
+        ValidatorInterface $validator
     ): JsonResponse {
         $baseRequest = null;
         try {
-            $baseRequest = new JsonRPCAPIBaseRequest($request->toArray());
+            $baseRequest = new BaseRequest($request->toArray());
 
-            $method = $this->specCollection->getMethodSpec($baseRequest->getMethod());
+            $method = $specCollection->getMethodSpec($baseRequest->getMethod());
 
             $requestClass = $method->getRequest();
             $constructorParams = [];
@@ -53,11 +46,11 @@ class OvJsonRpcApiController extends AbstractController
             }
 
             $validators = [];
-            foreach ($method->getValidators() as $field => $validator) {
-                $validators[$field] = new Assert\Type($validator);
+            foreach ($method->getValidators() as $field => $validatorItem) {
+                $validators[$field] = new Assert\Type($validatorItem);
             }
 
-            $violations = $this->validator->validate($baseRequest->getParams() + ['id' => $baseRequest->getId()], new Assert\Collection($validators));
+            $violations = $validator->validate($baseRequest->getParams() + ['id' => $baseRequest->getId()], new Assert\Collection($validators));
 
             if ($violations->count()) {
                 $errs = [];
@@ -67,8 +60,8 @@ class OvJsonRpcApiController extends AbstractController
                 }
 
                 return $this->json(
-                    new JsonRPCAPIErrorResponse(
-                        JsonRPCAPIException::INVALID_PARAMS,
+                    new ErrorResponse(
+                        JRPCException::INVALID_PARAMS,
                         'Invalid params',
                         $baseRequest->getId() ?? null,
                         implode(PHP_EOL, $errs)
@@ -80,16 +73,16 @@ class OvJsonRpcApiController extends AbstractController
             $processor = new $processorClass();
 
             $response = $processor->call($requestInstance);
-        } catch (JsonRPCAPIException $e) {
-            return $this->json(new JsonRPCAPIErrorResponse(
+        } catch (JRPCException $e) {
+            return $this->json(new ErrorResponse(
                 $e->getCode(),
                 $e->getMessage(),
                 $baseRequest?->getId() ?? null,
                 $e->getAdditionalInfo(),
             ));
         } catch (Throwable $e) {
-            return $this->json(new JsonRPCAPIErrorResponse(
-                JsonRPCAPIException::INTERNAL_ERROR,
+            return $this->json(new ErrorResponse(
+                JRPCException::INTERNAL_ERROR,
                 $e->getMessage(),
                 $baseRequest?->getId() ?? null,
             ));

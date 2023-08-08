@@ -1,6 +1,6 @@
 <?php
 
-namespace OV\JsonRPCAPIBundle\RPC\V1\test;
+namespace OV\JsonRPCAPIBundle\RPC\V1\Test;
 
 class TestRequest
 {

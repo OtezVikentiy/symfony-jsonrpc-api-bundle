@@ -3,8 +3,8 @@
 namespace OV\JsonRPCAPIBundle\RPC\V1;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
-use OV\JsonRPCAPIBundle\RPC\V1\test\TestRequest;
-use OV\JsonRPCAPIBundle\RPC\V1\test\TestResponse;
+use OV\JsonRPCAPIBundle\RPC\V1\Test\TestRequest;
+use OV\JsonRPCAPIBundle\RPC\V1\Test\TestResponse;
 
 /**
  * @JsonRPCAPI(methodName = "test")
