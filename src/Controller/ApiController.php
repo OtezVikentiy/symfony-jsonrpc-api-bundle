@@ -2,7 +2,7 @@
 
 namespace OV\JsonRPCAPIBundle\Controller;
 
-use OV\JsonRPCAPIBundle\Core\{BaseRequest, ErrorResponse, JRPCException};
+use OV\JsonRPCAPIBundle\Core\{BaseRequest, BaseResponse, ErrorResponse, JRPCException};
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\{JsonResponse, Request};
@@ -72,7 +72,8 @@ class ApiController extends AbstractController
             $processorClass = $method->getMethodClass();
             $processor = new $processorClass();
 
-            $response = $processor->call($requestInstance);
+            $result = $processor->call($requestInstance);
+            $response = new BaseResponse($result);
         } catch (JRPCException $e) {
             return $this->json(new ErrorResponse(
                 $e->getCode(),
