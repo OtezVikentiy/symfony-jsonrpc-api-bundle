@@ -9,24 +9,29 @@ use ReflectionClass;
 use ReflectionException;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
 
 class JsonRPCAPICompilerPass implements CompilerPassInterface
 {
     private const CALL_METHOD = 'call';
 
     /**
-     * @param AnnotationReader $annotationReader
+     * @param AnnotationReader       $annotationReader
+     * @param NameConverterInterface $nameConverter
      */
     public function __construct(
-        private readonly AnnotationReader $annotationReader
+        private readonly AnnotationReader $annotationReader,
+        private readonly NameConverterInterface $nameConverter,
     ) {
     }
 
     /**
      * @param ContainerBuilder $container
+     *
      * @return void
      * @throws ReflectionException
+     * @throws Exception
      */
     public function process(ContainerBuilder $container): void
     {
@@ -64,11 +69,13 @@ class JsonRPCAPICompilerPass implements CompilerPassInterface
             $allParameters = [];
             $requiredParameters = [];
             $requestSetters = [];
+            $validators = [];
             $methodRequestReflection = null;
             $callParameters = $methodReflectionClass->getMethod('call')->getParameters();
             foreach ($callParameters as $callParameter) {
                 if ($callParameter->getName() === 'request') {
                     $methodRequestReflection = new ReflectionClass($callParameter->getType()->getName());
+                    $validators = $this->getValidatorsForRequest($methodRequestReflection);
                     $allParameters = array_map(fn($i) => $i->getName(), $methodRequestReflection->getProperties());
                     $requiredParameters = array_map(fn($i) => $i->getName(), $methodRequestReflection->getConstructor()->getParameters());
                     $requestMethods = $methodRequestReflection->getMethods();
@@ -83,23 +90,88 @@ class JsonRPCAPICompilerPass implements CompilerPassInterface
                 }
             }
 
-            $methodSpecCollectionDefinition
-                ->addMethodCall(
-                    'addMethodSpec',
-                    [
-                        '$methodName' => $methodName,
-                        '$methodSpec' => new Definition(
-                            MethodSpec::class,
-                            [
-                                '$methodClass' => $methodReflectionClass->getName(),
-                                '$allParameters' => $allParameters,
-                                '$requiredParameters' => $requiredParameters,
-                                '$request' => $methodRequestReflection?->getName() ?? null,
-                                '$requestSetters' => $requestSetters,
-                            ]
-                        )
-                    ]
-                );
+            $methodAlias = $this->getMethodAlias($methodName, $tag['namespace'] ?? '');
+            $methodSpecDefinitionId = uniqid('OV_JSON_RPC_API_' . $methodAlias, true);
+            $methodSpec = $container->register(
+                $methodSpecDefinitionId,
+                MethodSpec::class
+            );
+
+            $methodSpec->setArguments([
+                $methodReflectionClass->getName(),
+                $allParameters,
+                $requiredParameters,
+                $methodRequestReflection?->getName() ?? null,
+                $requestSetters,
+                $validators,
+            ]);
+
+            $methodSpecCollectionDefinition->addMethodCall(
+                'addMethodSpec',
+                [
+                    '$methodName' => $methodName,
+                    '$methodSpec' => new Reference($methodSpecDefinitionId)
+                ]
+            );
         }
+    }
+
+    /**
+     * @param ReflectionClass $requestReflection
+     *
+     * @return array
+     * @throws Exception
+     */
+    private function getValidatorsForRequest(ReflectionClass $requestReflection): array
+    {
+        $validatorsIdx = [];
+
+        $methods = $requestReflection->getMethods();
+        $properties = $requestReflection->getProperties();
+
+        $propertiesIdx = [];
+        foreach ($properties as $property) {
+            $propertiesIdx[$property->getName()] = $property->getType()->getName();
+        }
+
+        $methodsIdx = [];
+        foreach ($methods as $method) {
+            $methodsIdx[$method->getName()] = $method;
+        }
+
+        foreach ($propertiesIdx as $name => $type) {
+            $getter = $methodsIdx['get'.ucfirst($name)];
+            $setter = $methodsIdx['set'.ucfirst($name)];
+            $setterAndPropertyTypesAreEqual = $setter->getParameters()[0]->getType()->getName() !== $type;
+            if ($setterAndPropertyTypesAreEqual) {
+                throw new Exception(sprintf(
+                    'Property %s of method %s has invalid data type in setter %s',
+                    $name, $requestReflection->getName(), $setter->getName()
+                ));
+            }
+            $getterAndPropertyTypesAreEqual = $getter->getReturnType()->getName() !== $type;
+            if ($getterAndPropertyTypesAreEqual) {
+                throw new Exception(sprintf(
+                    'Property %s of method %s has invalid data type in getter %s',
+                    $name, $requestReflection->getName(), $getter->getName()
+                ));
+            }
+
+            $validatorsIdx[$name] = $type;
+        }
+
+        return $validatorsIdx;
+    }
+
+    /**
+     * @param string $methodClass
+     * @param string $namespace
+     * @return string
+     */
+    private function getMethodAlias(string $methodClass, string $namespace): string
+    {
+        $methodParts = explode('\\', ltrim(str_replace($namespace, '', $methodClass), '\\'));
+
+        return implode('.', array_map([$this->nameConverter, 'normalize'], $methodParts));
     }
 }

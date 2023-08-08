@@ -5,11 +5,12 @@ namespace OV\JsonRPCAPIBundle\DependencyInjection;
 class MethodSpec
 {
     /**
-     * @param string $methodClass
-     * @param array $allParameters
-     * @param array $requiredParameters
+     * @param string      $methodClass
+     * @param array       $allParameters
+     * @param array       $requiredParameters
      * @param string|null $request
-     * @param array $requestSetters
+     * @param array       $requestSetters
+     * @param array       $validators
      */
     public function __construct(
         private readonly string $methodClass,
@@ -17,8 +18,14 @@ class MethodSpec
         private readonly array $requiredParameters,
         private readonly ?string $request,
         private readonly array $requestSetters,
+        private readonly array $validators,
     ) {
 
+    }
+
+    public function getValidators(): array
+    {
+        return $this->validators;
     }
 
     /**

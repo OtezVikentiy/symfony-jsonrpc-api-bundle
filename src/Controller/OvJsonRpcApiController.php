@@ -7,21 +7,26 @@ use OV\JsonRPCAPIBundle\Core\JsonRPCAPIErrorResponse;
 use OV\JsonRPCAPIBundle\Core\JsonRPCAPIException;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
+use Symfony\Component\Validator\Constraints as Assert;
 
 class OvJsonRpcApiController extends AbstractController
 {
     public function __construct(
-        private readonly MethodSpecCollection $specCollection
+        private readonly MethodSpecCollection $specCollection,
+        private readonly ValidatorInterface $validator
     ){
     }
 
     #[Route('/api/v{version<\d+>}', name: 'ov_json_rpc_api_index', methods: ['POST'])]
     public function index(
         Request $request
-    ){
+    ): JsonResponse {
+        $baseRequest = null;
         try {
             $baseRequest = new JsonRPCAPIBaseRequest($request->toArray());
 
@@ -45,6 +50,30 @@ class OvJsonRpcApiController extends AbstractController
                     $value = $allParameter === 'id' ? $baseRequest->getId() : $baseRequest->getParams()[$allParameter] ?? null;
                     $requestInstance->$requestSetter($value);
                 }
+            }
+
+            $validators = [];
+            foreach ($method->getValidators() as $field => $validator) {
+                $validators[$field] = new Assert\Type($validator);
+            }
+
+            $violations = $this->validator->validate($baseRequest->getParams() + ['id' => $baseRequest->getId()], new Assert\Collection($validators));
+
+            if ($violations->count()) {
+                $errs = [];
+
+                foreach ($violations as $violation) {
+                    $errs[] = sprintf('%s - %s', $violation->getPropertyPath(), $violation->getMessage());
+                }
+
+                return $this->json(
+                    new JsonRPCAPIErrorResponse(
+                        JsonRPCAPIException::INVALID_PARAMS,
+                        'Invalid params',
+                        $baseRequest->getId() ?? null,
+                        implode(PHP_EOL, $errs)
+                    )
+                );
             }
 
             $processorClass = $method->getMethodClass();

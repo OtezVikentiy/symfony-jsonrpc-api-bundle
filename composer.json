@@ -1,7 +1,7 @@
 {
     "name": "otezvikentiy/json-rpc-api",
     "description": "Symfony Json RPC API bundle",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "stability": "stable",
     "minimum-stability": "stable",
     "keywords": ["symfony", "bundle"],
@@ -20,14 +20,18 @@
         "php": ">=8.1",
         "doctrine/annotations": "^2.0",
         "symfony/framework-bundle": "^6.0",
-        "symfony/yaml": "^6.0"
+        "symfony/yaml": "^6.0",
+        "symfony/validator": "^6.0",
+        "symfony/serializer": "^6.0"
     },
     "require-dev": {
         "php": ">=8.1",
         "doctrine/annotations": "^2.0",
         "symfony/framework-bundle": "^6.0",
         "symfony/yaml": "^6.0",
-        "phpunit/phpunit": "^10.3"
+        "phpunit/phpunit": "^10.3",
+        "symfony/validator": "^6.0",
+        "symfony/serializer": "^6.0"
     },
     "authors": [
         {
