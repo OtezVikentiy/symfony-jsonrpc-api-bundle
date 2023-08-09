@@ -1,4 +1,12 @@
 <?php
+/*
+ * This file is part of the OtezVikentiy Json RPC API package.
+ *
+ * (c) Leonid Groshev <otezvikentiy@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace OV\JsonRPCAPIBundle\Controller;
 
@@ -25,7 +33,7 @@ class ApiController extends AbstractController
 
             $method = $specCollection->getMethodSpec($baseRequest->getMethod());
 
-            $requestClass = $method->getRequest();
+            $requestClass      = $method->getRequest();
             $constructorParams = [];
             foreach ($method->getRequiredParameters() as $requiredParameter) {
                 if ($requiredParameter === 'id') {
@@ -39,7 +47,7 @@ class ApiController extends AbstractController
 
             foreach ($method->getAllParameters() as $allParameter) {
                 $requestSetter = $method->getRequestSetters()[$allParameter] ?? null;
-                if (!is_null($requestSetter)) {
+                if ( ! is_null($requestSetter)) {
                     $value = $allParameter === 'id' ? $baseRequest->getId() : $baseRequest->getParams()[$allParameter] ?? null;
                     $requestInstance->$requestSetter($value);
                 }
@@ -50,7 +58,8 @@ class ApiController extends AbstractController
                 $validators[$field] = new Assert\Type($validatorItem);
             }
 
-            $violations = $validator->validate($baseRequest->getParams() + ['id' => $baseRequest->getId()], new Assert\Collection($validators));
+            $violations = $validator->validate($baseRequest->getParams() + ['id' => $baseRequest->getId()],
+                new Assert\Collection($validators));
 
             if ($violations->count()) {
                 $errs = [];
@@ -70,9 +79,9 @@ class ApiController extends AbstractController
             }
 
             $processorClass = $method->getMethodClass();
-            $processor = new $processorClass();
+            $processor      = new $processorClass();
 
-            $result = $processor->call($requestInstance);
+            $result   = $processor->call($requestInstance);
             $response = new BaseResponse($result);
         } catch (JRPCException $e) {
             return $this->json(new ErrorResponse(

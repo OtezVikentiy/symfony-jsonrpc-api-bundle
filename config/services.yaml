@@ -22,11 +22,3 @@ services:
         autoconfigure: true
         public: true
         tags: ['controller.service_arguments']
-#    OV\JsonRPCAPIBundle\Controller\ApiController:
-#        alias: '@ov_json_rpc_api_index_controller'
-
-#    pgb.password_generator:
-#        class: PassGeneratorBundle\Service\PassGenerator
-#        arguments:
-#            $passContents: '@pgb.default_pass_contents'
-#    PassGeneratorBundle\Service\PassGenerator: '@pgb.password_generator'

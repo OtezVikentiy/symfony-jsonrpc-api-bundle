@@ -1,57 +1,75 @@
 <?php
+/*
+ * This file is part of the OtezVikentiy Json RPC API package.
+ *
+ * (c) Leonid Groshev <otezvikentiy@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace OV\JsonRPCAPIBundle\Core;
 
 class BaseRequest
 {
-    private mixed $jsonrpc;
-    private mixed $method;
-    private mixed $params;
-    private mixed $id;
+    private string $jsonrpc;
+    private string $method;
+    private array $params;
+    private int $id;
 
-    public function __construct(
-        array $data
-    ) {
-        if (empty($data['jsonrpc'])) throw new JRPCException('BaseRequest jsonrpc field is absent', JRPCException::INVALID_REQUEST);
-        if (empty($data['method'])) throw new JRPCException('BaseRequest method field is absent', JRPCException::INVALID_REQUEST);
-        if (empty($data['params'])) throw new JRPCException('BaseRequest params field is absent', JRPCException::INVALID_REQUEST);
+    /**
+     * @param array $data
+     *
+     * @throws JRPCException
+     */
+    public function __construct(array $data)
+    {
+        if (empty($data['jsonrpc'])) {
+            throw new JRPCException('BaseRequest jsonrpc field is absent', JRPCException::INVALID_REQUEST);
+        }
+        if (empty($data['method'])) {
+            throw new JRPCException('BaseRequest method field is absent', JRPCException::INVALID_REQUEST);
+        }
+        if (empty($data['params'])) {
+            throw new JRPCException('BaseRequest params field is absent', JRPCException::INVALID_REQUEST);
+        }
 
         $this->jsonrpc = $data['jsonrpc'];
-        $this->method = $data['method'];
-        $this->params = $data['params'];
-        if (!empty($data['id'])) {
+        $this->method  = $data['method'];
+        $this->params  = $data['params'];
+        if ( ! empty($data['id'])) {
             $this->id = $data['id'];
         }
     }
 
     /**
-     * @return mixed
+     * @return string
      */
-    public function getJsonrpc(): mixed
+    public function getJsonrpc(): string
     {
         return $this->jsonrpc;
     }
 
     /**
-     * @return mixed
+     * @return string
      */
-    public function getMethod(): mixed
+    public function getMethod(): string
     {
         return $this->method;
     }
 
     /**
-     * @return mixed
+     * @return array
      */
-    public function getParams(): mixed
+    public function getParams(): array
     {
         return $this->params;
     }
 
     /**
-     * @return mixed
+     * @return int
      */
-    public function getId(): mixed
+    public function getId(): int
     {
         return $this->id;
     }

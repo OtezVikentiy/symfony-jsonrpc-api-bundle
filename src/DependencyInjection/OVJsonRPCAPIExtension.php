@@ -1,4 +1,12 @@
 <?php
+/*
+ * This file is part of the OtezVikentiy Json RPC API package.
+ *
+ * (c) Leonid Groshev <otezvikentiy@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace OV\JsonRPCAPIBundle\DependencyInjection;
 
@@ -7,13 +15,13 @@ use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
-use Symfony\Component\DependencyInjection\Reference;
 
 class OVJsonRPCAPIExtension extends Extension
 {
     /**
-     * @param array $configs
+     * @param array            $configs
      * @param ContainerBuilder $container
+     *
      * @return void
      * @throws Exception
      */
@@ -21,27 +29,9 @@ class OVJsonRPCAPIExtension extends Extension
     {
         $loader = new YamlFileLoader(
             $container,
-            new FileLocator(dirname(__DIR__).'/../config')
+            new FileLocator(dirname(__DIR__) . '/../config')
         );
         $loader->load('services.yaml');
-        //$loader->load('routes.yaml');
-
-        $configuration = $this->getConfiguration($configs, $container);
-
-        $config = $this->processConfiguration($configuration, $configs);
-
-//        $definition = $container->getDefinition('pgb.password_generator');
-//
-//        $definition->setArgument('$numbers', $config['numbers']);
-//        $definition->setArgument('$upperCase', $config['upperCase']);
-//        $definition->setArgument('$lowerCase', $config['lowerCase']);
-//        $definition->setArgument('$specialChars', $config['specialChars']);
-//        $definition->setArgument('$length', $config['passwordLength']);
-
-        //if (!empty($config['passContentsInterface'])) {
-            //$container->setAlias('pgb.default_pass_contents', $config['passContentsInterface']);
-            //$definition->setArgument('$passContents', new Reference($config['passContentsInterface']));
-        //}
     }
 
     public function getAlias(): string

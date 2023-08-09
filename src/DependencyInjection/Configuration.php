@@ -1,4 +1,13 @@
 <?php
+/*
+ * This file is part of the OtezVikentiy Json RPC API package.
+ *
+ * (c) Leonid Groshev <otezvikentiy@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace OV\JsonRPCAPIBundle\DependencyInjection;
 
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
@@ -8,19 +17,6 @@ class Configuration implements ConfigurationInterface
 {
     public function getConfigTreeBuilder(): TreeBuilder
     {
-        $treeBuilder = new TreeBuilder('ov_json_rpc_api');
-
-        /*$treeBuilder->getRootNode()
-            ->children()
-                ->integerNode('passwordLength')->defaultValue(15)->end()
-                ->scalarNode('passContentsInterface')->defaultNull()->info('PassContentsInterface realisation should be passed here')->end()
-                ->booleanNode('numbers')->defaultTrue()->end()
-                ->booleanNode('upperCase')->defaultTrue()->end()
-                ->booleanNode('lowerCase')->defaultTrue()->end()
-                ->booleanNode('specialChars')->defaultTrue()->end()
-            ->end()
-        ;*/
-
-        return $treeBuilder;
+        return new TreeBuilder('ov_json_rpc_api');
     }
 }

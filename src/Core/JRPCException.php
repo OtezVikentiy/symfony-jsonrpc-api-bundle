@@ -1,4 +1,12 @@
 <?php
+/*
+ * This file is part of the OtezVikentiy Json RPC API package.
+ *
+ * (c) Leonid Groshev <otezvikentiy@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace OV\JsonRPCAPIBundle\Core;
 
@@ -19,12 +27,18 @@ class JRPCException extends Exception
      * @param int $code
      * @param string $additionalInfo
      * @param Throwable|null $previous
+     *
      * @throws Exception
      */
-    public function __construct(string $message, int $code, private readonly string $additionalInfo = '', ?Throwable $previous = null)
-    {
-        if ($code < -32000 && $code > 32099 && !in_array($code, [-32700, -32600, -32601, -32602, -32603]))
+    public function __construct(
+        string $message,
+        int $code,
+        private readonly string $additionalInfo = '',
+        ?Throwable $previous = null
+    ) {
+        if ($code < -32000 && $code > 32099 && ! in_array($code, [-32700, -32600, -32601, -32602, -32603])) {
             throw new Exception(sprintf('Undefined code %s for JsonRPCAPIException.', $code));
+        }
 
         parent::__construct($message, $code, $previous);
     }
