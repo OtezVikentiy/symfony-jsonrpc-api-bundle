@@ -59,9 +59,9 @@ tags in it all the classes ending in `*Method.php` - these will be our API endpo
     └── RPC
         └── V1
             └── getProducts
-                ├── getProductsRequest.php
-                └── getProductsResponse.php
-            └── getProductsMethod.php
+                ├── GetProductsRequest.php
+                └── GetProductsResponse.php
+            └── GetProductsMethod.php
 ```
 
 Create the following classes:
