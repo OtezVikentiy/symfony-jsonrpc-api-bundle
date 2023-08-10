@@ -14,9 +14,9 @@ use OV\JsonRPCAPIBundle\Core\{BaseRequest, BaseResponse, ErrorResponse, JRPCExce
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\{JsonResponse, Request};
-use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
 
 class ApiController extends AbstractController
@@ -47,7 +47,7 @@ class ApiController extends AbstractController
 
             foreach ($method->getAllParameters() as $allParameter) {
                 $requestSetter = $method->getRequestSetters()[$allParameter] ?? null;
-                if ( ! is_null($requestSetter)) {
+                if (!is_null($requestSetter)) {
                     $value = $allParameter === 'id' ? $baseRequest->getId() : $baseRequest->getParams()[$allParameter] ?? null;
                     $requestInstance->$requestSetter($value);
                 }
@@ -58,8 +58,10 @@ class ApiController extends AbstractController
                 $validators[$field] = new Assert\Type($validatorItem);
             }
 
-            $violations = $validator->validate($baseRequest->getParams() + ['id' => $baseRequest->getId()],
-                new Assert\Collection($validators));
+            $violations = $validator->validate(
+                $baseRequest->getParams() + ['id' => $baseRequest->getId()],
+                new Assert\Collection($validators)
+            );
 
             if ($violations->count()) {
                 $errs = [];
@@ -84,18 +86,22 @@ class ApiController extends AbstractController
             $result   = $processor->call($requestInstance);
             $response = new BaseResponse($result);
         } catch (JRPCException $e) {
-            return $this->json(new ErrorResponse(
-                $e->getCode(),
-                $e->getMessage(),
-                $baseRequest?->getId() ?? null,
-                $e->getAdditionalInfo(),
-            ));
+            return $this->json(
+                new ErrorResponse(
+                    $e->getCode(),
+                    $e->getMessage(),
+                    $baseRequest?->getId() ?? null,
+                    $e->getAdditionalInfo(),
+                )
+            );
         } catch (Throwable $e) {
-            return $this->json(new ErrorResponse(
-                JRPCException::INTERNAL_ERROR,
-                $e->getMessage(),
-                $baseRequest?->getId() ?? null,
-            ));
+            return $this->json(
+                new ErrorResponse(
+                    JRPCException::INTERNAL_ERROR,
+                    $e->getMessage(),
+                    $baseRequest?->getId() ?? null,
+                )
+            );
         }
 
         return $this->json($response);

@@ -60,18 +60,20 @@ class CompilerPass implements CompilerPassInterface
             $methodReflectionClass = new ReflectionClass($className);
 
             $classAnnotation = $this->annotationReader->getClassAnnotation($methodReflectionClass, JsonRPCAPI::class);
-            if ( ! $classAnnotation) {
+            if (!$classAnnotation) {
                 continue;
             }
 
             $methodName = $classAnnotation->getMethodName();
 
-            if ( ! $methodReflectionClass->hasMethod(self::CALL_METHOD)) {
-                throw new \RuntimeException(sprintf(
-                    'Method %s::%s is not defined',
-                    $className,
-                    self::CALL_METHOD
-                ));
+            if (!$methodReflectionClass->hasMethod(self::CALL_METHOD)) {
+                throw new \RuntimeException(
+                    sprintf(
+                        'Method %s::%s is not defined',
+                        $className,
+                        self::CALL_METHOD
+                    )
+                );
             }
 
             $allParameters           = [];
@@ -91,7 +93,7 @@ class CompilerPass implements CompilerPassInterface
                     foreach ($requestMethods as $requestSingleMethod) {
                         if (str_contains($requestSingleMethod->getName(), 'set')) {
                             $name = $requestSingleMethod->getParameters()[0]?->getName() ?? null;
-                            if ( ! is_null($name)) {
+                            if (!is_null($name)) {
                                 $requestSetters[$name] = $requestSingleMethod->getName();
                             }
                         }
@@ -150,17 +152,25 @@ class CompilerPass implements CompilerPassInterface
             $setter                         = $methodsIdx['set' . ucfirst($name)];
             $setterAndPropertyTypesAreEqual = $setter->getParameters()[0]->getType()->getName() !== $type;
             if ($setterAndPropertyTypesAreEqual) {
-                throw new Exception(sprintf(
-                    'Property %s of method %s has invalid data type in setter %s',
-                    $name, $requestReflection->getName(), $setter->getName()
-                ));
+                throw new Exception(
+                    sprintf(
+                        'Property %s of method %s has invalid data type in setter %s',
+                        $name,
+                        $requestReflection->getName(),
+                        $setter->getName()
+                    )
+                );
             }
             $getterAndPropertyTypesAreEqual = $getter->getReturnType()->getName() !== $type;
             if ($getterAndPropertyTypesAreEqual) {
-                throw new Exception(sprintf(
-                    'Property %s of method %s has invalid data type in getter %s',
-                    $name, $requestReflection->getName(), $getter->getName()
-                ));
+                throw new Exception(
+                    sprintf(
+                        'Property %s of method %s has invalid data type in getter %s',
+                        $name,
+                        $requestReflection->getName(),
+                        $getter->getName()
+                    )
+                );
             }
 
             $validatorsIdx[$name] = $type;

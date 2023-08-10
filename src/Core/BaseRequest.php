@@ -37,7 +37,7 @@ class BaseRequest
         $this->jsonrpc = $data['jsonrpc'];
         $this->method  = $data['method'];
         $this->params  = $data['params'];
-        if ( ! empty($data['id'])) {
+        if (!empty($data['id'])) {
             $this->id = $data['id'];
         }
     }

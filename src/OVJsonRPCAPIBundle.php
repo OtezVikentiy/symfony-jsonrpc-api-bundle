@@ -11,9 +11,9 @@
 namespace OV\JsonRPCAPIBundle;
 
 use OV\JsonRPCAPIBundle\DependencyInjection\CompilerPassBuilder;
+use OV\JsonRPCAPIBundle\DependencyInjection\OVJsonRPCAPIExtension;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
-use OV\JsonRPCAPIBundle\DependencyInjection\OVJsonRPCAPIExtension;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 
 class OVJsonRPCAPIBundle extends AbstractBundle

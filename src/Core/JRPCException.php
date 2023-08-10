@@ -23,9 +23,9 @@ class JRPCException extends Exception
         SERVER_ERROR = -32000; //[-32000;-32099] - Server error codes reserved for implementation-defined server-errors.
 
     /**
-     * @param string $message
-     * @param int $code
-     * @param string $additionalInfo
+     * @param string         $message
+     * @param int            $code
+     * @param string         $additionalInfo
      * @param Throwable|null $previous
      *
      * @throws Exception
@@ -36,7 +36,7 @@ class JRPCException extends Exception
         private readonly string $additionalInfo = '',
         ?Throwable $previous = null
     ) {
-        if ($code < -32000 && $code > 32099 && ! in_array($code, [-32700, -32600, -32601, -32602, -32603])) {
+        if ($code < -32000 && $code > 32099 && !in_array($code, [-32700, -32600, -32601, -32602, -32603])) {
             throw new Exception(sprintf('Undefined code %s for JsonRPCAPIException.', $code));
         }
 

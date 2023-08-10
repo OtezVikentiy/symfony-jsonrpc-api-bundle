@@ -10,8 +10,6 @@
 
 namespace OV\JsonRPCAPIBundle\Core;
 
-use Exception;
-
 class ErrorResponse
 {
     public function __construct(

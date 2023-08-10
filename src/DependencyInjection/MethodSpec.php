@@ -28,7 +28,6 @@ class MethodSpec
         private readonly array $requestSetters,
         private readonly array $validators,
     ) {
-
     }
 
     public function getValidators(): array

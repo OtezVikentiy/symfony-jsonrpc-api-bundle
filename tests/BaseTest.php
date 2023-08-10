@@ -83,14 +83,16 @@ class BaseTest extends TestCase
         $serializer
             ->expects($this->once())
             ->method('serialize')
-            ->willReturn(json_encode([
-                'jsonrpc' => '2.0',
-                'result'  => [
-                    'title'   => 'AZAZAZA',
-                    'success' => true,
-                ],
-                'id'      => null,
-            ]));
+            ->willReturn(
+                json_encode([
+                    'jsonrpc' => '2.0',
+                    'result'  => [
+                        'title'   => 'AZAZAZA',
+                        'success' => true,
+                    ],
+                    'id'      => null,
+                ])
+            );
         $container
             ->expects($this->once())
             ->method('get')
@@ -103,13 +105,16 @@ class BaseTest extends TestCase
 
         $this->assertInstanceOf(JsonResponse::class, $result);
         $this->assertEquals(200, $result->getStatusCode());
-        $this->assertEquals(json_encode([
-            'jsonrpc' => '2.0',
-            'result'  => [
-                'title'   => 'AZAZAZA',
-                'success' => true,
-            ],
-            'id'      => null,
-        ]), $result->getContent());
+        $this->assertEquals(
+            json_encode([
+                'jsonrpc' => '2.0',
+                'result'  => [
+                    'title'   => 'AZAZAZA',
+                    'success' => true,
+                ],
+                'id'      => null,
+            ]),
+            $result->getContent()
+        );
     }
 }

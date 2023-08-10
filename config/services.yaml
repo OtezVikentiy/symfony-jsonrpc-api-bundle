@@ -1,24 +1,24 @@
 parameters:
 
 services:
-    _defaults:
-        autowire: true
-        public: false
-        autoconfigure: true
+  _defaults:
+    autowire: true
+    public: false
+    autoconfigure: true
 
-    OV\JsonRPCAPIBundle\:
-        resource: '../src/'
-        exclude:
-            - '../src/DependencyInjection/'
-            - '../src/OVJsonRPCAPIBundle.php'
+  OV\JsonRPCAPIBundle\:
+    resource: '../src/'
+    exclude:
+      - '../src/DependencyInjection/'
+      - '../src/OVJsonRPCAPIBundle.php'
 
-    OV\JsonRPCAPIBundle\RPC\V1\:
-        resource: '../src/RPC/V1/{*Method.php}'
-        tags:
-            - { name: ov.rpc.method, namespace: OV\JsonRPCAPIBundle\RPC\V1\, version: 1 }
+  OV\JsonRPCAPIBundle\RPC\V1\:
+    resource: '../src/RPC/V1/{*Method.php}'
+    tags:
+      - { name: ov.rpc.method, namespace: OV\JsonRPCAPIBundle\RPC\V1\, version: 1 }
 
-    ov_json_rpc_api_index_controller:
-        class: OV\JsonRPCAPIBundle\Controller\ApiController
-        autoconfigure: true
-        public: true
-        tags: ['controller.service_arguments']
+  ov_json_rpc_api_index_controller:
+    class: OV\JsonRPCAPIBundle\Controller\ApiController
+    autoconfigure: true
+    public: true
+    tags: [ 'controller.service_arguments' ]

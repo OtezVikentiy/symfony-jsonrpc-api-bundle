@@ -29,7 +29,7 @@ class MethodSpecCollection
      */
     public function addMethodSpec(string $methodName, MethodSpec $methodSpec): void
     {
-        if ( ! empty($this->methodSpecs[$methodName])) {
+        if (!empty($this->methodSpecs[$methodName])) {
             throw new Exception(sprintf('Method name %s already in use.', $methodName));
         }
 
@@ -43,11 +43,13 @@ class MethodSpecCollection
      */
     public function getMethodSpec(string $methodName): MethodSpec
     {
-        if ( ! isset($this->methodSpecs[$methodName])) {
-            throw new RuntimeException(sprintf(
-                'Method with name %s not found',
-                $methodName
-            ));
+        if (!isset($this->methodSpecs[$methodName])) {
+            throw new RuntimeException(
+                sprintf(
+                    'Method with name %s not found',
+                    $methodName
+                )
+            );
         }
 
         return $this->methodSpecs[$methodName];
