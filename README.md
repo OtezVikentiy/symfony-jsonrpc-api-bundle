@@ -9,6 +9,8 @@ The bundle allows you to quickly and conveniently deploy JSON RPC API applicatio
 
 gitflick: https://gitflic.ru/project/otezvikentiy/json-rpc-api
 
+Мануал: https://otezvikentiy.tech/articles/symfony-json-rpc-api-bundle-prostoe-api-so-vsem-neobhodimym
+
 # Bundle installation
 
 Require the bundle as a dependency.
@@ -213,7 +215,9 @@ In total, in order to create a new endpoint for your RPC API, you only need to a
 ## Security
 
 You can also add token authorization like this:
+
 1) create src/Entity/ApiToken.php
+
 ```php
 <?php
 
@@ -333,6 +337,7 @@ class ApiToken
 ```
 
 2) create src/Security/ApiKeyAuthenticator.php
+
 ```php
 <?php
 
@@ -442,6 +447,7 @@ security:
                 property: email
     firewalls:
         api:
+            pattern: ^/api
             provider: app_user_provider
             custom_authenticators:
                 - App\Security\ApiKeyAuthenticator
