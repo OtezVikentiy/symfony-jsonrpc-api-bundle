@@ -17,7 +17,8 @@ use Symfony\Contracts\Service\Attribute\Required;
  * @Annotation
  * @Target("CLASS")
  */
-#[Attribute] class JsonRPCAPI
+#[Attribute(Attribute::TARGET_CLASS)]
+class JsonRPCAPI
 {
     /**
      * @Required
