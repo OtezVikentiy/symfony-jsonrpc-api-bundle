@@ -203,7 +203,7 @@ curl --header "Content-Type: application/json" --request POST --data '{"jsonrpc"
 And the answer will be something like this:
 
 ```bash
-{"title":"AZAZAZAOLOLOLOLO","success":true}
+{"jsonrpc":"2.0","result":{"title":"AZAZAZAOLOLOLOLO","success":true},"id":null}
 ```
 In total, in order to create a new endpoint for your RPC API, you only need to add 3 classes - this is the method itself and the folder with the request and response.
 
