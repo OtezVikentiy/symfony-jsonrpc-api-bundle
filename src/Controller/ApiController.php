@@ -36,56 +36,59 @@ class ApiController extends AbstractController
             $method = $specCollection->getMethodSpec($baseRequest->getMethod());
 
             $requestClass      = $method->getRequest();
-            $constructorParams = [];
-            foreach ($method->getRequiredParameters() as $requiredParameter) {
-                if ($requiredParameter === 'id') {
-                    $constructorParams[] = $baseRequest->getId();
-                    continue;
-                }
-                $constructorParams[] = $baseRequest->getParams()[$requiredParameter] ?? null;
-            }
-
-            $requestInstance = new $requestClass(...$constructorParams);
-
-            foreach ($method->getAllParameters() as $allParameter) {
-                $requestSetter = $method->getRequestSetters()[$allParameter] ?? null;
-                if (!is_null($requestSetter)) {
-                    $value = $allParameter === 'id' ? $baseRequest->getId() : $baseRequest->getParams()[$allParameter] ?? null;
-                    $requestInstance->$requestSetter($value);
-                }
-            }
-
-            $validators = [];
-            foreach ($method->getValidators() as $field => $validatorItem) {
-                $validators[$field] = new Assert\Type($validatorItem);
-            }
-
-            $violations = $validator->validate(
-                $baseRequest->getParams() + ['id' => $baseRequest->getId()],
-                new Assert\Collection($validators)
-            );
-
-            if ($violations->count()) {
-                $errs = [];
-
-                foreach ($violations as $violation) {
-                    $errs[] = sprintf('%s - %s', $violation->getPropertyPath(), $violation->getMessage());
+            if (!is_null($requestClass)) {
+                $constructorParams = [];
+                foreach ($method->getRequiredParameters() as $requiredParameter) {
+                    if ($requiredParameter === 'id') {
+                        $constructorParams[] = $baseRequest->getId();
+                        continue;
+                    }
+                    $constructorParams[] = $baseRequest->getParams()[$requiredParameter] ?? null;
                 }
 
-                return $this->json(
-                    new ErrorResponse(
-                        JRPCException::INVALID_PARAMS,
-                        'Invalid params',
-                        $baseRequest->getId() ?? null,
-                        implode(PHP_EOL, $errs)
-                    )
+                $requestInstance = new $requestClass(...$constructorParams);
+
+                foreach ($method->getAllParameters() as $allParameter) {
+                    $requestSetter = $method->getRequestSetters()[$allParameter] ?? null;
+                    if (!is_null($requestSetter)) {
+                        $value = $allParameter === 'id' ? $baseRequest->getId() : $baseRequest->getParams(
+                        )[$allParameter] ?? null;
+                        $requestInstance->$requestSetter($value);
+                    }
+                }
+
+                $validators = [];
+                foreach ($method->getValidators() as $field => $validatorItem) {
+                    $validators[$field] = new Assert\Type($validatorItem);
+                }
+
+                $violations = $validator->validate(
+                    $baseRequest->getParams() + ['id' => $baseRequest->getId()],
+                    new Assert\Collection($validators)
                 );
+
+                if ($violations->count()) {
+                    $errs = [];
+
+                    foreach ($violations as $violation) {
+                        $errs[] = sprintf('%s - %s', $violation->getPropertyPath(), $violation->getMessage());
+                    }
+
+                    return $this->json(
+                        new ErrorResponse(
+                            JRPCException::INVALID_PARAMS,
+                            'Invalid params',
+                            $baseRequest->getId() ?? null,
+                            implode(PHP_EOL, $errs)
+                        )
+                    );
+                }
             }
 
             $processorClass = $method->getMethodClass();
             $processor      = $container->get($processorClass);
 
-            $result   = $processor->call($requestInstance);
+            $result   = $processor->call($requestInstance ?? null);
             $response = new BaseResponse($result);
         } catch (JRPCException $e) {
             return $this->json(

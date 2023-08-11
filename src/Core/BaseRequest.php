@@ -30,7 +30,7 @@ class BaseRequest
         if (empty($data['method'])) {
             throw new JRPCException('BaseRequest method field is absent', JRPCException::INVALID_REQUEST);
         }
-        if (empty($data['params'])) {
+        if (!isset($data['params']) && !is_array($data['params'])) {
             throw new JRPCException('BaseRequest params field is absent', JRPCException::INVALID_REQUEST);
         }
 
