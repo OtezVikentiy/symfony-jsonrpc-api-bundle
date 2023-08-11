@@ -16,6 +16,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\Test\TestRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\TestMethod;
 use PHPUnit\Framework\MockObject\Exception;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\HttpFoundation\{JsonResponse, Request};
 use Symfony\Component\Serializer\Debug\TraceableSerializer;
@@ -101,7 +102,13 @@ class BaseTest extends TestCase
         $controller = new ApiController();
         $controller->setContainer($container);
 
-        $result = $controller->index($request, $methodSpecCollection, $validator);
+        $anotherContainer = $this->createMock(Container::class);
+        $anotherContainer
+            ->expects($this->once())
+            ->method('get')
+            ->willReturn(new TestMethod());
+
+        $result = $controller->index($request, $methodSpecCollection, $validator, $anotherContainer);
 
         $this->assertInstanceOf(JsonResponse::class, $result);
         $this->assertEquals(200, $result->getStatusCode());
