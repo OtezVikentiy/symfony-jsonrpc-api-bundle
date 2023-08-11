@@ -56,6 +56,7 @@ class CompilerPass implements CompilerPassInterface
 
             $methodDefinition->setPublic(true);
             $methodDefinition->setAutowired(true);
+            $methodDefinition->setAutoconfigured(true);
 
             $methodReflectionClass = new ReflectionClass($className);
 
@@ -101,7 +102,7 @@ class CompilerPass implements CompilerPassInterface
                 }
             }
 
-            $methodAlias            = $this->getMethodAlias($methodName, $tag['namespace'] ?? '');
+            $methodAlias            = $this->getMethodAlias($methodName, $tags[0]['namespace'] ?? '');
             $methodSpecDefinitionId = uniqid('OV_JSON_RPC_API_' . $methodAlias, true);
             $methodSpec             = $container->register($methodSpecDefinitionId, MethodSpec::class);
 
@@ -112,7 +113,7 @@ class CompilerPass implements CompilerPassInterface
                 $methodRequestReflection?->getName() ?? null,
                 $requestSetters,
                 $validators,
-            ]);
+            ])->setPublic(true)->setAutowired(true)->setAutoconfigured(true);
 
             $methodSpecCollectionDefinition->addMethodCall(
                 'addMethodSpec',

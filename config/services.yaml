@@ -21,4 +21,7 @@ services:
     class: OV\JsonRPCAPIBundle\Controller\ApiController
     autoconfigure: true
     public: true
-    tags: [ 'controller.service_arguments' ]
+    tags:
+      - 'controller.service_arguments'
+
+  Symfony\Component\DependencyInjection\Container: '@service_container'

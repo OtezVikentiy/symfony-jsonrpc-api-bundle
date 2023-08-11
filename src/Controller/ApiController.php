@@ -14,6 +14,7 @@ use OV\JsonRPCAPIBundle\Core\{BaseRequest, BaseResponse, ErrorResponse, JRPCExce
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\{JsonResponse, Request};
+use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -25,7 +26,8 @@ class ApiController extends AbstractController
     public function index(
         Request $request,
         MethodSpecCollection $specCollection,
-        ValidatorInterface $validator
+        ValidatorInterface $validator,
+        Container $container
     ): JsonResponse {
         $baseRequest = null;
         try {
@@ -81,7 +83,7 @@ class ApiController extends AbstractController
             }
 
             $processorClass = $method->getMethodClass();
-            $processor      = new $processorClass();
+            $processor      = $container->get($processorClass);
 
             $result   = $processor->call($requestInstance);
             $response = new BaseResponse($result);
