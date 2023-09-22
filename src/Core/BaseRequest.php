@@ -15,7 +15,7 @@ class BaseRequest
     private string $jsonrpc;
     private string $method;
     private array $params;
-    private int $id;
+    private ?int $id = null;
 
     /**
      * @param array $data
@@ -69,7 +69,7 @@ class BaseRequest
     /**
      * @return int
      */
-    public function getId(): int
+    public function getId(): ?int
     {
         return $this->id;
     }
