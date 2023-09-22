@@ -62,8 +62,12 @@ class ApiController extends AbstractController
                     $validators[$field] = new Assert\Type($validatorItem);
                 }
 
+                $requestData = $baseRequest->getParams();
+                if (!is_null($baseRequest->getId())) {
+                    $requestData = $requestData + ['id' => $baseRequest->getId()];
+                }
                 $violations = $validator->validate(
-                    $baseRequest->getParams() + ['id' => $baseRequest->getId()],
+                    $requestData,
                     new Assert\Collection($validators)
                 );
 
