@@ -5,11 +5,15 @@ The bundle allows you to quickly and conveniently deploy JSON RPC API applicatio
 ## Features
 - versioning
 - easy integration
-- compatible with https://www.jsonrpc.org/specification
+- autotested
+- examples in code
+- compatible with both annotations and attributes
+- compatible with POST, GET, PUT, PATCH, DELETE requests
+- fully compatible with https://www.jsonrpc.org/specification
 
-gitflick: https://gitflic.ru/project/otezvikentiy/json-rpc-api
+github: https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle
 
-Мануал: https://otezvikentiy.tech/articles/symfony-json-rpc-api-bundle-prostoe-api-so-vsem-neobhodimym
+Instructions: https://otezvikentiy.tech/articles/symfony-json-rpc-api-bundle-prostoe-api-so-vsem-neobhodimym
 
 # Bundle installation
 
@@ -182,9 +186,9 @@ use App\RPC\V1\getProducts\GetProductsRequest;
 use App\RPC\V1\getProducts\GetProductsResponse;
 
 /**
- * @JsonRPCAPI(methodName = "getProducts")
+ * @JsonRPCAPI(methodName = "getProducts", type: "POST")
  */
-#[JsonRPCAPI(methodName: 'getProducts')]
+#[JsonRPCAPI(methodName: 'getProducts', type: 'POST')]
 class GetProductsMethod
 {
     /**
@@ -205,7 +209,7 @@ curl --header "Content-Type: application/json" --request POST --data '{"jsonrpc"
 And the answer will be something like this:
 
 ```bash
-{"jsonrpc":"2.0","result":{"title":"AZAZAZAOLOLOLOLO","success":true},"id":null}
+{"jsonrpc":"2.0","result":{"title":"AZAZAZAOLOLOLOLO","success":true},"id":"1"}
 ```
 In total, in order to create a new endpoint for your RPC API, you only need to add 3 classes - this is the method itself and the folder with the request and response.
 

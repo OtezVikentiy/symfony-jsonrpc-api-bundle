@@ -14,62 +14,46 @@ class BaseRequest
 {
     private string $jsonrpc;
     private string $method;
-    private array $params;
-    private ?int $id = null;
+    private array $params = [];
+    private ?string $id = null;
 
-    /**
-     * @param array $data
-     *
-     * @throws JRPCException
-     */
     public function __construct(array $data)
     {
-        if (empty($data['jsonrpc'])) {
-            throw new JRPCException('BaseRequest jsonrpc field is absent', JRPCException::INVALID_REQUEST);
-        }
-        if (empty($data['method'])) {
-            throw new JRPCException('BaseRequest method field is absent', JRPCException::INVALID_REQUEST);
-        }
-        if (!isset($data['params']) && !is_array($data['params'])) {
-            throw new JRPCException('BaseRequest params field is absent', JRPCException::INVALID_REQUEST);
+        if (
+            empty($data['jsonrpc'])
+            || empty($data['method'])
+            || (!empty($data['params']) && !is_array($data['params']))
+        ) {
+            throw new JRPCException('Invalid Request', JRPCException::INVALID_REQUEST);
         }
 
         $this->jsonrpc = $data['jsonrpc'];
         $this->method  = $data['method'];
-        $this->params  = $data['params'];
+
+        if (!empty($data['params'])) {
+            $this->params = $data['params'];
+        }
         if (!empty($data['id'])) {
             $this->id = $data['id'];
         }
     }
 
-    /**
-     * @return string
-     */
     public function getJsonrpc(): string
     {
         return $this->jsonrpc;
     }
 
-    /**
-     * @return string
-     */
     public function getMethod(): string
     {
         return $this->method;
     }
 
-    /**
-     * @return array
-     */
     public function getParams(): array
     {
         return $this->params;
     }
 
-    /**
-     * @return int
-     */
-    public function getId(): ?int
+    public function getId(): ?string
     {
         return $this->id;
     }

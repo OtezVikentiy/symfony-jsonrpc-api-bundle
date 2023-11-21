@@ -12,38 +12,35 @@ namespace OV\JsonRPCAPIBundle\Core;
 
 class BaseResponse
 {
-    /**
-     * @param mixed    $result
-     * @param int|null $id
-     * @param string   $jsonrpc
-     */
     public function __construct(
         private readonly mixed $result,
-        private readonly ?int $id = null,
+        private readonly ?string $id = null,
         private readonly string $jsonrpc = '2.0'
     ) {
     }
 
-    /**
-     * @return string
-     */
     public function getJsonrpc(): string
     {
         return $this->jsonrpc;
     }
 
-    /**
-     * @return mixed
-     */
     public function getResult(): mixed
     {
+        $ref = new \ReflectionClass($this->result::class);
+        $props = $ref->getProperties();
+        if (count($props) === 1) {
+            $methods = $ref->getMethods();
+            foreach ($methods as $method) {
+                if (str_contains($method->name, 'get')) {
+                    return $this->result->{$method->name}();
+                }
+            }
+        }
+
         return $this->result;
     }
 
-    /**
-     * @return int|null
-     */
-    public function getId(): ?int
+    public function getId(): ?string
     {
         return $this->id;
     }

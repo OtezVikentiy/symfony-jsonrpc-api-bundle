@@ -11,17 +11,17 @@
 namespace OV\JsonRPCAPIBundle\RPC\V1;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
-use OV\JsonRPCAPIBundle\RPC\V1\Test\TestRequest;
-use OV\JsonRPCAPIBundle\RPC\V1\Test\TestResponse;
+use OV\JsonRPCAPIBundle\RPC\V1\NotifySum\NotifySumRequest;
+use OV\JsonRPCAPIBundle\RPC\V1\NotifySum\NotifySumResponse;
 
-#[JsonRPCAPI(methodName: 'test', type: 'POST')]
-class TestMethod
+#[JsonRPCAPI(methodName: 'notify_sum', type: 'POST')]
+class NotifySumMethod
 {
-    public function call(TestRequest $request): TestResponse
+    public function call(NotifySumRequest $request): NotifySumResponse
     {
         //... do some api logic here and return SubtractResponse
         //... use this class as any other service in Symfony
 
-        return new TestResponse($request->getTitle());
+        return new NotifySumResponse();
     }
 }

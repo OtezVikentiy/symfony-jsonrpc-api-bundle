@@ -1,7 +1,7 @@
 {
   "name": "otezvikentiy/json-rpc-api",
   "description": "Symfony Json RPC API bundle",
-  "version": "1.0.21",
+  "version": "1.1.4",
   "stability": "stable",
   "minimum-stability": "stable",
   "keywords": [
@@ -11,7 +11,7 @@
   "type": "symfony-bundle",
   "license": "MIT",
   "support": {
-    "issues": "https://gitflic.ru/project/otezvikentiy/json-rpc-api/issue"
+    "issues": "https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle/issues"
   },
   "autoload": {
     "psr-4": {
@@ -28,7 +28,8 @@
     "symfony/serializer": "^6.0"
   },
   "require-dev": {
-    "phpunit/phpunit": "^10.3"
+    "phpunit/phpunit": "^10.3",
+    "symfony/property-access": "^6.3"
   },
   "authors": [
     {

@@ -11,17 +11,17 @@
 namespace OV\JsonRPCAPIBundle\RPC\V1;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
-use OV\JsonRPCAPIBundle\RPC\V1\Test\TestRequest;
-use OV\JsonRPCAPIBundle\RPC\V1\Test\TestResponse;
+use OV\JsonRPCAPIBundle\RPC\V1\NotifyHello\NotifyHelloRequest;
+use OV\JsonRPCAPIBundle\RPC\V1\NotifyHello\NotifyHelloResponse;
 
-#[JsonRPCAPI(methodName: 'test', type: 'POST')]
-class TestMethod
+#[JsonRPCAPI(methodName: 'notify_hello', type: 'POST')]
+class NotifyHelloMethod
 {
-    public function call(TestRequest $request): TestResponse
+    public function call(NotifyHelloRequest $request): NotifyHelloResponse
     {
         //... do some api logic here and return SubtractResponse
         //... use this class as any other service in Symfony
 
-        return new TestResponse($request->getTitle());
+        return new NotifyHelloResponse();
     }
 }

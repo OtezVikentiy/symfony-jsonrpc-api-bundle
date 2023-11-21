@@ -10,24 +10,41 @@
 
 namespace OV\JsonRPCAPIBundle\Tests;
 
+use Doctrine\Common\Annotations\AnnotationReader;
+use Exception;
 use OV\JsonRPCAPIBundle\Controller\ApiController;
 use OV\JsonRPCAPIBundle\DependencyInjection\{MethodSpec, MethodSpecCollection};
+use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+use OV\JsonRPCAPIBundle\RPC\V1\GetData\GetDataRequest;
+use OV\JsonRPCAPIBundle\RPC\V1\GetDataMethod;
+use OV\JsonRPCAPIBundle\RPC\V1\NotifyHello\NotifyHelloRequest;
+use OV\JsonRPCAPIBundle\RPC\V1\NotifyHelloMethod;
+use OV\JsonRPCAPIBundle\RPC\V1\NotifySum\NotifySumRequest;
+use OV\JsonRPCAPIBundle\RPC\V1\NotifySumMethod;
+use OV\JsonRPCAPIBundle\RPC\V1\Subtract\SubtractRequest;
+use OV\JsonRPCAPIBundle\RPC\V1\Subtract2\Subtract2Request;
+use OV\JsonRPCAPIBundle\RPC\V1\Subtract2Method;
+use OV\JsonRPCAPIBundle\RPC\V1\SubtractMethod;
+use OV\JsonRPCAPIBundle\RPC\V1\Sum\SumRequest;
+use OV\JsonRPCAPIBundle\RPC\V1\SumMethod;
 use OV\JsonRPCAPIBundle\RPC\V1\Test\TestRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\TestMethod;
-use PHPUnit\Framework\MockObject\Exception;
+use OV\JsonRPCAPIBundle\RPC\V1\Update\UpdateRequest;
+use OV\JsonRPCAPIBundle\RPC\V1\UpdateMethod;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ServiceLocator;
-use Symfony\Component\HttpFoundation\{JsonResponse, Request};
-use Symfony\Component\Serializer\Debug\TraceableSerializer;
+use Symfony\Component\HttpFoundation\{JsonResponse, ParameterBag, Request};
+use Symfony\Component\Serializer\DataCollector\SerializerDataCollector;
+use Symfony\Component\Serializer\Debug\TraceableNormalizer;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
+use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class BaseTest extends TestCase
 {
-    /**
-     * @return void
-     */
     public function testCreateRequest()
     {
         $request = new TestRequest(1);
@@ -35,93 +52,1185 @@ class BaseTest extends TestCase
         $this->assertSame(1, $request->getId());
     }
 
-    /**
-     * @return void
-     * @throws Exception
-     */
     public function testController()
     {
-        $request = $this->createMock(Request::class);
-        $request
-            ->expects($this->once())
-            ->method('toArray')
-            ->willReturn([
-                'jsonrpc' => '2.0',
-                'method'  => 'test',
-                'params'  => [
-                    'title' => 'AZAZAZA',
-                ],
-                'id'      => '1',
-            ]);
-
-        $methodSpecCollection = $this->createMock(MethodSpecCollection::class);
-        $methodSpec           = new MethodSpec(
+        $data = [
+            'jsonrpc' => '2.0',
+            'method' => 'test',
+            'params' => [
+                'title' => 'AZAZAZA',
+            ],
+            'id' => '1',
+        ];
+        $methodSpec = new MethodSpec(
             TestMethod::class,
+            'POST',
             ['id', 'title'],
             ['id'],
             TestRequest::class,
             ['id' => 'setId', 'title' => 'setTitle'],
             ['id' => 'int', 'title' => 'string']
         );
-        $methodSpecCollection
-            ->expects($this->once())
-            ->method('getMethodSpec')
-            ->willReturn($methodSpec);
+        $responseData = [
+            'jsonrpc' => '2.0',
+            'result' => [
+                'title' => 'AZAZAZA',
+                'success' => true,
+            ],
+            'id' => '1',
+        ];
+        [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare($data, $methodSpec);
 
-        $validator  = $this->createMock(ValidatorInterface::class);
+        $controller = new ApiController();
+        $controller->setContainer($serviceLocator);
+
+        $result = $controller->index($request, $methodSpecCollection, $validator, $container);
+
+        $this->assertInstanceOf(JsonResponse::class, $result);
+        $this->assertEquals(200, $result->getStatusCode());
+        $this->assertEquals(json_encode($responseData), $result->getContent());
+    }
+
+    public function testRpcCallWithPositionalParameters()
+    {
+        $data = [
+            'jsonrpc' => '2.0',
+            'method' => 'subtract',
+            'params' => [42, 23],
+            'id' => '2',
+        ];
+        $methodSpec = new MethodSpec(
+            SubtractMethod::class,
+            'POST',
+            ['params'],
+            [],
+            SubtractRequest::class,
+            ['params' => 'setParams'],
+            ['params' => 'array']
+        );
+        $responseData = [
+            'jsonrpc' => '2.0',
+            'result' => 19,
+            'id' => '2',
+        ];
+        [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare($data, $methodSpec);
+
+        $controller = new ApiController();
+        $controller->setContainer($serviceLocator);
+
+        $result = $controller->index($request, $methodSpecCollection, $validator, $container);
+
+        $this->assertInstanceOf(JsonResponse::class, $result);
+        $this->assertEquals(200, $result->getStatusCode());
+        $this->assertEquals(json_encode($responseData), $result->getContent());
+    }
+
+    public function testRpcCallWithPositionalParameters2()
+    {
+        $data = [
+            'jsonrpc' => '2.0',
+            'method' => 'subtract',
+            'params' => [23, 42],
+            'id' => '3',
+        ];
+        $methodSpec = new MethodSpec(
+            SubtractMethod::class,
+            'POST',
+            ['params'],
+            [],
+            SubtractRequest::class,
+            ['params' => 'setParams'],
+            ['params' => 'array']
+        );
+        $responseData = [
+            'jsonrpc' => '2.0',
+            'result' => -19,
+            'id' => '3',
+        ];
+        [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare($data, $methodSpec);
+
+        $controller = new ApiController();
+        $controller->setContainer($serviceLocator);
+
+        $result = $controller->index($request, $methodSpecCollection, $validator, $container);
+
+        $this->assertInstanceOf(JsonResponse::class, $result);
+        $this->assertEquals(200, $result->getStatusCode());
+        $this->assertEquals(json_encode($responseData), $result->getContent());
+    }
+
+    public function testRpcCallWithNamedParameters()
+    {
+        $data = [
+            'jsonrpc' => '2.0',
+            'method' => 'subtract2',
+            'params' => [
+                'subtrahend' => 23,
+                'minuend' => 42,
+            ],
+            'id' => '4',
+        ];
+        $methodSpec = new MethodSpec(
+            Subtract2Method::class,
+            'POST',
+            ['subtrahend', 'minuend'],
+            [],
+            Subtract2Request::class,
+            ['subtrahend' => 'setSubtrahend', 'minuend' => 'setMinuend'],
+            ['subtrahend' => 'int', 'minuend' => 'int']
+        );
+        $responseData = [
+            'jsonrpc' => '2.0',
+            'result' => 19,
+            'id' => '4',
+        ];
+        [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare($data, $methodSpec);
+
+        $controller = new ApiController();
+        $controller->setContainer($serviceLocator);
+
+        $result = $controller->index($request, $methodSpecCollection, $validator, $container);
+
+        $this->assertInstanceOf(JsonResponse::class, $result);
+        $this->assertEquals(200, $result->getStatusCode());
+        $this->assertEquals(json_encode($responseData), $result->getContent());
+    }
+
+    public function testRpcCallWithNamedParameters2()
+    {
+        $data = [
+            'jsonrpc' => '2.0',
+            'method' => 'subtract2',
+            'params' => [
+                'minuend' => 42,
+                'subtrahend' => 23,
+            ],
+            'id' => '4',
+        ];
+        $methodSpec = new MethodSpec(
+            Subtract2Method::class,
+            'POST',
+            ['subtrahend', 'minuend'],
+            [],
+            Subtract2Request::class,
+            ['subtrahend' => 'setSubtrahend', 'minuend' => 'setMinuend'],
+            ['subtrahend' => 'int', 'minuend' => 'int']
+        );
+        $responseData = [
+            'jsonrpc' => '2.0',
+            'result' => 19,
+            'id' => '4',
+        ];
+        [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare($data, $methodSpec);
+
+        $controller = new ApiController();
+        $controller->setContainer($serviceLocator);
+
+        $result = $controller->index($request, $methodSpecCollection, $validator, $container);
+
+        $this->assertInstanceOf(JsonResponse::class, $result);
+        $this->assertEquals(200, $result->getStatusCode());
+        $this->assertEquals(json_encode($responseData), $result->getContent());
+    }
+
+    public function testNotification()
+    {
+        $data = [
+            'jsonrpc' => '2.0',
+            'method' => 'update',
+            'params' => [1, 2, 3, 4, 5],
+        ];
+        $methodSpec = new MethodSpec(
+            UpdateMethod::class,
+            'PUT',
+            ['params'],
+            [],
+            UpdateRequest::class,
+            ['params' => 'setParams'],
+            ['params' => 'array']
+        );
+        $responseData = '{}';
+        [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare($data, $methodSpec);
+
+        $controller = new ApiController();
+        $controller->setContainer($serviceLocator);
+
+        $result = $controller->index($request, $methodSpecCollection, $validator, $container);
+
+        $this->assertInstanceOf(JsonResponse::class, $result);
+        $this->assertEquals(200, $result->getStatusCode());
+        $this->assertEquals($responseData, $result->getContent());
+    }
+
+    private function prepare(array $data, MethodSpec $methodSpec)
+    {
+        $request = $this->createMock(Request::class);
+        $inputBag = $this->createMock(ParameterBag::class);
+        $inputBag->expects($this->once())
+            ->method('all')
+            ->willReturn([]);
+        $request->request = $inputBag;
+        $request
+            ->expects($this->once())
+            ->method('getMethod')
+            ->willReturn($methodSpec->getRequestType());
+        $request
+            ->expects($this->once())
+            ->method('getContent')
+            ->willReturn(json_encode($data, JSON_UNESCAPED_UNICODE));
+
+        $annotationReader = new AnnotationReader();
+        $class = $methodSpec->getMethodClass();
+        $methodReflectionClass = new \ReflectionClass(new $class());
+        $classAnnotation = $annotationReader->getClassAnnotation($methodReflectionClass, JsonRPCAPI::class);
+        $methodName = null;
+        if (!is_null($classAnnotation)) {
+            $methodName = $classAnnotation->getMethodName();
+        } else {
+            $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
+            foreach ($attributes as $attribute) {
+                if ($attribute->getName() === JsonRPCAPI::class) {
+                    $methodName = $attribute->getArguments()['methodName'];
+                }
+            }
+        }
+
+        if (is_null($methodName)) {
+            throw new Exception('Could not define method name');
+        }
+
+        $methodSpecCollection = new MethodSpecCollection();
+        $methodSpecCollection->addMethodSpec($methodName, $methodSpec);
+
+        $validator = $this->createMock(ValidatorInterface::class);
         $violations = new ConstraintViolationList();
         $validator
             ->expects($this->once())
             ->method('validate')
             ->willReturn($violations);
 
-        $container = $this->createMock(ServiceLocator::class);
+        $serviceLocator = $this->createMock(ServiceLocator::class);
+        $serviceLocator
+            ->expects($this->any())
+            ->method('has')
+            ->willReturn(true);
+
+        $jsonEncoder = new JsonEncoder();
+        $normalizer = new TraceableNormalizer(new ObjectNormalizer(), new SerializerDataCollector());
+        $serializer = new Serializer(normalizers: [$normalizer], encoders: [$jsonEncoder]);
+
+        $serviceLocator
+            ->expects($this->any())
+            ->method('get')
+            ->willReturn($serializer);
+
+        $container = $this->createMock(Container::class);
+        $methodClass = $methodSpec->getMethodClass();
         $container
+            ->expects($this->once())
+            ->method('get')
+            ->willReturn(new $methodClass());
+
+        return [$serviceLocator, $request, $methodSpecCollection, $validator, $container];
+    }
+
+    public function testNonExistentMethod()
+    {
+        $data = [
+            'jsonrpc' => '2.0',
+            'method' => 'foobar',
+            'id' => '1',
+        ];
+        $methodSpec = new MethodSpec(
+            UpdateMethod::class,
+            'PUT',
+            ['params'],
+            [],
+            UpdateRequest::class,
+            ['params' => 'setParams'],
+            ['params' => 'array']
+        );
+        $responseData = [
+            'jsonrpc' => '2.0',
+            'error' => [
+                'code' => -32601,
+                'message' => 'Method not found'
+            ],
+            'id' => '1'
+        ];
+        [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare2($data, $methodSpec);
+
+        $controller = new ApiController();
+        $controller->setContainer($serviceLocator);
+
+        $result = $controller->index($request, $methodSpecCollection, $validator, $container);
+
+        $this->assertInstanceOf(JsonResponse::class, $result);
+        $this->assertEquals(200, $result->getStatusCode());
+        $this->assertEquals(json_encode($responseData), $result->getContent());
+    }
+
+    private function prepare2(array $data, MethodSpec $methodSpec)
+    {
+        $request = $this->createMock(Request::class);
+        $inputBag = $this->createMock(ParameterBag::class);
+        $inputBag->expects($this->once())
+            ->method('all')
+            ->willReturn([]);
+        $request->request = $inputBag;
+        $request
+            ->expects($this->once())
+            ->method('getMethod')
+            ->willReturn('POST');
+        $request
+            ->expects($this->once())
+            ->method('getContent')
+            ->willReturn(json_encode($data, JSON_UNESCAPED_UNICODE));
+
+        $annotationReader = new AnnotationReader();
+        $class = $methodSpec->getMethodClass();
+        $methodReflectionClass = new \ReflectionClass(new $class());
+        $classAnnotation = $annotationReader->getClassAnnotation($methodReflectionClass, JsonRPCAPI::class);
+        $methodName = null;
+        if (!is_null($classAnnotation)) {
+            $methodName = $classAnnotation->getMethodName();
+        } else {
+            $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
+            foreach ($attributes as $attribute) {
+                if ($attribute->getName() === JsonRPCAPI::class) {
+                    $methodName = $attribute->getArguments()['methodName'];
+                }
+            }
+        }
+
+        if (is_null($methodName)) {
+            throw new Exception('Could not define method name');
+        }
+
+        $methodSpecCollection = new MethodSpecCollection();
+        $methodSpecCollection->addMethodSpec($methodName, $methodSpec);
+
+        $validator = $this->createMock(ValidatorInterface::class);
+
+        $serviceLocator = $this->createMock(ServiceLocator::class);
+        $serviceLocator
             ->expects($this->once())
             ->method('has')
             ->willReturn(true);
-        $serializer = $this->createMock(TraceableSerializer::class);
-        $serializer
-            ->expects($this->once())
-            ->method('serialize')
-            ->willReturn(
-                json_encode([
-                    'jsonrpc' => '2.0',
-                    'result'  => [
-                        'title'   => 'AZAZAZA',
-                        'success' => true,
-                    ],
-                    'id'      => null,
-                ])
-            );
-        $container
+
+        $jsonEncoder = new JsonEncoder();
+        $normalizer = new TraceableNormalizer(new ObjectNormalizer(), new SerializerDataCollector());
+        $serializer = new Serializer(normalizers: [$normalizer], encoders: [$jsonEncoder]);
+
+        $serviceLocator
             ->expects($this->once())
             ->method('get')
             ->willReturn($serializer);
 
+        $container = $this->createMock(Container::class);
+
+        return [$serviceLocator, $request, $methodSpecCollection, $validator, $container];
+    }
+
+    public function testRpcCallWithInvalidJson()
+    {
+        $data = '{"jsonrpc": "2.0", "method": "foobar, "params": "bar", "baz]';
+        $methodSpec = new MethodSpec(
+            UpdateMethod::class,
+            'PUT',
+            ['params'],
+            [],
+            UpdateRequest::class,
+            ['params' => 'setParams'],
+            ['params' => 'array']
+        );
+        $responseData = [
+            'jsonrpc' => '2.0',
+            'error' => [
+                'code' => -32700,
+                'message' => 'Parse error'
+            ],
+            //'id' => null //todo тот параметр сейчас не пробрасывается из-за настроек нормалайзера - он все null значения чистит
+        ];
+        [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare3($data, $methodSpec);
+
         $controller = new ApiController();
-        $controller->setContainer($container);
+        $controller->setContainer($serviceLocator);
 
-        $anotherContainer = $this->createMock(Container::class);
-        $anotherContainer
-            ->expects($this->once())
-            ->method('get')
-            ->willReturn(new TestMethod());
-
-        $result = $controller->index($request, $methodSpecCollection, $validator, $anotherContainer);
+        $result = $controller->index($request, $methodSpecCollection, $validator, $container);
 
         $this->assertInstanceOf(JsonResponse::class, $result);
         $this->assertEquals(200, $result->getStatusCode());
-        $this->assertEquals(
-            json_encode([
-                'jsonrpc' => '2.0',
-                'result'  => [
-                    'title'   => 'AZAZAZA',
-                    'success' => true,
-                ],
-                'id'      => null,
-            ]),
-            $result->getContent()
+        $this->assertEquals(json_encode($responseData), $result->getContent());
+    }
+
+    private function prepare3(string $data, MethodSpec $methodSpec)
+    {
+        $request = $this->createMock(Request::class);
+        $inputBag = $this->createMock(ParameterBag::class);
+        $inputBag->expects($this->once())
+            ->method('all')
+            ->willReturn([]);
+        $request->request = $inputBag;
+        $request
+            ->expects($this->once())
+            ->method('getMethod')
+            ->willReturn('POST');
+        $request
+            ->expects($this->once())
+            ->method('getContent')
+            ->willReturn($data);
+
+        $annotationReader = new AnnotationReader();
+        $class = $methodSpec->getMethodClass();
+        $methodReflectionClass = new \ReflectionClass(new $class());
+        $classAnnotation = $annotationReader->getClassAnnotation($methodReflectionClass, JsonRPCAPI::class);
+        $methodName = null;
+        if (!is_null($classAnnotation)) {
+            $methodName = $classAnnotation->getMethodName();
+        } else {
+            $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
+            foreach ($attributes as $attribute) {
+                if ($attribute->getName() === JsonRPCAPI::class) {
+                    $methodName = $attribute->getArguments()['methodName'];
+                }
+            }
+        }
+
+        if (is_null($methodName)) {
+            throw new Exception('Could not define method name');
+        }
+
+        $methodSpecCollection = new MethodSpecCollection();
+        $methodSpecCollection->addMethodSpec($methodName, $methodSpec);
+
+        $validator = $this->createMock(ValidatorInterface::class);
+
+        $serviceLocator = $this->createMock(ServiceLocator::class);
+        $serviceLocator
+            ->expects($this->once())
+            ->method('has')
+            ->willReturn(true);
+
+        $jsonEncoder = new JsonEncoder();
+        $normalizer = new TraceableNormalizer(new ObjectNormalizer(), new SerializerDataCollector());
+        $serializer = new Serializer(normalizers: [$normalizer], encoders: [$jsonEncoder]);
+
+        $serviceLocator
+            ->expects($this->once())
+            ->method('get')
+            ->willReturn($serializer);
+
+        $container = $this->createMock(Container::class);
+
+        return [$serviceLocator, $request, $methodSpecCollection, $validator, $container];
+    }
+
+    public function testRpcCallWithInvalidRequestObject()
+    {
+        $data = '{"jsonrpc": "2.0", "method": 1, "params": "bar"}';
+        $methodSpec = new MethodSpec(
+            UpdateMethod::class,
+            'PUT',
+            ['params'],
+            [],
+            UpdateRequest::class,
+            ['params' => 'setParams'],
+            ['params' => 'array']
         );
+        $responseData = [
+            'jsonrpc' => '2.0',
+            'error' => [
+                'code' => -32600,
+                'message' => 'Invalid Request'
+            ],
+            //'id' => null //todo тот параметр сейчас не пробрасывается из-за настроек нормалайзера - он все null значения чистит
+        ];
+        [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare4($data, $methodSpec);
+
+        $controller = new ApiController();
+        $controller->setContainer($serviceLocator);
+
+        $result = $controller->index($request, $methodSpecCollection, $validator, $container);
+
+        $this->assertInstanceOf(JsonResponse::class, $result);
+        $this->assertEquals(200, $result->getStatusCode());
+        $this->assertEquals(json_encode($responseData), $result->getContent());
+    }
+
+    private function prepare4(string $data, MethodSpec $methodSpec)
+    {
+        $request = $this->createMock(Request::class);
+        $inputBag = $this->createMock(ParameterBag::class);
+        $inputBag->expects($this->once())
+            ->method('all')
+            ->willReturn([]);
+        $request->request = $inputBag;
+        $request
+            ->expects($this->once())
+            ->method('getMethod')
+            ->willReturn('POST');
+        $request
+            ->expects($this->once())
+            ->method('getContent')
+            ->willReturn($data);
+
+        $annotationReader = new AnnotationReader();
+        $class = $methodSpec->getMethodClass();
+        $methodReflectionClass = new \ReflectionClass(new $class());
+        $classAnnotation = $annotationReader->getClassAnnotation($methodReflectionClass, JsonRPCAPI::class);
+        $methodName = null;
+        if (!is_null($classAnnotation)) {
+            $methodName = $classAnnotation->getMethodName();
+        } else {
+            $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
+            foreach ($attributes as $attribute) {
+                if ($attribute->getName() === JsonRPCAPI::class) {
+                    $methodName = $attribute->getArguments()['methodName'];
+                }
+            }
+        }
+
+        if (is_null($methodName)) {
+            throw new Exception('Could not define method name');
+        }
+
+        $methodSpecCollection = new MethodSpecCollection();
+        $methodSpecCollection->addMethodSpec($methodName, $methodSpec);
+
+        $validator = $this->createMock(ValidatorInterface::class);
+
+        $serviceLocator = $this->createMock(ServiceLocator::class);
+        $serviceLocator
+            ->expects($this->once())
+            ->method('has')
+            ->willReturn(true);
+
+        $jsonEncoder = new JsonEncoder();
+        $normalizer = new TraceableNormalizer(new ObjectNormalizer(), new SerializerDataCollector());
+        $serializer = new Serializer(normalizers: [$normalizer], encoders: [$jsonEncoder]);
+
+        $serviceLocator
+            ->expects($this->once())
+            ->method('get')
+            ->willReturn($serializer);
+
+        $container = $this->createMock(Container::class);
+
+        return [$serviceLocator, $request, $methodSpecCollection, $validator, $container];
+    }
+
+    public function testRpcCallBatchWithInvalidJson()
+    {
+        $data = '[{"jsonrpc": "2.0", "method": "sum", "params": [1,2,4], "id": "1"},{"jsonrpc": "2.0", "method"]';
+        $methodSpec = new MethodSpec(
+            UpdateMethod::class,
+            'PUT',
+            ['params'],
+            [],
+            UpdateRequest::class,
+            ['params' => 'setParams'],
+            ['params' => 'array']
+        );
+        $responseData = [
+            'jsonrpc' => '2.0',
+            'error' => [
+                'code' => -32700,
+                'message' => 'Parse error'
+            ],
+            //'id' => null //todo тот параметр сейчас не пробрасывается из-за настроек нормалайзера - он все null значения чистит
+        ];
+        [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare5($data, $methodSpec);
+
+        $controller = new ApiController();
+        $controller->setContainer($serviceLocator);
+
+        $result = $controller->index($request, $methodSpecCollection, $validator, $container);
+
+        $this->assertInstanceOf(JsonResponse::class, $result);
+        $this->assertEquals(200, $result->getStatusCode());
+        $this->assertEquals(json_encode($responseData), $result->getContent());
+    }
+
+    private function prepare5(string $data, MethodSpec $methodSpec)
+    {
+        $request = $this->createMock(Request::class);
+        $inputBag = $this->createMock(ParameterBag::class);
+        $inputBag->expects($this->once())
+            ->method('all')
+            ->willReturn([]);
+        $request->request = $inputBag;
+        $request
+            ->expects($this->once())
+            ->method('getMethod')
+            ->willReturn('POST');
+        $request
+            ->expects($this->once())
+            ->method('getContent')
+            ->willReturn($data);
+
+        $annotationReader = new AnnotationReader();
+        $class = $methodSpec->getMethodClass();
+        $methodReflectionClass = new \ReflectionClass(new $class());
+        $classAnnotation = $annotationReader->getClassAnnotation($methodReflectionClass, JsonRPCAPI::class);
+        $methodName = null;
+        if (!is_null($classAnnotation)) {
+            $methodName = $classAnnotation->getMethodName();
+        } else {
+            $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
+            foreach ($attributes as $attribute) {
+                if ($attribute->getName() === JsonRPCAPI::class) {
+                    $methodName = $attribute->getArguments()['methodName'];
+                }
+            }
+        }
+
+        if (is_null($methodName)) {
+            throw new Exception('Could not define method name');
+        }
+
+        $methodSpecCollection = new MethodSpecCollection();
+        $methodSpecCollection->addMethodSpec($methodName, $methodSpec);
+
+        $validator = $this->createMock(ValidatorInterface::class);
+
+        $serviceLocator = $this->createMock(ServiceLocator::class);
+        $serviceLocator
+            ->expects($this->once())
+            ->method('has')
+            ->willReturn(true);
+
+        $jsonEncoder = new JsonEncoder();
+        $normalizer = new TraceableNormalizer(new ObjectNormalizer(), new SerializerDataCollector());
+        $serializer = new Serializer(normalizers: [$normalizer], encoders: [$jsonEncoder]);
+
+        $serviceLocator
+            ->expects($this->once())
+            ->method('get')
+            ->willReturn($serializer);
+
+        $container = $this->createMock(Container::class);
+
+        return [$serviceLocator, $request, $methodSpecCollection, $validator, $container];
+    }
+
+    public function testRpcCallWithAnEmptyArray()
+    {
+        $data = '[]';
+        $methodSpec = new MethodSpec(
+            UpdateMethod::class,
+            'PUT',
+            ['params'],
+            [],
+            UpdateRequest::class,
+            ['params' => 'setParams'],
+            ['params' => 'array']
+        );
+        $responseData = [
+            'jsonrpc' => '2.0',
+            'error' => [
+                'code' => -32600,
+                'message' => 'Invalid Request'
+            ],
+            //'id' => null //todo тот параметр сейчас не пробрасывается из-за настроек нормалайзера - он все null значения чистит
+        ];
+        [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare6($data, $methodSpec);
+
+        $controller = new ApiController();
+        $controller->setContainer($serviceLocator);
+
+        $result = $controller->index($request, $methodSpecCollection, $validator, $container);
+
+        $this->assertInstanceOf(JsonResponse::class, $result);
+        $this->assertEquals(200, $result->getStatusCode());
+        $this->assertEquals(json_encode($responseData), $result->getContent());
+    }
+
+    private function prepare6(string $data, MethodSpec $methodSpec)
+    {
+        $request = $this->createMock(Request::class);
+        $inputBag = $this->createMock(ParameterBag::class);
+        $inputBag->expects($this->once())
+            ->method('all')
+            ->willReturn([]);
+        $request->request = $inputBag;
+        $request
+            ->expects($this->once())
+            ->method('getMethod')
+            ->willReturn('POST');
+        $request
+            ->expects($this->once())
+            ->method('getContent')
+            ->willReturn($data);
+
+        $annotationReader = new AnnotationReader();
+        $class = $methodSpec->getMethodClass();
+        $methodReflectionClass = new \ReflectionClass(new $class());
+        $classAnnotation = $annotationReader->getClassAnnotation($methodReflectionClass, JsonRPCAPI::class);
+        $methodName = null;
+        if (!is_null($classAnnotation)) {
+            $methodName = $classAnnotation->getMethodName();
+        } else {
+            $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
+            foreach ($attributes as $attribute) {
+                if ($attribute->getName() === JsonRPCAPI::class) {
+                    $methodName = $attribute->getArguments()['methodName'];
+                }
+            }
+        }
+
+        if (is_null($methodName)) {
+            throw new Exception('Could not define method name');
+        }
+
+        $methodSpecCollection = new MethodSpecCollection();
+        $methodSpecCollection->addMethodSpec($methodName, $methodSpec);
+
+        $validator = $this->createMock(ValidatorInterface::class);
+
+        $serviceLocator = $this->createMock(ServiceLocator::class);
+        $serviceLocator
+            ->expects($this->once())
+            ->method('has')
+            ->willReturn(true);
+
+        $jsonEncoder = new JsonEncoder();
+        $normalizer = new TraceableNormalizer(new ObjectNormalizer(), new SerializerDataCollector());
+        $serializer = new Serializer(normalizers: [$normalizer], encoders: [$jsonEncoder]);
+
+        $serviceLocator
+            ->expects($this->once())
+            ->method('get')
+            ->willReturn($serializer);
+
+        $container = $this->createMock(Container::class);
+
+        return [$serviceLocator, $request, $methodSpecCollection, $validator, $container];
+    }
+
+    public function testRpcCallWithAnInvalidBatchButNotEmpty()
+    {
+        $data = '[1]';
+        $methodSpec = new MethodSpec(
+            UpdateMethod::class,
+            'PUT',
+            ['params'],
+            [],
+            UpdateRequest::class,
+            ['params' => 'setParams'],
+            ['params' => 'array']
+        );
+        $responseData = [
+            'jsonrpc' => '2.0',
+            'error' => [
+                'code' => -32600,
+                'message' => 'Invalid Request'
+            ],
+            //'id' => null //todo тот параметр сейчас не пробрасывается из-за настроек нормалайзера - он все null значения чистит
+        ];
+        [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare7($data, $methodSpec);
+
+        $controller = new ApiController();
+        $controller->setContainer($serviceLocator);
+
+        $result = $controller->index($request, $methodSpecCollection, $validator, $container);
+
+        $this->assertInstanceOf(JsonResponse::class, $result);
+        $this->assertEquals(200, $result->getStatusCode());
+        $this->assertEquals(json_encode($responseData), $result->getContent());
+    }
+
+    private function prepare7(string $data, MethodSpec $methodSpec)
+    {
+        $request = $this->createMock(Request::class);
+        $inputBag = $this->createMock(ParameterBag::class);
+        $inputBag->expects($this->once())
+            ->method('all')
+            ->willReturn([]);
+        $request->request = $inputBag;
+        $request
+            ->expects($this->once())
+            ->method('getMethod')
+            ->willReturn('POST');
+        $request
+            ->expects($this->once())
+            ->method('getContent')
+            ->willReturn($data);
+
+        $annotationReader = new AnnotationReader();
+        $class = $methodSpec->getMethodClass();
+        $methodReflectionClass = new \ReflectionClass(new $class());
+        $classAnnotation = $annotationReader->getClassAnnotation($methodReflectionClass, JsonRPCAPI::class);
+        $methodName = null;
+        if (!is_null($classAnnotation)) {
+            $methodName = $classAnnotation->getMethodName();
+        } else {
+            $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
+            foreach ($attributes as $attribute) {
+                if ($attribute->getName() === JsonRPCAPI::class) {
+                    $methodName = $attribute->getArguments()['methodName'];
+                }
+            }
+        }
+
+        if (is_null($methodName)) {
+            throw new Exception('Could not define method name');
+        }
+
+        $methodSpecCollection = new MethodSpecCollection();
+        $methodSpecCollection->addMethodSpec($methodName, $methodSpec);
+
+        $validator = $this->createMock(ValidatorInterface::class);
+
+        $serviceLocator = $this->createMock(ServiceLocator::class);
+        $serviceLocator
+            ->expects($this->once())
+            ->method('has')
+            ->willReturn(true);
+
+        $jsonEncoder = new JsonEncoder();
+        $normalizer = new TraceableNormalizer(new ObjectNormalizer(), new SerializerDataCollector());
+        $serializer = new Serializer(normalizers: [$normalizer], encoders: [$jsonEncoder]);
+
+        $serviceLocator
+            ->expects($this->once())
+            ->method('get')
+            ->willReturn($serializer);
+
+        $container = $this->createMock(Container::class);
+
+        return [$serviceLocator, $request, $methodSpecCollection, $validator, $container];
+    }
+
+    public function testRpcCallWithAnInvalidBatch()
+    {
+        $data = '[1, 2, 3]';
+        $methodSpec = new MethodSpec(
+            UpdateMethod::class,
+            'PUT',
+            ['params'],
+            [],
+            UpdateRequest::class,
+            ['params' => 'setParams'],
+            ['params' => 'array']
+        );
+        $responseData = [
+            'jsonrpc' => '2.0',
+            'error' => [
+                'code' => -32600,
+                'message' => 'Invalid Request'
+            ],
+            //'id' => null //todo тот параметр сейчас не пробрасывается из-за настроек нормалайзера - он все null значения чистит
+        ];
+        [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare8($data, $methodSpec);
+
+        $controller = new ApiController();
+        $controller->setContainer($serviceLocator);
+
+        $result = $controller->index($request, $methodSpecCollection, $validator, $container);
+
+        $this->assertInstanceOf(JsonResponse::class, $result);
+        $this->assertEquals(200, $result->getStatusCode());
+        $this->assertEquals(json_encode($responseData), $result->getContent());
+    }
+
+    private function prepare8(string $data, MethodSpec $methodSpec)
+    {
+        $request = $this->createMock(Request::class);
+        $inputBag = $this->createMock(ParameterBag::class);
+        $inputBag->expects($this->once())
+            ->method('all')
+            ->willReturn([]);
+        $request->request = $inputBag;
+        $request
+            ->expects($this->once())
+            ->method('getMethod')
+            ->willReturn('POST');
+        $request
+            ->expects($this->once())
+            ->method('getContent')
+            ->willReturn($data);
+
+        $annotationReader = new AnnotationReader();
+        $class = $methodSpec->getMethodClass();
+        $methodReflectionClass = new \ReflectionClass(new $class());
+        $classAnnotation = $annotationReader->getClassAnnotation($methodReflectionClass, JsonRPCAPI::class);
+        $methodName = null;
+        if (!is_null($classAnnotation)) {
+            $methodName = $classAnnotation->getMethodName();
+        } else {
+            $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
+            foreach ($attributes as $attribute) {
+                if ($attribute->getName() === JsonRPCAPI::class) {
+                    $methodName = $attribute->getArguments()['methodName'];
+                }
+            }
+        }
+
+        if (is_null($methodName)) {
+            throw new Exception('Could not define method name');
+        }
+
+        $methodSpecCollection = new MethodSpecCollection();
+        $methodSpecCollection->addMethodSpec($methodName, $methodSpec);
+
+        $validator = $this->createMock(ValidatorInterface::class);
+
+        $serviceLocator = $this->createMock(ServiceLocator::class);
+        $serviceLocator
+            ->expects($this->once())
+            ->method('has')
+            ->willReturn(true);
+
+        $jsonEncoder = new JsonEncoder();
+        $normalizer = new TraceableNormalizer(new ObjectNormalizer(), new SerializerDataCollector());
+        $serializer = new Serializer(normalizers: [$normalizer], encoders: [$jsonEncoder]);
+
+        $serviceLocator
+            ->expects($this->once())
+            ->method('get')
+            ->willReturn($serializer);
+
+        $container = $this->createMock(Container::class);
+
+        return [$serviceLocator, $request, $methodSpecCollection, $validator, $container];
+    }
+
+    public function testRpcCallBatch()
+    {
+        $data = [
+            [
+                'jsonrpc' => '2.0',
+                'method' => 'sum',
+                'params' => [1, 2, 4],
+                'id' => '1',
+            ],
+            [
+                'jsonrpc' => '2.0',
+                'method' => 'notify_hello',
+                'params' => [7],
+            ],
+            [
+                'jsonrpc' => '2.0',
+                'method' => 'subtract',
+                'params' => [42, 23],
+                'id' => '2',
+            ],
+            [
+                'foo' => 'boo',
+            ],
+            [
+                'jsonrpc' => '2.0',
+                'method' => 'foo.get',
+                'params' => ['name', 'myself'],
+                'id' => '5',
+            ],
+            [
+                'jsonrpc' => '2.0',
+                'method' => 'get_data',
+                'id' => '9',
+            ],
+        ];
+        $methodSpecs = [
+            new MethodSpec(
+                SumMethod::class,
+                'POST',
+                ['params'],
+                [],
+                SumRequest::class,
+                ['params' => 'setParams'],
+                ['params' => 'array']
+            ),
+            new MethodSpec(
+                NotifyHelloMethod::class,
+                'POST',
+                ['params'],
+                [],
+                NotifyHelloRequest::class,
+                ['params' => 'setParams'],
+                ['params' => 'array']
+            ),
+            new MethodSpec(
+                SubtractMethod::class,
+                'POST',
+                ['params'],
+                [],
+                SubtractRequest::class,
+                ['params' => 'setParams'],
+                ['params' => 'array']
+            ),
+            new MethodSpec(
+                GetDataMethod::class,
+                'POST',
+                [],
+                [],
+                GetDataRequest::class,
+                [],
+                []
+            ),
+        ];
+        $responseData = [
+            [
+                'jsonrpc' => '2.0',
+                'result' => 7,
+                'id' => '1',
+            ],
+            [
+                'jsonrpc' => '2.0',
+                'result' => 19,
+                'id' => '2',
+            ],
+            [
+                'jsonrpc' => '2.0',
+                'error' => [
+                    'code' => -32600,
+                    'message' => 'Invalid Request'
+                ],
+            ],
+            [
+                'jsonrpc' => '2.0',
+                'error' => [
+                    'code' => -32601,
+                    'message' => 'Method not found'
+                ],
+                'id' => '5'
+            ],
+            [
+                'jsonrpc' => '2.0',
+                'result' => ['hello', 5],
+                'id' => '9',
+            ],
+        ];
+        [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare9($data, $methodSpecs);
+
+        $controller = new ApiController();
+        $controller->setContainer($serviceLocator);
+
+        $result = $controller->index($request, $methodSpecCollection, $validator, $container);
+
+        $this->assertInstanceOf(JsonResponse::class, $result);
+        $this->assertEquals(200, $result->getStatusCode());
+        $this->assertEquals(json_encode($responseData), $result->getContent());
+    }
+
+    public function testRpcCallBatchAllNotifications()
+    {
+        $data = [
+            [
+                'jsonrpc' => '2.0',
+                'method' => 'notify_sum',
+                'params' => [1, 2, 4],
+            ],
+            [
+                'jsonrpc' => '2.0',
+                'method' => 'notify_hello',
+                'params' => [7],
+            ],
+        ];
+        $methodSpecs = [
+            new MethodSpec(
+                NotifySumMethod::class,
+                'POST',
+                ['params'],
+                [],
+                NotifySumRequest::class,
+                ['params' => 'setParams'],
+                ['params' => 'array']
+            ),
+            new MethodSpec(
+                NotifyHelloMethod::class,
+                'POST',
+                ['params'],
+                [],
+                NotifyHelloRequest::class,
+                ['params' => 'setParams'],
+                ['params' => 'array']
+            ),
+        ];
+        $responseData = '{}';
+        [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare9($data, $methodSpecs);
+
+        $controller = new ApiController();
+        $controller->setContainer($serviceLocator);
+
+        $result = $controller->index($request, $methodSpecCollection, $validator, $container);
+
+        $this->assertInstanceOf(JsonResponse::class, $result);
+        $this->assertEquals(200, $result->getStatusCode());
+        $this->assertEquals($responseData, $result->getContent());
+    }
+
+    private function prepare9(array $data, array $methodSpecs)
+    {
+        $request = $this->createMock(Request::class);
+        $inputBag = $this->createMock(ParameterBag::class);
+        $inputBag->expects($this->once())
+            ->method('all')
+            ->willReturn([]);
+        $request->request = $inputBag;
+        $request
+            ->expects($this->once())
+            ->method('getMethod')
+            ->willReturn('POST');
+        $request
+            ->expects($this->once())
+            ->method('getContent')
+            ->willReturn(json_encode($data, JSON_UNESCAPED_UNICODE));
+
+        $annotationReader = new AnnotationReader();
+        $methodSpecCollection = new MethodSpecCollection();
+
+        $container = $this->createMock(Container::class);
+        foreach ($methodSpecs as $methodSpec) {
+            $class = $methodSpec->getMethodClass();
+            $methodReflectionClass = new \ReflectionClass(new $class());
+            $classAnnotation = $annotationReader->getClassAnnotation($methodReflectionClass, JsonRPCAPI::class);
+            $methodName = null;
+            if (!is_null($classAnnotation)) {
+                $methodName = $classAnnotation->getMethodName();
+            } else {
+                $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
+                foreach ($attributes as $attribute) {
+                    if ($attribute->getName() === JsonRPCAPI::class) {
+                        $methodName = $attribute->getArguments()['methodName'];
+                    }
+                }
+            }
+
+            if (is_null($methodName)) {
+                throw new Exception('Could not define method name');
+            }
+            $methodSpecCollection->addMethodSpec($methodName, $methodSpec);
+            $container
+                ->expects($this->any())
+                ->method('get')
+                ->willReturnCallback(function ($class) {
+                    return new $class;
+                });
+        }
+
+        $validator = $this->createMock(ValidatorInterface::class);
+        $violations = new ConstraintViolationList();
+        $validator
+            ->expects($this->atLeastOnce())
+            ->method('validate')
+            ->willReturn($violations);
+
+        $serviceLocator = $this->createMock(ServiceLocator::class);
+        $serviceLocator
+            ->expects($this->any())
+            ->method('has')
+            ->willReturn(true);
+
+        $jsonEncoder = new JsonEncoder();
+        $normalizer = new TraceableNormalizer(new ObjectNormalizer(), new SerializerDataCollector());
+        $serializer = new Serializer(normalizers: [$normalizer], encoders: [$jsonEncoder]);
+
+        $serviceLocator
+            ->expects($this->any())
+            ->method('get')
+            ->willReturn($serializer);
+
+        return [$serviceLocator, $request, $methodSpecCollection, $validator, $container];
     }
 }

@@ -22,7 +22,7 @@ use Throwable;
 
 class ApiController extends AbstractController
 {
-    #[Route('/api/v{version<\d+>}', name: 'ov_json_rpc_api_index', methods: ['POST'])]
+    #[Route('/api/v{version<\d+>}', name: 'ov_json_rpc_api_index', methods: ['POST', 'GET', 'PUT', 'PATCH', 'DELETE'])]
     public function index(
         Request $request,
         MethodSpecCollection $specCollection,
@@ -31,88 +31,140 @@ class ApiController extends AbstractController
     ): JsonResponse {
         $baseRequest = null;
         try {
-            $baseRequest = new BaseRequest($request->toArray());
-
-            $method = $specCollection->getMethodSpec($baseRequest->getMethod());
-
-            $requestClass      = $method->getRequest();
-            if (!is_null($requestClass)) {
-                $constructorParams = [];
-                foreach ($method->getRequiredParameters() as $requiredParameter) {
-                    if ($requiredParameter === 'id') {
-                        $constructorParams[] = $baseRequest->getId();
-                        continue;
-                    }
-                    $constructorParams[] = $baseRequest->getParams()[$requiredParameter] ?? null;
+            $methodType = $request->getMethod();
+            $data = [];
+            if ($methodType === 'GET') {
+                $data = $request->query->all();
+            } elseif (in_array($methodType, ['POST', 'DELETE', 'PUT', 'PATCH'])) {
+                $requestData = [];
+                if (!empty($request->request->all())) {
+                    $requestData = $request->request->all();
                 }
-
-                $requestInstance = new $requestClass(...$constructorParams);
-
-                foreach ($method->getAllParameters() as $allParameter) {
-                    $requestSetter = $method->getRequestSetters()[$allParameter] ?? null;
-                    if (!is_null($requestSetter)) {
-                        $value = $allParameter === 'id' ? $baseRequest->getId() : $baseRequest->getParams(
-                        )[$allParameter] ?? null;
-                        $requestInstance->$requestSetter($value);
+                $jsonData = [];
+                $requestContent = $request->getContent();
+                if (!empty($requestContent)) {
+                    $jsonData = json_decode($requestContent, true);
+                    if (is_null($jsonData)) {
+                        throw new JRPCException('Parse error', JRPCException::PARSE_ERROR);
                     }
                 }
-
-                $validators = [];
-                foreach ($method->getValidators() as $field => $validatorItem) {
-                    $validators[$field] = new Assert\Type($validatorItem);
-                }
-
-                $requestData = $baseRequest->getParams();
-                if (!is_null($baseRequest->getId())) {
-                    $requestData = $requestData + ['id' => $baseRequest->getId()];
-                }
-                $violations = $validator->validate(
-                    $requestData,
-                    new Assert\Collection($validators)
-                );
-
-                if ($violations->count()) {
-                    $errs = [];
-
-                    foreach ($violations as $violation) {
-                        $errs[] = sprintf('%s - %s', $violation->getPropertyPath(), $violation->getMessage());
-                    }
-
-                    return $this->json(
-                        new ErrorResponse(
-                            JRPCException::INVALID_PARAMS,
-                            'Invalid params',
-                            $baseRequest->getId() ?? null,
-                            implode(PHP_EOL, $errs)
-                        )
-                    );
-                }
+                $data = array_merge($requestData, $jsonData);
             }
 
-            $processorClass = $method->getMethodClass();
-            $processor      = $container->get($processorClass);
+            if (empty($data)) {
+                throw new JRPCException('Invalid Request', JRPCException::INVALID_REQUEST);
+            }
 
-            $result   = $processor->call($requestInstance ?? null);
-            $response = new BaseResponse($result);
+            $batches = $data;
+            if (!$this->isBatch($data)) {
+                $batches = [$data];
+            }
         } catch (JRPCException $e) {
-            return $this->json(
-                new ErrorResponse(
-                    $e->getCode(),
-                    $e->getMessage(),
-                    $baseRequest?->getId() ?? null,
-                    $e->getAdditionalInfo(),
-                )
-            );
+            return $this->json(new ErrorResponse(error: $e, id: $data['id'] ?? null));
         } catch (Throwable $e) {
-            return $this->json(
-                new ErrorResponse(
-                    JRPCException::INTERNAL_ERROR,
-                    $e->getMessage(),
-                    $baseRequest?->getId() ?? null,
-                )
-            );
+            return $this->json(new ErrorResponse(error: $e, id: $data['id'] ?? null));
         }
 
-        return $this->json($response);
+        $responses = [];
+        foreach ($batches as $batch) {
+            try {
+                $baseRequest = new BaseRequest($batch);
+
+                $method = $specCollection->getMethodSpec($baseRequest->getMethod());
+
+                if ($method->getRequestType() !== $methodType) {
+                    throw new JRPCException('Invalid Request', JRPCException::INVALID_REQUEST);
+                }
+
+                $requestClass = $method->getRequest();
+                if (!is_null($requestClass)) {
+                    $constructorParams = [];
+                    foreach ($method->getRequiredParameters() as $requiredParameter) {
+                        if ($requiredParameter === 'id') {
+                            $constructorParams[] = $baseRequest->getId();
+                            continue;
+                        }
+                        $constructorParams[] = $baseRequest->getParams()[$requiredParameter] ?? null;
+                    }
+
+                    $requestInstance = new $requestClass(...$constructorParams);
+
+                    foreach ($method->getAllParameters() as $allParameter) {
+                        $requestSetter = $method->getRequestSetters()[$allParameter] ?? null;
+                        if (!is_null($requestSetter)) {
+                            $value = $allParameter === 'id' ? $baseRequest->getId() : $baseRequest->getParams()[$allParameter] ?? null;
+
+                            if (is_null($value) && $allParameter === 'params') {
+                                $value = $baseRequest->getParams();
+                            }
+
+                            $requestInstance->$requestSetter($value);
+                        }
+                    }
+
+                    $validators = [];
+                    foreach ($method->getValidators() as $field => $validatorItem) {
+                        $validators[$field] = new Assert\Type($validatorItem);
+                    }
+
+                    $requestData = $baseRequest->getParams();
+                    if (!is_null($baseRequest->getId())) {
+                        $requestData = $requestData + ['id' => $baseRequest->getId()];
+                    }
+                    $violations = $validator->validate(
+                        $requestData,
+                        new Assert\Collection($validators)
+                    );
+
+                    if ($violations->count()) {
+                        $errs = [];
+
+                        foreach ($violations as $violation) {
+                            $errs[] = sprintf('%s - %s', $violation->getPropertyPath(), $violation->getMessage());
+                        }
+
+                        throw new JRPCException('Invalid params', JRPCException::INVALID_PARAMS, implode(PHP_EOL, $errs));
+                    }
+                }
+
+                $processorClass = $method->getMethodClass();
+                $processor      = $container->get($processorClass);
+
+                $result   = $processor->call($requestInstance ?? null);
+                if (!is_null($baseRequest->getId())) {
+                    $responses[] = new BaseResponse($result, $baseRequest?->getId() ?? null);
+                    unset($baseRequest);
+                }
+            } catch (JRPCException $e) {
+                $responses[] = new ErrorResponse(error: $e, id: $baseRequest?->getId() ?? $batch['id'] ?? null);
+                unset($baseRequest);
+            } catch (Throwable $e) {
+                $responses[] = new ErrorResponse(error: $e, id: $baseRequest?->getId()) ?? $batch['id'] ?? null;
+                unset($baseRequest);
+            }
+        }
+
+        if (count($responses) > 1) {
+            return $this->json($responses);
+        } elseif(!empty($responses)) {
+            return $this->json($responses[0]);
+        }
+        return new JsonResponse();
+    }
+
+    private function isBatch(array $data): bool
+    {
+        if (
+            isset($data[0])
+            && isset($data[1])
+            && is_array($data[0])
+            && is_array($data[1])
+            && array_key_exists('jsonrpc', $data[0])
+            && array_key_exists('jsonrpc', $data[1])
+        ) {
+            return true;
+        }
+
+        return false;
     }
 }

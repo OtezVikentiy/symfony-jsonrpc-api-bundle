@@ -10,45 +10,32 @@
 
 namespace OV\JsonRPCAPIBundle\Core;
 
+use Throwable;
+
 class ErrorResponse
 {
     public function __construct(
-        private readonly int $code,
-        private readonly string $message,
-        private readonly ?int $id = null,
-        private readonly ?string $additionalInfo = null,
+        private readonly JRPCException|Throwable $error,
+        private readonly ?string $id = null,
+        private readonly string $jsonrpc = '2.0',
     ) {
     }
 
-    /**
-     * @return int
-     */
-    public function getCode(): int
+    public function getJsonrpc(): string
     {
-        return $this->code;
+        return $this->jsonrpc;
     }
 
-    /**
-     * @return string
-     */
-    public function getMessage(): string
+    public function getError(): array
     {
-        return $this->message;
+        return [
+            'code' => $this->error->getCode(),
+            'message' => $this->error->getMessage(),
+        ];
     }
 
-    /**
-     * @return int|null
-     */
-    public function getId(): ?int
+    public function getId(): string
     {
         return $this->id;
-    }
-
-    /**
-     * @return string|null
-     */
-    public function getAdditionalInfo(): ?string
-    {
-        return $this->additionalInfo;
     }
 }

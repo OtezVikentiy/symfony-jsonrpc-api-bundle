@@ -18,19 +18,11 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 
 class OVJsonRPCAPIBundle extends AbstractBundle
 {
-    /**
-     * @return ExtensionInterface|null
-     */
     public function getContainerExtension(): ?ExtensionInterface
     {
         return new OVJsonRPCAPIExtension();
     }
 
-    /**
-     * @param ContainerBuilder $container
-     *
-     * @return void
-     */
     public function build(ContainerBuilder $container): void
     {
         $container->addCompilerPass(CompilerPassBuilder::build($container));

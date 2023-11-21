@@ -16,11 +16,6 @@ use Symfony\Component\Serializer\NameConverter\CamelCaseToSnakeCaseNameConverter
 
 class CompilerPassBuilder
 {
-    /**
-     * @param ContainerBuilder $containerBuilder
-     *
-     * @return CompilerPass
-     */
     public static function build(ContainerBuilder $containerBuilder): CompilerPass
     {
         return new CompilerPass(new AnnotationReader(), new CamelCaseToSnakeCaseNameConverter());

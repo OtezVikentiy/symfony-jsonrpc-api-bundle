@@ -23,14 +23,6 @@ class JRPCException extends Exception
         INTERNAL_ERROR = -32603,
         SERVER_ERROR = -32000; // [-32000;-32099] - Server error codes reserved for implementation-defined server-errors.
 
-    /**
-     * @param string         $message
-     * @param int            $code
-     * @param string         $additionalInfo
-     * @param Throwable|null $previous
-     *
-     * @throws Exception
-     */
     public function __construct(
         string $message,
         int $code,
@@ -48,9 +40,6 @@ class JRPCException extends Exception
         parent::__construct($message, $code, $previous);
     }
 
-    /**
-     * @return string
-     */
     public function getAdditionalInfo(): string
     {
         return $this->additionalInfo;

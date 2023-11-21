@@ -24,23 +24,12 @@ class CompilerPass implements CompilerPassInterface
 {
     private const CALL_METHOD = 'call';
 
-    /**
-     * @param AnnotationReader       $annotationReader
-     * @param NameConverterInterface $nameConverter
-     */
     public function __construct(
         private readonly AnnotationReader $annotationReader,
         private readonly NameConverterInterface $nameConverter,
     ) {
     }
 
-    /**
-     * @param ContainerBuilder $container
-     *
-     * @return void
-     * @throws ReflectionException
-     * @throws Exception
-     */
     public function process(ContainerBuilder $container): void
     {
         $methodSpecCollectionDefinition = $container->autowire(
@@ -61,11 +50,23 @@ class CompilerPass implements CompilerPassInterface
             $methodReflectionClass = new ReflectionClass($className);
 
             $classAnnotation = $this->annotationReader->getClassAnnotation($methodReflectionClass, JsonRPCAPI::class);
-            if (!$classAnnotation) {
-                continue;
+            $methodName = $requestType = null;
+            if (!is_null($classAnnotation)) {
+                $methodName = $classAnnotation->getMethodName();
+                $requestType = $classAnnotation->getType();
+            } else {
+                $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
+                foreach ($attributes as $attribute) {
+                    if ($attribute->getName() === JsonRPCAPI::class) {
+                        $methodName = $attribute->getArguments()['methodName'];
+                        $requestType = $attribute->getArguments()['type'];
+                    }
+                }
             }
 
-            $methodName = $classAnnotation->getMethodName();
+            if (is_null($methodName) || is_null($requestType)) {
+                continue;
+            }
 
             if (!$methodReflectionClass->hasMethod(self::CALL_METHOD)) {
                 throw new \RuntimeException(
@@ -108,6 +109,7 @@ class CompilerPass implements CompilerPassInterface
 
             $methodSpec->setArguments([
                 $methodReflectionClass->getName(),
+                $requestType,
                 $allParameters,
                 $requiredParameters,
                 $methodRequestReflection?->getName() ?? null,
@@ -125,12 +127,6 @@ class CompilerPass implements CompilerPassInterface
         }
     }
 
-    /**
-     * @param ReflectionClass $requestReflection
-     *
-     * @return array
-     * @throws Exception
-     */
     private function getValidatorsForRequest(ReflectionClass $requestReflection): array
     {
         $validatorsIdx = [];
@@ -180,12 +176,6 @@ class CompilerPass implements CompilerPassInterface
         return $validatorsIdx;
     }
 
-    /**
-     * @param string $methodClass
-     * @param string $namespace
-     *
-     * @return string
-     */
     private function getMethodAlias(string $methodClass, string $namespace): string
     {
         $methodParts = explode('\\', ltrim(str_replace($namespace, '', $methodClass), '\\'));

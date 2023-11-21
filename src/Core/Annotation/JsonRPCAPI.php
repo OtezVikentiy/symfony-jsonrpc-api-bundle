@@ -11,28 +11,23 @@
 namespace OV\JsonRPCAPIBundle\Core\Annotation;
 
 use Attribute;
-use Symfony\Contracts\Service\Attribute\Required;
 
-/**
- * @Annotation
- * @Target("CLASS")
- */
 #[Attribute(Attribute::TARGET_CLASS)]
 class JsonRPCAPI
 {
-    /**
-     * @Required
-     *
-     * @var string
-     */
-    #[Required]
-    public string $methodName;
+    public function __construct(
+        private readonly string $methodName,
+        private readonly string $type,
+    ) {
+    }
 
-    /**
-     * @return string
-     */
     public function getMethodName(): string
     {
         return $this->methodName;
+    }
+
+    public function getType(): string
+    {
+        return $this->type;
     }
 }

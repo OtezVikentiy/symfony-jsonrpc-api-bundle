@@ -4,7 +4,7 @@
     "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
     "This file is @generated automatically"
   ],
-  "content-hash": "21b6e18521465d61435a5ab6752f5768",
+  "content-hash": "cadb5952b9c62d23268ed85bf1be28ff",
   "packages": [
     {
       "name": "doctrine/annotations",
@@ -3996,6 +3996,417 @@
       "time": "2023-02-07T11:34:05+00:00"
     },
     {
+      "name": "symfony/polyfill-intl-grapheme",
+      "version": "v1.28.0",
+      "source": {
+        "type": "git",
+        "url": "https://github.com/symfony/polyfill-intl-grapheme.git",
+        "reference": "875e90aeea2777b6f135677f618529449334a612"
+      },
+      "dist": {
+        "type": "zip",
+        "url": "https://api.github.com/repos/symfony/polyfill-intl-grapheme/zipball/875e90aeea2777b6f135677f618529449334a612",
+        "reference": "875e90aeea2777b6f135677f618529449334a612",
+        "shasum": ""
+      },
+      "require": {
+        "php": ">=7.1"
+      },
+      "suggest": {
+        "ext-intl": "For best performance"
+      },
+      "type": "library",
+      "extra": {
+        "branch-alias": {
+          "dev-main": "1.28-dev"
+        },
+        "thanks": {
+          "name": "symfony/polyfill",
+          "url": "https://github.com/symfony/polyfill"
+        }
+      },
+      "autoload": {
+        "files": [
+          "bootstrap.php"
+        ],
+        "psr-4": {
+          "Symfony\\Polyfill\\Intl\\Grapheme\\": ""
+        }
+      },
+      "notification-url": "https://packagist.org/downloads/",
+      "license": [
+        "MIT"
+      ],
+      "authors": [
+        {
+          "name": "Nicolas Grekas",
+          "email": "p@tchwork.com"
+        },
+        {
+          "name": "Symfony Community",
+          "homepage": "https://symfony.com/contributors"
+        }
+      ],
+      "description": "Symfony polyfill for intl's grapheme_* functions",
+      "homepage": "https://symfony.com",
+      "keywords": [
+        "compatibility",
+        "grapheme",
+        "intl",
+        "polyfill",
+        "portable",
+        "shim"
+      ],
+      "support": {
+        "source": "https://github.com/symfony/polyfill-intl-grapheme/tree/v1.28.0"
+      },
+      "funding": [
+        {
+          "url": "https://symfony.com/sponsor",
+          "type": "custom"
+        },
+        {
+          "url": "https://github.com/fabpot",
+          "type": "github"
+        },
+        {
+          "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+          "type": "tidelift"
+        }
+      ],
+      "time": "2023-01-26T09:26:14+00:00"
+    },
+    {
+      "name": "symfony/polyfill-intl-normalizer",
+      "version": "v1.28.0",
+      "source": {
+        "type": "git",
+        "url": "https://github.com/symfony/polyfill-intl-normalizer.git",
+        "reference": "8c4ad05dd0120b6a53c1ca374dca2ad0a1c4ed92"
+      },
+      "dist": {
+        "type": "zip",
+        "url": "https://api.github.com/repos/symfony/polyfill-intl-normalizer/zipball/8c4ad05dd0120b6a53c1ca374dca2ad0a1c4ed92",
+        "reference": "8c4ad05dd0120b6a53c1ca374dca2ad0a1c4ed92",
+        "shasum": ""
+      },
+      "require": {
+        "php": ">=7.1"
+      },
+      "suggest": {
+        "ext-intl": "For best performance"
+      },
+      "type": "library",
+      "extra": {
+        "branch-alias": {
+          "dev-main": "1.28-dev"
+        },
+        "thanks": {
+          "name": "symfony/polyfill",
+          "url": "https://github.com/symfony/polyfill"
+        }
+      },
+      "autoload": {
+        "files": [
+          "bootstrap.php"
+        ],
+        "psr-4": {
+          "Symfony\\Polyfill\\Intl\\Normalizer\\": ""
+        },
+        "classmap": [
+          "Resources/stubs"
+        ]
+      },
+      "notification-url": "https://packagist.org/downloads/",
+      "license": [
+        "MIT"
+      ],
+      "authors": [
+        {
+          "name": "Nicolas Grekas",
+          "email": "p@tchwork.com"
+        },
+        {
+          "name": "Symfony Community",
+          "homepage": "https://symfony.com/contributors"
+        }
+      ],
+      "description": "Symfony polyfill for intl's Normalizer class and related functions",
+      "homepage": "https://symfony.com",
+      "keywords": [
+        "compatibility",
+        "intl",
+        "normalizer",
+        "polyfill",
+        "portable",
+        "shim"
+      ],
+      "support": {
+        "source": "https://github.com/symfony/polyfill-intl-normalizer/tree/v1.28.0"
+      },
+      "funding": [
+        {
+          "url": "https://symfony.com/sponsor",
+          "type": "custom"
+        },
+        {
+          "url": "https://github.com/fabpot",
+          "type": "github"
+        },
+        {
+          "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+          "type": "tidelift"
+        }
+      ],
+      "time": "2023-01-26T09:26:14+00:00"
+    },
+    {
+      "name": "symfony/property-access",
+      "version": "v6.3.2",
+      "source": {
+        "type": "git",
+        "url": "https://github.com/symfony/property-access.git",
+        "reference": "2dc4f9da444b8f8ff592e95d570caad67924f1d0"
+      },
+      "dist": {
+        "type": "zip",
+        "url": "https://api.github.com/repos/symfony/property-access/zipball/2dc4f9da444b8f8ff592e95d570caad67924f1d0",
+        "reference": "2dc4f9da444b8f8ff592e95d570caad67924f1d0",
+        "shasum": ""
+      },
+      "require": {
+        "php": ">=8.1",
+        "symfony/deprecation-contracts": "^2.5|^3",
+        "symfony/property-info": "^5.4|^6.0"
+      },
+      "require-dev": {
+        "symfony/cache": "^5.4|^6.0"
+      },
+      "type": "library",
+      "autoload": {
+        "psr-4": {
+          "Symfony\\Component\\PropertyAccess\\": ""
+        },
+        "exclude-from-classmap": [
+          "/Tests/"
+        ]
+      },
+      "notification-url": "https://packagist.org/downloads/",
+      "license": [
+        "MIT"
+      ],
+      "authors": [
+        {
+          "name": "Fabien Potencier",
+          "email": "fabien@symfony.com"
+        },
+        {
+          "name": "Symfony Community",
+          "homepage": "https://symfony.com/contributors"
+        }
+      ],
+      "description": "Provides functions to read and write from/to an object or array using a simple string notation",
+      "homepage": "https://symfony.com",
+      "keywords": [
+        "access",
+        "array",
+        "extraction",
+        "index",
+        "injection",
+        "object",
+        "property",
+        "property-path",
+        "reflection"
+      ],
+      "support": {
+        "source": "https://github.com/symfony/property-access/tree/v6.3.2"
+      },
+      "funding": [
+        {
+          "url": "https://symfony.com/sponsor",
+          "type": "custom"
+        },
+        {
+          "url": "https://github.com/fabpot",
+          "type": "github"
+        },
+        {
+          "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+          "type": "tidelift"
+        }
+      ],
+      "time": "2023-07-13T15:26:11+00:00"
+    },
+    {
+      "name": "symfony/property-info",
+      "version": "v6.3.0",
+      "source": {
+        "type": "git",
+        "url": "https://github.com/symfony/property-info.git",
+        "reference": "7f3a03716112269741fe2a809f8f791a371d1fcd"
+      },
+      "dist": {
+        "type": "zip",
+        "url": "https://api.github.com/repos/symfony/property-info/zipball/7f3a03716112269741fe2a809f8f791a371d1fcd",
+        "reference": "7f3a03716112269741fe2a809f8f791a371d1fcd",
+        "shasum": ""
+      },
+      "require": {
+        "php": ">=8.1",
+        "symfony/string": "^5.4|^6.0"
+      },
+      "conflict": {
+        "phpdocumentor/reflection-docblock": "<5.2",
+        "phpdocumentor/type-resolver": "<1.5.1",
+        "symfony/dependency-injection": "<5.4"
+      },
+      "require-dev": {
+        "doctrine/annotations": "^1.10.4|^2",
+        "phpdocumentor/reflection-docblock": "^5.2",
+        "phpstan/phpdoc-parser": "^1.0",
+        "symfony/cache": "^5.4|^6.0",
+        "symfony/dependency-injection": "^5.4|^6.0",
+        "symfony/serializer": "^5.4|^6.0"
+      },
+      "type": "library",
+      "autoload": {
+        "psr-4": {
+          "Symfony\\Component\\PropertyInfo\\": ""
+        },
+        "exclude-from-classmap": [
+          "/Tests/"
+        ]
+      },
+      "notification-url": "https://packagist.org/downloads/",
+      "license": [
+        "MIT"
+      ],
+      "authors": [
+        {
+          "name": "Kévin Dunglas",
+          "email": "dunglas@gmail.com"
+        },
+        {
+          "name": "Symfony Community",
+          "homepage": "https://symfony.com/contributors"
+        }
+      ],
+      "description": "Extracts information about PHP class' properties using metadata of popular sources",
+      "homepage": "https://symfony.com",
+      "keywords": [
+        "doctrine",
+        "phpdoc",
+        "property",
+        "symfony",
+        "type",
+        "validator"
+      ],
+      "support": {
+        "source": "https://github.com/symfony/property-info/tree/v6.3.0"
+      },
+      "funding": [
+        {
+          "url": "https://symfony.com/sponsor",
+          "type": "custom"
+        },
+        {
+          "url": "https://github.com/fabpot",
+          "type": "github"
+        },
+        {
+          "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+          "type": "tidelift"
+        }
+      ],
+      "time": "2023-05-19T08:06:44+00:00"
+    },
+    {
+      "name": "symfony/string",
+      "version": "v6.3.8",
+      "source": {
+        "type": "git",
+        "url": "https://github.com/symfony/string.git",
+        "reference": "13880a87790c76ef994c91e87efb96134522577a"
+      },
+      "dist": {
+        "type": "zip",
+        "url": "https://api.github.com/repos/symfony/string/zipball/13880a87790c76ef994c91e87efb96134522577a",
+        "reference": "13880a87790c76ef994c91e87efb96134522577a",
+        "shasum": ""
+      },
+      "require": {
+        "php": ">=8.1",
+        "symfony/polyfill-ctype": "~1.8",
+        "symfony/polyfill-intl-grapheme": "~1.0",
+        "symfony/polyfill-intl-normalizer": "~1.0",
+        "symfony/polyfill-mbstring": "~1.0"
+      },
+      "conflict": {
+        "symfony/translation-contracts": "<2.5"
+      },
+      "require-dev": {
+        "symfony/error-handler": "^5.4|^6.0",
+        "symfony/http-client": "^5.4|^6.0",
+        "symfony/intl": "^6.2",
+        "symfony/translation-contracts": "^2.5|^3.0",
+        "symfony/var-exporter": "^5.4|^6.0"
+      },
+      "type": "library",
+      "autoload": {
+        "files": [
+          "Resources/functions.php"
+        ],
+        "psr-4": {
+          "Symfony\\Component\\String\\": ""
+        },
+        "exclude-from-classmap": [
+          "/Tests/"
+        ]
+      },
+      "notification-url": "https://packagist.org/downloads/",
+      "license": [
+        "MIT"
+      ],
+      "authors": [
+        {
+          "name": "Nicolas Grekas",
+          "email": "p@tchwork.com"
+        },
+        {
+          "name": "Symfony Community",
+          "homepage": "https://symfony.com/contributors"
+        }
+      ],
+      "description": "Provides an object-oriented API to strings and deals with bytes, UTF-8 code points and grapheme clusters in a unified way",
+      "homepage": "https://symfony.com",
+      "keywords": [
+        "grapheme",
+        "i18n",
+        "string",
+        "unicode",
+        "utf-8",
+        "utf8"
+      ],
+      "support": {
+        "source": "https://github.com/symfony/string/tree/v6.3.8"
+      },
+      "funding": [
+        {
+          "url": "https://symfony.com/sponsor",
+          "type": "custom"
+        },
+        {
+          "url": "https://github.com/fabpot",
+          "type": "github"
+        },
+        {
+          "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+          "type": "tidelift"
+        }
+      ],
+      "time": "2023-11-09T08:28:21+00:00"
+    },
+    {
       "name": "theseer/tokenizer",
       "version": "1.2.1",
       "source": {
@@ -4054,8 +4465,6 @@
   "platform": {
     "php": ">=8.1"
   },
-  "platform-dev": {
-    "php": ">=8.1"
-  },
-  "plugin-api-version": "2.3.0"
+  "platform-dev": [],
+  "plugin-api-version": "2.6.0"
 }
