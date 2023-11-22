@@ -10,7 +10,6 @@
 
 namespace OV\JsonRPCAPIBundle\DependencyInjection;
 
-use Doctrine\Common\Annotations\AnnotationReader;
 use Exception;
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 use ReflectionClass;
@@ -25,7 +24,6 @@ class CompilerPass implements CompilerPassInterface
     private const CALL_METHOD = 'call';
 
     public function __construct(
-        private readonly AnnotationReader $annotationReader,
         private readonly NameConverterInterface $nameConverter,
     ) {
     }
@@ -49,18 +47,12 @@ class CompilerPass implements CompilerPassInterface
 
             $methodReflectionClass = new ReflectionClass($className);
 
-            $classAnnotation = $this->annotationReader->getClassAnnotation($methodReflectionClass, JsonRPCAPI::class);
             $methodName = $requestType = null;
-            if (!is_null($classAnnotation)) {
-                $methodName = $classAnnotation->getMethodName();
-                $requestType = $classAnnotation->getType();
-            } else {
-                $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
-                foreach ($attributes as $attribute) {
-                    if ($attribute->getName() === JsonRPCAPI::class) {
-                        $methodName = $attribute->getArguments()['methodName'];
-                        $requestType = $attribute->getArguments()['type'];
-                    }
+            $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
+            foreach ($attributes as $attribute) {
+                if ($attribute->getName() === JsonRPCAPI::class) {
+                    $methodName = $attribute->getArguments()['methodName'] ?? throw new Exception(sprintf('Class %s does not have attribute param methdoName', $className));
+                    $requestType = $attribute->getArguments()['type'] ?? throw new Exception(sprintf('Class %s does not have attribute param type', $className));
                 }
             }
 
@@ -88,8 +80,8 @@ class CompilerPass implements CompilerPassInterface
                 if ($callParameter->getName() === 'request') {
                     $methodRequestReflection = new ReflectionClass($callParameter->getType()->getName());
                     $validators              = $this->getValidatorsForRequest($methodRequestReflection);
-                    $allParameters           = array_map(fn($i) => $i->getName(), $methodRequestReflection->getProperties());
-                    $requiredParameters      = array_map(fn($i) => $i->getName(), $methodRequestReflection->getConstructor()->getParameters());
+                    $allParameters           = array_map(fn($i) => $i->getName(), $methodRequestReflection->getProperties() ?? []);
+                    $requiredParameters      = array_map(fn($i) => $i?->getName(), $methodRequestReflection->getConstructor()?->getParameters() ?? []);
                     $requestMethods          = $methodRequestReflection->getMethods();
 
                     foreach ($requestMethods as $requestSingleMethod) {
