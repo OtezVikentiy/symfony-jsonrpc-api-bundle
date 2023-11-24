@@ -1,7 +1,7 @@
 {
   "name": "otezvikentiy/json-rpc-api",
   "description": "Symfony Json RPC API bundle",
-  "version": "1.1.7",
+  "version": "1.2",
   "stability": "stable",
   "minimum-stability": "stable",
   "keywords": [
@@ -40,12 +40,9 @@
       "role": "Creator"
     }
   ],
-  "extra": {
-    "symfony": {
-      "endpoint": [
-        "https://api.github.com/repos/OtezVikentiy/json-rpc-api-recipe/contents/index.json",
-        "flex://defaults"
-      ]
-    }
+  "recipes" : {
+    "otezvikentiy/json-rpc-api-recipe": [
+      "1.2"
+    ]
   }
 }
