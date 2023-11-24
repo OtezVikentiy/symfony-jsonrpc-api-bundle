@@ -1,4 +1,5 @@
 parameters:
+  ovJsonRpcApiSwaggerPath: '%env(string:OV_JSON_RPC_API_SWAGGER_PATH)%'
 
 services:
   _defaults:
@@ -25,3 +26,14 @@ services:
       - 'controller.service_arguments'
 
   Symfony\Component\DependencyInjection\Container: '@service_container'
+
+  ov_json_rpc_api_swagger_generate_command:
+    class: OV\JsonRPCAPIBundle\Command\SwaggerGenerate
+    autoconfigure: true
+    public: true
+    arguments:
+      $ovJsonRpcApiSwaggerPath: '%ovJsonRpcApiSwaggerPath%'
+    tags:
+      - { name: console.command, command: 'ov:swagger:generate' }
+
+  OV\JsonRPCAPIBundle\Command\SwaggerGenerate: '@ov_json_rpc_api_swagger_generate_command'
