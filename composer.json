@@ -1,7 +1,7 @@
 {
   "name": "otezvikentiy/json-rpc-api",
   "description": "Symfony Json RPC API bundle",
-  "version": "1.2",
+  "version": "1.3",
   "stability": "stable",
   "minimum-stability": "stable",
   "keywords": [
@@ -42,7 +42,7 @@
   ],
   "recipes" : {
     "otezvikentiy/json-rpc-api-recipe": [
-      "1.2"
+      "1.3"
     ]
   }
 }
