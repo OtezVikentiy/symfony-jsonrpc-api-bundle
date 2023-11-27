@@ -11,11 +11,12 @@
 namespace OV\JsonRPCAPIBundle\RPC\V1;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use OV\JsonRPCAPIBundle\RPC\V1\Test\TestRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\Test\TestResponse;
 
 #[JsonRPCAPI(methodName: 'test', type: 'POST')]
-class TestMethod
+class TestMethod implements ApiMethodInterface
 {
     public function call(TestRequest $request): TestResponse
     {

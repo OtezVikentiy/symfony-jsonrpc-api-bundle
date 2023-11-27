@@ -11,11 +11,12 @@
 namespace OV\JsonRPCAPIBundle\RPC\V1;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use OV\JsonRPCAPIBundle\RPC\V1\GetData\GetDataRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\GetData\GetDataResponse;
 
 #[JsonRPCAPI(methodName: 'get_data', type: 'POST')]
-class GetDataMethod
+class GetDataMethod implements ApiMethodInterface
 {
     public function call(GetDataRequest $request): GetDataResponse
     {

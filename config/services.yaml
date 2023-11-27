@@ -1,39 +1,39 @@
 parameters:
-  ovJsonRpcApiSwaggerPath: '%env(string:OV_JSON_RPC_API_SWAGGER_PATH)%'
+    ovJsonRpcApiSwaggerPath: '%env(string:OV_JSON_RPC_API_SWAGGER_PATH)%'
 
 services:
-  _defaults:
-    autowire: true
-    public: false
-    autoconfigure: true
+    _defaults:
+        autowire: true
+        public: false
+        autoconfigure: true
 
-  OV\JsonRPCAPIBundle\:
-    resource: '../src/'
-    exclude:
-      - '../src/DependencyInjection/'
-      - '../src/OVJsonRPCAPIBundle.php'
+    OV\JsonRPCAPIBundle\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/OVJsonRPCAPIBundle.php'
 
-  OV\JsonRPCAPIBundle\RPC\V1\:
-    resource: '../src/RPC/V1/{*Method.php}'
-    tags:
-      - { name: ov.rpc.method, namespace: OV\JsonRPCAPIBundle\RPC\V1\, version: 1 }
+    _instanceof:
+        OV\JsonRPCAPIBundle\Core\ApiMethodInterface:
+            tags: ['ov.rpc.method']
 
-  ov_json_rpc_api_index_controller:
-    class: OV\JsonRPCAPIBundle\Controller\ApiController
-    autoconfigure: true
-    public: true
-    tags:
-      - 'controller.service_arguments'
+    ov_json_rpc_api_index_controller:
+        class: OV\JsonRPCAPIBundle\Controller\ApiController
+        autoconfigure: true
+        public: true
+        tags:
+            - 'controller.service_arguments'
 
-  Symfony\Component\DependencyInjection\Container: '@service_container'
+    Symfony\Component\DependencyInjection\Container: '@service_container'
 
-  ov_json_rpc_api_swagger_generate_command:
-    class: OV\JsonRPCAPIBundle\Command\SwaggerGenerate
-    autoconfigure: true
-    public: true
-    arguments:
-      $ovJsonRpcApiSwaggerPath: '%ovJsonRpcApiSwaggerPath%'
-    tags:
-      - { name: console.command, command: 'ov:swagger:generate' }
+    ov_json_rpc_api_swagger_generate_command:
+        class: OV\JsonRPCAPIBundle\Command\SwaggerGenerate
+        autoconfigure: true
+        public: true
+        arguments:
+            $ovJsonRpcApiSwaggerPath: '%ovJsonRpcApiSwaggerPath%'
+            $swagger: '%ov_json_rpc_api.swagger%'
+        tags:
+            - { name: console.command, command: 'ov:swagger:generate' }
 
-  OV\JsonRPCAPIBundle\Command\SwaggerGenerate: '@ov_json_rpc_api_swagger_generate_command'
+    OV\JsonRPCAPIBundle\Command\SwaggerGenerate: '@ov_json_rpc_api_swagger_generate_command'

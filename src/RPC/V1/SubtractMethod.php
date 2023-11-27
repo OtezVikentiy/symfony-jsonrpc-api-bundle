@@ -11,11 +11,12 @@
 namespace OV\JsonRPCAPIBundle\RPC\V1;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use OV\JsonRPCAPIBundle\RPC\V1\Subtract\SubtractRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\Subtract\SubtractResponse;
 
 #[JsonRPCAPI(methodName: 'subtract', type: 'POST')]
-class SubtractMethod
+class SubtractMethod implements ApiMethodInterface
 {
     public function call(SubtractRequest $request): SubtractResponse
     {

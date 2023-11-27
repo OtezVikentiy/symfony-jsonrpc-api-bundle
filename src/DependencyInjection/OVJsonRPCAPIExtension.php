@@ -10,11 +10,11 @@
 
 namespace OV\JsonRPCAPIBundle\DependencyInjection;
 
-use Exception;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
+use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 
 class OVJsonRPCAPIExtension extends Extension
 {
@@ -25,6 +25,15 @@ class OVJsonRPCAPIExtension extends Extension
             new FileLocator(dirname(__DIR__) . '/../config')
         );
         $loader->load('services.yaml');
+
+        $configuration = new Configuration();
+        $config = $this->processConfiguration($configuration, $configs);
+
+        $container->setParameter($this->getAlias() . '.swagger', $config['swagger']);
+
+        $container->registerForAutoconfiguration(ApiMethodInterface::class)
+            ->addTag('ov.rpc.method')
+        ;
     }
 
     public function getAlias(): string

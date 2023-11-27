@@ -11,11 +11,12 @@
 namespace OV\JsonRPCAPIBundle\RPC\V1;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use OV\JsonRPCAPIBundle\RPC\V1\Sum\SumRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\Sum\SumResponse;
 
 #[JsonRPCAPI(methodName: 'sum', type: 'POST')]
-class SumMethod
+class SumMethod implements ApiMethodInterface
 {
     public function call(SumRequest $request): SumResponse
     {
