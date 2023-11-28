@@ -7,8 +7,10 @@ class SchemaProperty
     public function __construct(
         private readonly string $name = '',
         private readonly string $type = '',
+        private readonly string $default = '',
         private readonly string $format = '',
-        private readonly string $example = '',
+        private readonly ?string $example = '',
+        private readonly ?string $ref = null,
     ) {}
 
     public function getName(): string
@@ -18,10 +20,17 @@ class SchemaProperty
 
     public function toArray(): array
     {
-        return [
-            'type' => $this->type,
-            'format' => $this->format,
-            'example' => $this->example,
-        ];
+        if (is_null($this->ref)) {
+            return [
+                'type' => $this->type,
+                'format' => $this->format,
+                'default' => $this->default,
+                'example' => (in_array($this->type, ['int', 'integer']) && empty($this->example)) ? 0 : $this->example,
+            ];
+        } else {
+            return [
+                '$ref' => '#/components/schemas/'.$this->ref,
+            ];
+        }
     }
 }

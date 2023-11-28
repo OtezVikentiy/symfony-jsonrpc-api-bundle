@@ -41,126 +41,190 @@ tags:
         name: update
         description: ''
 paths:
-    get_data:
+    '#get_data':
         post:
             tags: [get_data]
             summary: ''
             description: ''
-            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/get_dataRequest' } } } }
-            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/GetDataResponseResponse' } } } } }
-    notify_hello:
+            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/get_dataMainRequest' } } } }
+            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/GetDataResponseGlobalResponse' } } } } }
+    '#notify_hello':
         post:
             tags: [notify_hello]
             summary: ''
             description: ''
-            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/notify_helloRequest' } } } }
-            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/NotifyHelloResponseResponse' } } } } }
-    notify_sum:
+            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/notify_helloMainRequest' } } } }
+            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/NotifyHelloResponseGlobalResponse' } } } } }
+    '#notify_sum':
         post:
             tags: [notify_sum]
             summary: ''
             description: ''
-            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/notify_sumRequest' } } } }
-            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/NotifySumResponseResponse' } } } } }
-    subtract2:
+            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/notify_sumMainRequest' } } } }
+            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/NotifySumResponseGlobalResponse' } } } } }
+    '#subtract_2':
         post:
             tags: [subtract2]
             summary: ''
             description: ''
-            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/subtract2Request' } } } }
-            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/Subtract2ResponseResponse' } } } } }
-    subtract:
+            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/subtract2MainRequest' } } } }
+            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/Subtract2ResponseGlobalResponse' } } } } }
+    '#subtract':
         post:
             tags: [subtract]
             summary: ''
             description: ''
-            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/subtractRequest' } } } }
-            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/SubtractResponseResponse' } } } } }
-    sum:
+            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/subtractMainRequest' } } } }
+            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/SubtractResponseGlobalResponse' } } } } }
+    '#sum':
         post:
             tags: [sum]
             summary: ''
             description: ''
-            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/sumRequest' } } } }
-            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/SumResponseResponse' } } } } }
-    test:
+            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/sumMainRequest' } } } }
+            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/SumResponseGlobalResponse' } } } } }
+    '#test':
         post:
             tags: [test]
             summary: ''
             description: ''
-            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/testRequest' } } } }
-            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/TestResponseResponse' } } } } }
-    update:
+            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/testMainRequest' } } } }
+            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/TestResponseGlobalResponse' } } } } }
+    '#update':
         put:
             tags: [update]
             summary: ''
             description: ''
-            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/updateRequest' } } } }
-            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/UpdateResponseResponse' } } } } }
+            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/updateMainRequest' } } } }
+            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/UpdateResponseGlobalResponse' } } } } }
 components:
     schemas:
         get_dataRequest:
             type: object
             properties: {  }
             required: {  }
+        get_dataMainRequest:
+            type: object
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, method: { type: string, format: '', default: get_data, example: get_data }, params: { $ref: '#/components/schemas/get_dataRequest' } }
+            required: [jsonrpc, method, params]
         GetDataResponseResponse:
             type: object
-            properties: { result: { type: array, format: '', example: '' } }
+            properties: { result: { type: array, format: '', default: '', example: '' } }
             required: [result]
+        GetDataResponseGlobalResponse:
+            type: object
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, result: { $ref: '#/components/schemas/GetDataResponseResponse' } }
+            required: [jsonrpc, result]
         notify_helloRequest:
             type: object
-            properties: { params: { type: array, format: '', example: '' } }
+            properties: { params: { type: array, format: '', default: '', example: '' } }
             required: {  }
+        notify_helloMainRequest:
+            type: object
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, method: { type: string, format: '', default: notify_hello, example: notify_hello }, params: { $ref: '#/components/schemas/notify_helloRequest' } }
+            required: [jsonrpc, method, params]
         NotifyHelloResponseResponse:
             type: object
             properties: {  }
             required: {  }
+        NotifyHelloResponseGlobalResponse:
+            type: object
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, result: { $ref: '#/components/schemas/NotifyHelloResponseResponse' } }
+            required: [jsonrpc, result]
         notify_sumRequest:
             type: object
-            properties: { params: { type: array, format: '', example: '' } }
+            properties: { params: { type: array, format: '', default: '', example: '' } }
             required: {  }
+        notify_sumMainRequest:
+            type: object
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, method: { type: string, format: '', default: notify_sum, example: notify_sum }, params: { $ref: '#/components/schemas/notify_sumRequest' } }
+            required: [jsonrpc, method, params]
         NotifySumResponseResponse:
             type: object
             properties: {  }
             required: {  }
+        NotifySumResponseGlobalResponse:
+            type: object
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, result: { $ref: '#/components/schemas/NotifySumResponseResponse' } }
+            required: [jsonrpc, result]
         subtract2Request:
             type: object
-            properties: { subtrahend: { type: integer, format: '', example: '' }, minuend: { type: integer, format: '', example: '' } }
+            properties: { subtrahend: { type: int, format: '', default: '', example: 0 }, minuend: { type: int, format: '', default: '', example: 0 } }
             required: {  }
+        subtract2MainRequest:
+            type: object
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, method: { type: string, format: '', default: subtract2, example: subtract2 }, params: { $ref: '#/components/schemas/subtract2Request' } }
+            required: [jsonrpc, method, params]
         Subtract2ResponseResponse:
             type: object
-            properties: { result: { type: integer, format: '', example: '' } }
+            properties: { result: { type: int, format: '', default: '', example: 0 } }
             required: [result]
+        Subtract2ResponseGlobalResponse:
+            type: object
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, result: { $ref: '#/components/schemas/Subtract2ResponseResponse' } }
+            required: [jsonrpc, result]
         subtractRequest:
             type: object
-            properties: { params: { type: array, format: '', example: '' } }
+            properties: { params: { type: array, format: '', default: '', example: '' } }
             required: {  }
+        subtractMainRequest:
+            type: object
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, method: { type: string, format: '', default: subtract, example: subtract }, params: { $ref: '#/components/schemas/subtractRequest' } }
+            required: [jsonrpc, method, params]
         SubtractResponseResponse:
             type: object
-            properties: { result: { type: integer, format: '', example: '' } }
+            properties: { result: { type: int, format: '', default: '', example: 0 } }
             required: [result]
+        SubtractResponseGlobalResponse:
+            type: object
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, result: { $ref: '#/components/schemas/SubtractResponseResponse' } }
+            required: [jsonrpc, result]
         sumRequest:
             type: object
-            properties: { params: { type: array, format: '', example: '' } }
+            properties: { params: { type: array, format: '', default: '', example: '' } }
             required: {  }
+        sumMainRequest:
+            type: object
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, method: { type: string, format: '', default: sum, example: sum }, params: { $ref: '#/components/schemas/sumRequest' } }
+            required: [jsonrpc, method, params]
         SumResponseResponse:
             type: object
-            properties: { result: { type: integer, format: '', example: '' } }
+            properties: { result: { type: int, format: '', default: '', example: 0 } }
             required: [result]
+        SumResponseGlobalResponse:
+            type: object
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, result: { $ref: '#/components/schemas/SumResponseResponse' } }
+            required: [jsonrpc, result]
         testRequest:
             type: object
-            properties: { id: { type: integer, format: '', example: '' }, title: { type: string, format: '', example: '' } }
+            properties: { id: { type: int, format: '', default: '', example: 0 }, title: { type: string, format: '', default: '', example: '' } }
             required: [id]
+        testMainRequest:
+            type: object
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, method: { type: string, format: '', default: test, example: test }, params: { $ref: '#/components/schemas/testRequest' }, id: { type: int, format: '', default: '0', example: 0 } }
+            required: [jsonrpc, method, params, id]
         TestResponseResponse:
             type: object
-            properties: { success: { type: boolean, format: '', example: '' }, title: { type: string, format: '', example: '' } }
+            properties: { success: { type: bool, format: '', default: '', example: '' }, title: { type: string, format: '', default: '', example: '' } }
             required: [success, title]
+        TestResponseGlobalResponse:
+            type: object
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, result: { $ref: '#/components/schemas/TestResponseResponse' }, id: { type: int, format: '', default: '0', example: 0 } }
+            required: [jsonrpc, result, id]
         updateRequest:
             type: object
-            properties: { params: { type: array, format: '', example: '' } }
+            properties: { params: { type: array, format: '', default: '', example: '' } }
             required: {  }
+        updateMainRequest:
+            type: object
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, method: { type: string, format: '', default: update, example: update }, params: { $ref: '#/components/schemas/updateRequest' } }
+            required: [jsonrpc, method, params]
         UpdateResponseResponse:
             type: object
             properties: {  }
             required: {  }
+        UpdateResponseGlobalResponse:
+            type: object
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, result: { $ref: '#/components/schemas/UpdateResponseResponse' } }
+            required: [jsonrpc, result]
 

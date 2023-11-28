@@ -33,7 +33,7 @@ class BaseRequest
         if (!empty($data['params'])) {
             $this->params = $data['params'];
         }
-        if (!empty($data['id'])) {
+        if (isset($data['id'])) {
             $this->id = $data['id'];
         }
     }
