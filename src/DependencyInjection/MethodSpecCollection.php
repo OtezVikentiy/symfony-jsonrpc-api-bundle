@@ -36,6 +36,9 @@ class MethodSpecCollection
         return $this->methodSpecs[$methodName];
     }
 
+    /**
+     * @return MethodSpec[]
+     */
     public function getAllMethods(): array
     {
         return $this->methodSpecs;

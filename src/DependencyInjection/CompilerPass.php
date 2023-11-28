@@ -53,6 +53,9 @@ class CompilerPass implements CompilerPassInterface
                 if ($attribute->getName() === JsonRPCAPI::class) {
                     $methodName = $attribute->getArguments()['methodName'] ?? throw new Exception(sprintf('Class %s does not have attribute param methdoName', $className));
                     $requestType = $attribute->getArguments()['type'] ?? throw new Exception(sprintf('Class %s does not have attribute param type', $className));
+                    $summary = $attribute->getArguments()['summary'] ?? '';
+                    $description = $attribute->getArguments()['description'] ?? '';
+                    $ignoreInSwagger = $attribute->getArguments()['ignoreInSwagger'] ?? false;
                 }
             }
 
@@ -80,8 +83,8 @@ class CompilerPass implements CompilerPassInterface
                 if ($callParameter->getName() === 'request') {
                     $methodRequestReflection = new ReflectionClass($callParameter->getType()->getName());
                     $validators              = $this->getValidatorsForRequest($methodRequestReflection);
-                    $allParameters           = array_map(fn($i) => $i->getName(), $methodRequestReflection->getProperties() ?? []);
-                    $requiredParameters      = array_map(fn($i) => $i?->getName(), $methodRequestReflection->getConstructor()?->getParameters() ?? []);
+                    $allParameters           = $this->getProperties($methodRequestReflection->getProperties());
+                    $requiredParameters      = $this->getProperties($methodRequestReflection->getConstructor()?->getParameters());
                     $requestMethods          = $methodRequestReflection->getMethods();
 
                     foreach ($requestMethods as $requestSingleMethod) {
@@ -102,6 +105,10 @@ class CompilerPass implements CompilerPassInterface
             $methodSpec->setArguments([
                 $methodReflectionClass->getName(),
                 $requestType,
+                $summary,
+                $description,
+                $ignoreInSwagger,
+                $methodName,
                 $allParameters,
                 $requiredParameters,
                 $methodRequestReflection?->getName() ?? null,
@@ -117,6 +124,18 @@ class CompilerPass implements CompilerPassInterface
                 ]
             );
         }
+    }
+
+    private function getProperties(array $properties = []): array
+    {
+        $return = [];
+        foreach ($properties as $property) {
+            $return[] = [
+                'name' => $property->getName(),
+                'type' => $property->getType()->getName(),
+            ];
+        }
+        return $return;
     }
 
     private function getValidatorsForRequest(ReflectionClass $requestReflection): array

@@ -15,7 +15,7 @@ use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use OV\JsonRPCAPIBundle\RPC\V1\Test\TestRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\Test\TestResponse;
 
-#[JsonRPCAPI(methodName: 'test', type: 'POST')]
+#[JsonRPCAPI(methodName: 'test', type: 'POST', ignoreInSwagger: true)]
 class TestMethod implements ApiMethodInterface
 {
     public function call(TestRequest $request): TestResponse

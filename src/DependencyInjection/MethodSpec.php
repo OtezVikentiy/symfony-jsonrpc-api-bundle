@@ -15,6 +15,10 @@ class MethodSpec
     public function __construct(
         private readonly string $methodClass,
         private readonly string $requestType,
+        private readonly string $summary,
+        private readonly string $description,
+        private readonly bool $ignoreInSwagger,
+        private readonly string $methodName,
         private readonly array $allParameters,
         private readonly array $requiredParameters,
         private readonly ?string $request,
@@ -26,6 +30,26 @@ class MethodSpec
     public function getRequestType(): string
     {
         return $this->requestType;
+    }
+
+    public function getSummary(): string
+    {
+        return $this->summary;
+    }
+
+    public function getDescription(): string
+    {
+        return $this->description;
+    }
+
+    public function isIgnoreInSwagger(): bool
+    {
+        return $this->ignoreInSwagger;
+    }
+
+    public function getMethodName(): string
+    {
+        return $this->methodName;
     }
 
     public function getValidators(): array

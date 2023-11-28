@@ -10,6 +10,8 @@
 
 namespace OV\JsonRPCAPIBundle\Core;
 
+use ReflectionClass;
+
 class BaseResponse
 {
     public function __construct(
@@ -26,7 +28,7 @@ class BaseResponse
 
     public function getResult(): mixed
     {
-        $ref = new \ReflectionClass($this->result::class);
+        $ref = new ReflectionClass($this->result::class);
         $props = $ref->getProperties();
         if (count($props) === 1) {
             $methods = $ref->getMethods();

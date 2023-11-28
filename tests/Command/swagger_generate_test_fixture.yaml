@@ -1,0 +1,166 @@
+openapi: 3.0.3
+info:
+    title: title
+    description: description
+    termsOfService: terms_of_service_url
+    version: '1'
+    contact:
+        name: name
+        url: url
+        email: email
+    license:
+        name: license
+        url: licenseUrl
+servers:
+    -
+        url: 'http://localhost:35080/api/v1'
+        description: ''
+tags:
+    -
+        name: get_data
+        description: ''
+    -
+        name: notify_hello
+        description: ''
+    -
+        name: notify_sum
+        description: ''
+    -
+        name: subtract2
+        description: ''
+    -
+        name: subtract
+        description: ''
+    -
+        name: sum
+        description: ''
+    -
+        name: test
+        description: ''
+    -
+        name: update
+        description: ''
+paths:
+    get_data:
+        post:
+            tags: [get_data]
+            summary: ''
+            description: ''
+            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/get_dataRequest' } } } }
+            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/GetDataResponseResponse' } } } } }
+    notify_hello:
+        post:
+            tags: [notify_hello]
+            summary: ''
+            description: ''
+            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/notify_helloRequest' } } } }
+            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/NotifyHelloResponseResponse' } } } } }
+    notify_sum:
+        post:
+            tags: [notify_sum]
+            summary: ''
+            description: ''
+            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/notify_sumRequest' } } } }
+            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/NotifySumResponseResponse' } } } } }
+    subtract2:
+        post:
+            tags: [subtract2]
+            summary: ''
+            description: ''
+            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/subtract2Request' } } } }
+            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/Subtract2ResponseResponse' } } } } }
+    subtract:
+        post:
+            tags: [subtract]
+            summary: ''
+            description: ''
+            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/subtractRequest' } } } }
+            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/SubtractResponseResponse' } } } } }
+    sum:
+        post:
+            tags: [sum]
+            summary: ''
+            description: ''
+            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/sumRequest' } } } }
+            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/SumResponseResponse' } } } } }
+    test:
+        post:
+            tags: [test]
+            summary: ''
+            description: ''
+            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/testRequest' } } } }
+            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/TestResponseResponse' } } } } }
+    update:
+        put:
+            tags: [update]
+            summary: ''
+            description: ''
+            requestBody: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/updateRequest' } } } }
+            responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/UpdateResponseResponse' } } } } }
+components:
+    schemas:
+        get_dataRequest:
+            type: object
+            properties: {  }
+            required: {  }
+        GetDataResponseResponse:
+            type: object
+            properties: { result: { type: array, format: '', example: '' } }
+            required: [result]
+        notify_helloRequest:
+            type: object
+            properties: { params: { type: array, format: '', example: '' } }
+            required: {  }
+        NotifyHelloResponseResponse:
+            type: object
+            properties: {  }
+            required: {  }
+        notify_sumRequest:
+            type: object
+            properties: { params: { type: array, format: '', example: '' } }
+            required: {  }
+        NotifySumResponseResponse:
+            type: object
+            properties: {  }
+            required: {  }
+        subtract2Request:
+            type: object
+            properties: { subtrahend: { type: integer, format: '', example: '' }, minuend: { type: integer, format: '', example: '' } }
+            required: {  }
+        Subtract2ResponseResponse:
+            type: object
+            properties: { result: { type: integer, format: '', example: '' } }
+            required: [result]
+        subtractRequest:
+            type: object
+            properties: { params: { type: array, format: '', example: '' } }
+            required: {  }
+        SubtractResponseResponse:
+            type: object
+            properties: { result: { type: integer, format: '', example: '' } }
+            required: [result]
+        sumRequest:
+            type: object
+            properties: { params: { type: array, format: '', example: '' } }
+            required: {  }
+        SumResponseResponse:
+            type: object
+            properties: { result: { type: integer, format: '', example: '' } }
+            required: [result]
+        testRequest:
+            type: object
+            properties: { id: { type: integer, format: '', example: '' }, title: { type: string, format: '', example: '' } }
+            required: [id]
+        TestResponseResponse:
+            type: object
+            properties: { success: { type: boolean, format: '', example: '' }, title: { type: string, format: '', example: '' } }
+            required: [success, title]
+        updateRequest:
+            type: object
+            properties: { params: { type: array, format: '', example: '' } }
+            required: {  }
+        UpdateResponseResponse:
+            type: object
+            properties: {  }
+            required: {  }
+

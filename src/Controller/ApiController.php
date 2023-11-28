@@ -80,21 +80,21 @@ class ApiController extends AbstractController
                 if (!is_null($requestClass)) {
                     $constructorParams = [];
                     foreach ($method->getRequiredParameters() as $requiredParameter) {
-                        if ($requiredParameter === 'id') {
+                        if ($requiredParameter['name'] === 'id') {
                             $constructorParams[] = $baseRequest->getId();
                             continue;
                         }
-                        $constructorParams[] = $baseRequest->getParams()[$requiredParameter] ?? null;
+                        $constructorParams[] = $baseRequest->getParams()[$requiredParameter['name']] ?? null;
                     }
 
                     $requestInstance = new $requestClass(...$constructorParams);
 
                     foreach ($method->getAllParameters() as $allParameter) {
-                        $requestSetter = $method->getRequestSetters()[$allParameter] ?? null;
+                        $requestSetter = $method->getRequestSetters()[$allParameter['name']] ?? null;
                         if (!is_null($requestSetter)) {
-                            $value = $allParameter === 'id' ? $baseRequest->getId() : $baseRequest->getParams()[$allParameter] ?? null;
+                            $value = $allParameter['name'] === 'id' ? $baseRequest->getId() : $baseRequest->getParams()[$allParameter['name']] ?? null;
 
-                            if (is_null($value) && $allParameter === 'params') {
+                            if (is_null($value) && $allParameter['name'] === 'params') {
                                 $value = $baseRequest->getParams();
                             }
 

@@ -15,7 +15,7 @@ use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use OV\JsonRPCAPIBundle\RPC\V1\Update\UpdateRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\Update\UpdateResponse;
 
-#[JsonRPCAPI(methodName: 'update', type: 'PUT')]
+#[JsonRPCAPI(methodName: 'update', type: 'PUT', ignoreInSwagger: true)]
 class UpdateMethod implements ApiMethodInterface
 {
     public function call(UpdateRequest $request): UpdateResponse

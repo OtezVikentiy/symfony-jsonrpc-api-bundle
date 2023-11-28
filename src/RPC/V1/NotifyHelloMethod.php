@@ -15,7 +15,7 @@ use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use OV\JsonRPCAPIBundle\RPC\V1\NotifyHello\NotifyHelloRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\NotifyHello\NotifyHelloResponse;
 
-#[JsonRPCAPI(methodName: 'notify_hello', type: 'POST')]
+#[JsonRPCAPI(methodName: 'notify_hello', type: 'POST', ignoreInSwagger: true)]
 class NotifyHelloMethod implements ApiMethodInterface
 {
     public function call(NotifyHelloRequest $request): NotifyHelloResponse

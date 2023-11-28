@@ -15,7 +15,7 @@ use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use OV\JsonRPCAPIBundle\RPC\V1\NotifySum\NotifySumRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\NotifySum\NotifySumResponse;
 
-#[JsonRPCAPI(methodName: 'notify_sum', type: 'POST')]
+#[JsonRPCAPI(methodName: 'notify_sum', type: 'POST', ignoreInSwagger: true)]
 class NotifySumMethod implements ApiMethodInterface
 {
     public function call(NotifySumRequest $request): NotifySumResponse

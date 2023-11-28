@@ -18,6 +18,9 @@ class JsonRPCAPI
     public function __construct(
         private readonly string $methodName,
         private readonly string $type,
+        private readonly string $summary = '',
+        private readonly string $description = '',
+        private readonly bool $ignoreInSwagger = false,
     ) {
     }
 
@@ -29,5 +32,20 @@ class JsonRPCAPI
     public function getType(): string
     {
         return $this->type;
+    }
+
+    public function getSummary(): string
+    {
+        return $this->summary;
+    }
+
+    public function getDescription(): string
+    {
+        return $this->description;
+    }
+
+    public function isIgnoreInSwagger(): bool
+    {
+        return $this->ignoreInSwagger;
     }
 }
