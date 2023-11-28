@@ -83,8 +83,8 @@ class CompilerPass implements CompilerPassInterface
                 if ($callParameter->getName() === 'request') {
                     $methodRequestReflection = new ReflectionClass($callParameter->getType()->getName());
                     $validators              = $this->getValidatorsForRequest($methodRequestReflection);
-                    $allParameters           = $this->getProperties($methodRequestReflection->getProperties());
-                    $requiredParameters      = $this->getProperties($methodRequestReflection->getConstructor()?->getParameters());
+                    $allParameters           = $this->getProperties($methodRequestReflection->getProperties() ?? []);
+                    $requiredParameters      = $this->getProperties($methodRequestReflection->getConstructor()?->getParameters() ?? []);
                     $requestMethods          = $methodRequestReflection->getMethods();
 
                     foreach ($requestMethods as $requestSingleMethod) {
