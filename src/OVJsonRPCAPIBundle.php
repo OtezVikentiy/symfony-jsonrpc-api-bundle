@@ -27,4 +27,15 @@ class OVJsonRPCAPIBundle extends Bundle
     {
         $container->addCompilerPass(CompilerPassBuilder::build($container));
     }
+
+    public function getPath(): string
+    {
+        if (null === $this->path) {
+            $reflected = new \ReflectionObject($this);
+            // assume the modern directory structure by default
+            $this->path = \dirname($reflected->getFileName(), 2);
+        }
+
+        return $this->path;
+    }
 }
