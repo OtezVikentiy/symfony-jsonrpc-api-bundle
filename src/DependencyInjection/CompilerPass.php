@@ -13,7 +13,6 @@ namespace OV\JsonRPCAPIBundle\DependencyInjection;
 use Exception;
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 use ReflectionClass;
-use ReflectionException;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;

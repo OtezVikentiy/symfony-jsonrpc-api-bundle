@@ -14,9 +14,9 @@ use OV\JsonRPCAPIBundle\DependencyInjection\CompilerPassBuilder;
 use OV\JsonRPCAPIBundle\DependencyInjection\OVJsonRPCAPIExtension;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
-use Symfony\Component\HttpKernel\Bundle\Bundle;
+use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 
-class OVJsonRPCAPIBundle extends Bundle
+class OVJsonRPCAPIBundle extends AbstractBundle
 {
     public function getContainerExtension(): ?ExtensionInterface
     {
@@ -26,16 +26,5 @@ class OVJsonRPCAPIBundle extends Bundle
     public function build(ContainerBuilder $container): void
     {
         $container->addCompilerPass(CompilerPassBuilder::build($container));
-    }
-
-    public function getPath(): string
-    {
-        if (null === $this->path) {
-            $reflected = new \ReflectionObject($this);
-            // assume the modern directory structure by default
-            $this->path = \dirname($reflected->getFileName(), 2);
-        }
-
-        return $this->path;
     }
 }
