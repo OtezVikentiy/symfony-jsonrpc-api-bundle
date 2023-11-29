@@ -43,6 +43,7 @@ tags:
 paths:
     '#get_data':
         post:
+            parameters: { in: header, name: X-AUTH-TOKEN, schema: { type: string }, default: 2f1f6aee7d994528fde6e47a493cc097 }
             tags: [get_data]
             summary: ''
             description: ''
@@ -50,6 +51,7 @@ paths:
             responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/GetDataResponseGlobalResponse' } } } } }
     '#notify_hello':
         post:
+            parameters: { in: header, name: X-AUTH-TOKEN, schema: { type: string }, default: 2f1f6aee7d994528fde6e47a493cc097 }
             tags: [notify_hello]
             summary: ''
             description: ''
@@ -57,6 +59,7 @@ paths:
             responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/NotifyHelloResponseGlobalResponse' } } } } }
     '#notify_sum':
         post:
+            parameters: { in: header, name: X-AUTH-TOKEN, schema: { type: string }, default: 2f1f6aee7d994528fde6e47a493cc097 }
             tags: [notify_sum]
             summary: ''
             description: ''
@@ -64,6 +67,7 @@ paths:
             responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/NotifySumResponseGlobalResponse' } } } } }
     '#subtract_2':
         post:
+            parameters: { in: header, name: X-AUTH-TOKEN, schema: { type: string }, default: 2f1f6aee7d994528fde6e47a493cc097 }
             tags: [subtract2]
             summary: ''
             description: ''
@@ -71,6 +75,7 @@ paths:
             responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/Subtract2ResponseGlobalResponse' } } } } }
     '#subtract':
         post:
+            parameters: { in: header, name: X-AUTH-TOKEN, schema: { type: string }, default: 2f1f6aee7d994528fde6e47a493cc097 }
             tags: [subtract]
             summary: ''
             description: ''
@@ -78,6 +83,7 @@ paths:
             responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/SubtractResponseGlobalResponse' } } } } }
     '#sum':
         post:
+            parameters: { in: header, name: X-AUTH-TOKEN, schema: { type: string }, default: 2f1f6aee7d994528fde6e47a493cc097 }
             tags: [sum]
             summary: ''
             description: ''
@@ -85,6 +91,7 @@ paths:
             responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/SumResponseGlobalResponse' } } } } }
     '#test':
         post:
+            parameters: { in: header, name: X-AUTH-TOKEN, schema: { type: string }, default: 2f1f6aee7d994528fde6e47a493cc097 }
             tags: [test]
             summary: ''
             description: ''
@@ -92,6 +99,7 @@ paths:
             responses: { 200: { description: '', content: { application/json: { schema: { $ref: '#/components/schemas/TestResponseGlobalResponse' } } } } }
     '#update':
         put:
+            parameters: { in: header, name: X-AUTH-TOKEN, schema: { type: string }, default: 2f1f6aee7d994528fde6e47a493cc097 }
             tags: [update]
             summary: ''
             description: ''

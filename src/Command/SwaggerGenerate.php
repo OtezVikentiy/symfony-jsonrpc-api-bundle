@@ -64,14 +64,14 @@ class SwaggerGenerate extends Command
             new Server(sprintf('%s/api/v%s', $item['base_path'], $item['api_version']))
         ];
 
-        [$tags, $paths, $components] = $this->generateApis();
+        [$tags, $paths, $components] = $this->generateApis($item['auth_token_name'], $item['auth_token_test_value']);
 
         $swagger = new Openapi($info, $servers, $tags, $paths, $components);
 
         return Yaml::dump($swagger->toArray(), 4);
     }
 
-    private function generateApis(): array
+    private function generateApis(string $authTokenName, string $authTokenDefaultValue): array
     {
         $tags = [];
         $paths = [];
@@ -156,7 +156,13 @@ class SwaggerGenerate extends Command
                 description: $method->getDescription(),
                 requestBody: $requestBody,
                 tags: [$tag],
-                responses: [$response]
+                responses: [$response],
+                parameters: [
+                    'in' => 'header',
+                    'name' => $authTokenName,
+                    'schema' => ['type' => 'string'],
+                    'default' => $authTokenDefaultValue
+                ],
             );
             $paths[] = $path;
         }

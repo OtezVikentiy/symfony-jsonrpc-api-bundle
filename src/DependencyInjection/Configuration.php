@@ -27,6 +27,8 @@ class Configuration implements ConfigurationInterface
                         ->children()
                             ->scalarNode('api_version')->defaultValue('1')->end()
                             ->scalarNode('base_path')->end()
+                            ->scalarNode('auth_token_name')->end()
+                            ->scalarNode('auth_token_test_value')->end()
                             ->arrayNode('info')
                                 ->children()
                                     ->scalarNode('title')->defaultValue('title')->end()

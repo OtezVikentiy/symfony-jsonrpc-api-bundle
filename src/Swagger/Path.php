@@ -12,6 +12,7 @@ class Path
         private readonly ?RequestBody $requestBody = null,
         private readonly array $tags = [],
         private readonly array $responses = [],
+        private readonly array $parameters = [],
         private readonly string $operationId = '',
     ) {}
 
@@ -29,6 +30,7 @@ class Path
 
         return [
             mb_strtolower($this->methodType) => [
+                'parameters' => $this->parameters,
                 'tags' => array_map(fn (Tag $tag) => $tag->getName(), $this->tags),
                 'summary' => $this->summary,
                 'description' => $this->description,

@@ -42,6 +42,8 @@ class SwaggerGenerateTest extends TestCase
                 'api_v1' => [
                     'api_version' => '1',
                     'base_path' => 'http://localhost:35080',
+                    'auth_token_name' => 'X-AUTH-TOKEN',
+                    'auth_token_test_value' => '2f1f6aee7d994528fde6e47a493cc097',
                     'info' => [
                         'title' => 'title',
                         'description' => 'description',
