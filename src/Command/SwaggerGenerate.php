@@ -144,7 +144,7 @@ class SwaggerGenerate extends Command
                 $responseSchema->addRequired(new SchemaProperty(name: 'id', type: 'int', default: '0', example: '0'));
             }
 
-            $response = new Response('200', sprintf('%sGlobalResponse', $responseClassRef->getShortName()));
+            $response = new Response('200', sprintf('%sResponse', $responseClassRef->getShortName()));
 
             $path = new Path(
                 name: '#'.$this->camelToSnake($method->getMethodName(), '_'),

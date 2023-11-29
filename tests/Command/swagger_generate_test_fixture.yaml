@@ -117,11 +117,7 @@ components:
             required: [jsonrpc, method, params]
         GetDataResponseResponse:
             type: object
-            properties: { result: { type: array, format: '', default: '', example: '' } }
-            required: [result]
-        GetDataResponseGlobalResponse:
-            type: object
-            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, result: { $ref: '#/components/schemas/GetDataResponseResponse' } }
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, result: { type: array, format: '', default: '', example: '' } }
             required: [jsonrpc, result]
         notify_helloRequest:
             type: object
@@ -133,12 +129,8 @@ components:
             required: [jsonrpc, method, params]
         NotifyHelloResponseResponse:
             type: object
-            properties: {  }
-            required: {  }
-        NotifyHelloResponseGlobalResponse:
-            type: object
-            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, result: { $ref: '#/components/schemas/NotifyHelloResponseResponse' } }
-            required: [jsonrpc, result]
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' } }
+            required: [jsonrpc]
         notify_sumRequest:
             type: object
             properties: { params: { type: array, format: '', default: '', example: '' } }
@@ -149,12 +141,8 @@ components:
             required: [jsonrpc, method, params]
         NotifySumResponseResponse:
             type: object
-            properties: {  }
-            required: {  }
-        NotifySumResponseGlobalResponse:
-            type: object
-            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, result: { $ref: '#/components/schemas/NotifySumResponseResponse' } }
-            required: [jsonrpc, result]
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' } }
+            required: [jsonrpc]
         subtract2Request:
             type: object
             properties: { subtrahend: { type: int, format: '', default: '', example: 0 }, minuend: { type: int, format: '', default: '', example: 0 } }
@@ -165,11 +153,7 @@ components:
             required: [jsonrpc, method, params]
         Subtract2ResponseResponse:
             type: object
-            properties: { result: { type: int, format: '', default: '', example: 0 } }
-            required: [result]
-        Subtract2ResponseGlobalResponse:
-            type: object
-            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, result: { $ref: '#/components/schemas/Subtract2ResponseResponse' } }
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, result: { type: int, format: '', default: '', example: 0 } }
             required: [jsonrpc, result]
         subtractRequest:
             type: object
@@ -181,11 +165,7 @@ components:
             required: [jsonrpc, method, params]
         SubtractResponseResponse:
             type: object
-            properties: { result: { type: int, format: '', default: '', example: 0 } }
-            required: [result]
-        SubtractResponseGlobalResponse:
-            type: object
-            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, result: { $ref: '#/components/schemas/SubtractResponseResponse' } }
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, result: { type: int, format: '', default: '', example: 0 } }
             required: [jsonrpc, result]
         sumRequest:
             type: object
@@ -197,11 +177,7 @@ components:
             required: [jsonrpc, method, params]
         SumResponseResponse:
             type: object
-            properties: { result: { type: int, format: '', default: '', example: 0 } }
-            required: [result]
-        SumResponseGlobalResponse:
-            type: object
-            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, result: { $ref: '#/components/schemas/SumResponseResponse' } }
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, result: { type: int, format: '', default: '', example: 0 } }
             required: [jsonrpc, result]
         testRequest:
             type: object
@@ -213,12 +189,8 @@ components:
             required: [jsonrpc, method, params, id]
         TestResponseResponse:
             type: object
-            properties: { success: { type: bool, format: '', default: '', example: '' }, title: { type: string, format: '', default: '', example: '' } }
-            required: [success, title]
-        TestResponseGlobalResponse:
-            type: object
-            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, result: { $ref: '#/components/schemas/TestResponseResponse' }, id: { type: int, format: '', default: '0', example: 0 } }
-            required: [jsonrpc, result, id]
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, success: { type: bool, format: '', default: '', example: '' }, title: { type: string, format: '', default: '', example: '' }, id: { type: int, format: '', default: '0', example: 0 } }
+            required: [jsonrpc, success, title, id]
         updateRequest:
             type: object
             properties: { params: { type: array, format: '', default: '', example: '' } }
@@ -229,10 +201,6 @@ components:
             required: [jsonrpc, method, params]
         UpdateResponseResponse:
             type: object
-            properties: {  }
-            required: {  }
-        UpdateResponseGlobalResponse:
-            type: object
-            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' }, result: { $ref: '#/components/schemas/UpdateResponseResponse' } }
-            required: [jsonrpc, result]
+            properties: { jsonrpc: { type: string, format: '', default: '2.0', example: '2.0' } }
+            required: [jsonrpc]
 
