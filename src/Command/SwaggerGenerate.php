@@ -127,7 +127,11 @@ class SwaggerGenerate extends Command
             $callMethod = $methodRef->getMethod('call');
             $responseClassRef = new ReflectionClass($callMethod->getReturnType()?->getName());
             $responseProperties = $responseClassRef->getProperties();
+
             $responseSchema = new Schema(sprintf('%sResponse', $responseClassRef->getShortName()));
+            $responseSchema->addProperty(new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0'));
+            $responseSchema->addRequired(new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0'));
+
             foreach ($responseProperties as $responseProperty) {
                 $respProp = new SchemaProperty($responseProperty->getName(), $responseProperty->getType()->getName());
                 $responseSchema->addProperty($respProp);
@@ -135,17 +139,10 @@ class SwaggerGenerate extends Command
             }
             $components[] = $responseSchema;
 
-            $globalResponse = new Schema(sprintf('%sGlobalResponse', $responseClassRef->getShortName()));
-            $globalResponse->addProperty(new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0'));
-            $globalResponse->addRequired(new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0'));
-
-            $globalResponse->addProperty(new SchemaProperty(name: 'result', ref: sprintf('%sResponse', $responseClassRef->getShortName())));
-            $globalResponse->addRequired(new SchemaProperty(name: 'result', ref: sprintf('%sResponse', $responseClassRef->getShortName())));
             if ($addIdToGlobalRequest) {
-                $globalResponse->addProperty(new SchemaProperty(name: 'id', type: 'int', default: '0', example: '0'));
-                $globalResponse->addRequired(new SchemaProperty(name: 'id', type: 'int', default: '0', example: '0'));
+                $responseSchema->addProperty(new SchemaProperty(name: 'id', type: 'int', default: '0', example: '0'));
+                $responseSchema->addRequired(new SchemaProperty(name: 'id', type: 'int', default: '0', example: '0'));
             }
-            $components[] = $globalResponse;
 
             $response = new Response('200', sprintf('%sGlobalResponse', $responseClassRef->getShortName()));
 
