@@ -14,9 +14,9 @@ use OV\JsonRPCAPIBundle\DependencyInjection\CompilerPassBuilder;
 use OV\JsonRPCAPIBundle\DependencyInjection\OVJsonRPCAPIExtension;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
-use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
+use Symfony\Component\HttpKernel\Bundle\Bundle;
 
-class OVJsonRPCAPIBundle extends AbstractBundle
+class OVJsonRPCAPIBundle extends Bundle
 {
     public function getContainerExtension(): ?ExtensionInterface
     {

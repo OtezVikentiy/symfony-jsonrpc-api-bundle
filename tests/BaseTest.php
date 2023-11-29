@@ -34,7 +34,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\UpdateMethod;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ServiceLocator;
-use Symfony\Component\HttpFoundation\{JsonResponse, ParameterBag, Request};
+use Symfony\Component\HttpFoundation\{InputBag, JsonResponse, ParameterBag, Request};
 use Symfony\Component\Serializer\DataCollector\SerializerDataCollector;
 use Symfony\Component\Serializer\Debug\TraceableNormalizer;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
@@ -289,11 +289,7 @@ class BaseTest extends TestCase
     private function prepare(array $data, MethodSpec $methodSpec)
     {
         $request = $this->createMock(Request::class);
-        $inputBag = $this->createMock(ParameterBag::class);
-        $inputBag->expects($this->once())
-            ->method('all')
-            ->willReturn([]);
-        $request->request = $inputBag;
+        $request->request = new InputBag([]);
         $request
             ->expects($this->once())
             ->method('getMethod')
@@ -401,11 +397,7 @@ class BaseTest extends TestCase
     private function prepare2(array $data, MethodSpec $methodSpec)
     {
         $request = $this->createMock(Request::class);
-        $inputBag = $this->createMock(ParameterBag::class);
-        $inputBag->expects($this->once())
-            ->method('all')
-            ->willReturn([]);
-        $request->request = $inputBag;
+        $request->request = new InputBag([]);
         $request
             ->expects($this->once())
             ->method('getMethod')
@@ -499,11 +491,7 @@ class BaseTest extends TestCase
     private function prepare3(string $data, MethodSpec $methodSpec)
     {
         $request = $this->createMock(Request::class);
-        $inputBag = $this->createMock(ParameterBag::class);
-        $inputBag->expects($this->once())
-            ->method('all')
-            ->willReturn([]);
-        $request->request = $inputBag;
+        $request->request = new InputBag([]);
         $request
             ->expects($this->once())
             ->method('getMethod')
@@ -597,11 +585,7 @@ class BaseTest extends TestCase
     private function prepare4(string $data, MethodSpec $methodSpec)
     {
         $request = $this->createMock(Request::class);
-        $inputBag = $this->createMock(ParameterBag::class);
-        $inputBag->expects($this->once())
-            ->method('all')
-            ->willReturn([]);
-        $request->request = $inputBag;
+        $request->request = new InputBag([]);
         $request
             ->expects($this->once())
             ->method('getMethod')
@@ -695,11 +679,7 @@ class BaseTest extends TestCase
     private function prepare5(string $data, MethodSpec $methodSpec)
     {
         $request = $this->createMock(Request::class);
-        $inputBag = $this->createMock(ParameterBag::class);
-        $inputBag->expects($this->once())
-            ->method('all')
-            ->willReturn([]);
-        $request->request = $inputBag;
+        $request->request = new InputBag([]);
         $request
             ->expects($this->once())
             ->method('getMethod')
@@ -793,11 +773,7 @@ class BaseTest extends TestCase
     private function prepare6(string $data, MethodSpec $methodSpec)
     {
         $request = $this->createMock(Request::class);
-        $inputBag = $this->createMock(ParameterBag::class);
-        $inputBag->expects($this->once())
-            ->method('all')
-            ->willReturn([]);
-        $request->request = $inputBag;
+        $request->request = new InputBag([]);
         $request
             ->expects($this->once())
             ->method('getMethod')
@@ -891,11 +867,7 @@ class BaseTest extends TestCase
     private function prepare7(string $data, MethodSpec $methodSpec)
     {
         $request = $this->createMock(Request::class);
-        $inputBag = $this->createMock(ParameterBag::class);
-        $inputBag->expects($this->once())
-            ->method('all')
-            ->willReturn([]);
-        $request->request = $inputBag;
+        $request->request = new InputBag([]);
         $request
             ->expects($this->once())
             ->method('getMethod')
@@ -989,11 +961,7 @@ class BaseTest extends TestCase
     private function prepare8(string $data, MethodSpec $methodSpec)
     {
         $request = $this->createMock(Request::class);
-        $inputBag = $this->createMock(ParameterBag::class);
-        $inputBag->expects($this->once())
-            ->method('all')
-            ->willReturn([]);
-        $request->request = $inputBag;
+        $request->request = new InputBag([]);
         $request
             ->expects($this->once())
             ->method('getMethod')
@@ -1239,11 +1207,7 @@ class BaseTest extends TestCase
     private function prepare9(array $data, array $methodSpecs)
     {
         $request = $this->createMock(Request::class);
-        $inputBag = $this->createMock(ParameterBag::class);
-        $inputBag->expects($this->once())
-            ->method('all')
-            ->willReturn([]);
-        $request->request = $inputBag;
+        $request->request = new InputBag([]);
         $request
             ->expects($this->once())
             ->method('getMethod')
