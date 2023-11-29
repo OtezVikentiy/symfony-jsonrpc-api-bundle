@@ -133,8 +133,10 @@ class ApiController extends AbstractController
                 $result   = $processor->call($requestInstance ?? null);
                 if (!is_null($baseRequest->getId())) {
                     $responses[] = new BaseResponse($result, $baseRequest?->getId() ?? null);
-                    unset($baseRequest);
+                } elseif (!empty((array)$result)) {
+                    $responses[] = new BaseResponse($result);
                 }
+                unset($baseRequest);
             } catch (JRPCException $e) {
                 $responses[] = new ErrorResponse(error: $e, id: $baseRequest?->getId() ?? $batch['id'] ?? null);
                 unset($baseRequest);
