@@ -157,12 +157,12 @@ class SwaggerGenerate extends Command
                 requestBody: $requestBody,
                 tags: [$tag],
                 responses: [$response],
-                parameters: [
+                parameters: [[
                     'in' => 'header',
                     'name' => $authTokenName,
                     'schema' => ['type' => 'string'],
                     'default' => $authTokenDefaultValue
-                ],
+                ]],
             );
             $paths[] = $path;
         }
