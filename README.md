@@ -16,13 +16,28 @@ Instructions: https://otezvikentiy.tech/articles/symfony-json-rpc-api-bundle-pro
 
 # Bundle installation
 
-Require the bundle as a dependency.
+1) add endpoint to composer.json as followed:
+
+```json
+{
+    "extra": {
+        "symfony": {
+            "endpoint": [
+                "https://api.github.com/repos/otezvikentiy/json-rpc-api-recipe/contents/index.json?ref=flex/main",
+                "flex://defaults"
+            ]
+        }
+    }
+}
+```
+
+2) Require the bundle as a dependency.
 
 ```bash
 $ composer require otezvikentiy/json-rpc-api
 ```
 
-Enable it in your application Kernel.
+3) Enable it in your application Kernel. ( not required if using flex )
 
 ```php
 <?php
@@ -33,7 +48,7 @@ return [
 ];
 ```
 
-Import routing and configure services section.
+4) Create or update these config files
 
 ```yaml
 # config/routes/ov_json_rpc_api.yaml
@@ -48,6 +63,36 @@ services:
         resource: '../src/RPC/V1/{*Method.php}'
         tags:
             - { name: ov.rpc.method, namespace: App\RPC\V1\, version: 1 }
+```
+
+```yaml
+# config/packages/ov_json_rpc_api.yaml
+ov_json_rpc_api:
+    swagger:
+        api_v1:
+            api_version: '1'
+            base_path: '%env(string:OV_JSON_RPC_API_BASE_URL)%'
+            auth_token_name: 'X-AUTH-TOKEN'
+            auth_token_test_value: '%env(string:OV_JSON_RPC_API_AUTH_TOKEN)%' #set blank for prod environment
+            info:
+                title: 'Some awesome api title here'
+                description: 'Some description about your api here would be appreciated if you like'
+                terms_of_service_url: 'https://terms_of_service_url.test/url'
+                contact:
+                    name: 'John Doe'
+                    url: 'https://john-doe.test'
+                    email: 'john.doe@john-doe.test'
+                license: 'MIT license'
+                licenseUrl: 'https://john-doe.test/mit-license'
+```
+
+```dotenv
+# .env
+###> otezvikentiy/json-rpc-api ###
+OV_JSON_RPC_API_SWAGGER_PATH=public/openapi/
+OV_JSON_RPC_API_BASE_URL=http://localhost
+OV_JSON_RPC_API_AUTH_TOKEN=2f1f6aee7d994528fde6e47a493cc097
+###< otezvikentiy/json-rpc-api ###
 ```
 
 ---
@@ -81,41 +126,26 @@ class GetProductsRequest
     private int $id;
     private string $title;
 
-    /**
-     * @param int $id
-     */
     public function __construct(int $id)
     {
         $this->id = $id;
     }
 
-    /**
-     * @return int
-     */
     public function getId(): int
     {
         return $this->id;
     }
 
-    /**
-     * @param int $id
-     */
     public function setId(int $id): void
     {
         $this->id = $id;
     }
 
-    /**
-     * @return string
-     */
     public function getTitle(): string
     {
         return $this->title;
     }
 
-    /**
-     * @param string $title
-     */
     public function setTitle(string $title): void
     {
         $this->title = $title;
@@ -132,43 +162,27 @@ class GetProductsResponse
     private bool $success;
     private string $title;
 
-    /**
-     * @param string $title
-     * @param bool $success
-     */
     public function __construct(string $title, bool $success = true)
     {
         $this->success = $success;
         $this->title = $title;
     }
 
-    /**
-     * @return string
-     */
     public function getTitle(): string
     {
         return $this->title;
     }
 
-    /**
-     * @param string $title
-     */
     public function setTitle(string $title): void
     {
         $this->title = $title;
     }
 
-    /**
-     * @return bool
-     */
     public function isSuccess(): bool
     {
         return $this->success;
     }
 
-    /**
-     * @param bool $success
-     */
     public function setSuccess(bool $success): void
     {
         $this->success = $success;
@@ -184,16 +198,9 @@ use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 use App\RPC\V1\getProducts\GetProductsRequest;
 use App\RPC\V1\getProducts\GetProductsResponse;
 
-/**
- * @JsonRPCAPI(methodName = "getProducts", type: "POST")
- */
 #[JsonRPCAPI(methodName: 'getProducts', type: 'POST')]
 class GetProductsMethod
 {
-    /**
-     * @param GetProductsRequest $request
-     * @return GetProductsResponse
-     */
     public function call(GetProductsRequest $request): GetProductsResponse
     {
         return new GetProductsResponse($request->getTitle().'OLOLOLOLO');
@@ -249,19 +256,11 @@ class ApiToken
     #[ORM\JoinColumn(nullable: false)]
     private User $user;
 
-    /**
-     * @return int
-     */
     public function getId(): int
     {
         return $this->id;
     }
 
-    /**
-     * @param int $id
-     *
-     * @return ApiToken
-     */
     public function setId(int $id): ApiToken
     {
         $this->id = $id;
@@ -269,19 +268,11 @@ class ApiToken
         return $this;
     }
 
-    /**
-     * @return string
-     */
     public function getToken(): string
     {
         return $this->token;
     }
 
-    /**
-     * @param string $token
-     *
-     * @return ApiToken
-     */
     public function setToken(string $token): ApiToken
     {
         $this->token = $token;
@@ -289,19 +280,11 @@ class ApiToken
         return $this;
     }
 
-    /**
-     * @return DateTimeInterface
-     */
     public function getExpiresAt(): DateTimeInterface
     {
         return $this->expiresAt;
     }
 
-    /**
-     * @param DateTimeInterface $expiresAt
-     *
-     * @return ApiToken
-     */
     public function setExpiresAt(DateTimeInterface $expiresAt): ApiToken
     {
         $this->expiresAt = $expiresAt;
@@ -309,19 +292,11 @@ class ApiToken
         return $this;
     }
 
-    /**
-     * @return User
-     */
     public function getUser(): User
     {
         return $this->user;
     }
 
-    /**
-     * @param User $user
-     *
-     * @return ApiToken
-     */
     public function setUser(User $user): ApiToken
     {
         $this->user = $user;
@@ -329,9 +304,6 @@ class ApiToken
         return $this;
     }
 
-    /**
-     * @return bool
-     */
     public function isValid(): bool
     {
         return (new DateTime())->getTimestamp() > $this->expiresAt->getTimestamp();
@@ -362,29 +334,16 @@ use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPasspor
 
 class ApiKeyAuthenticator extends AbstractAuthenticator
 {
-    /**
-     * @param EntityManagerInterface $em
-     */
     public function __construct(
         private readonly EntityManagerInterface $em
     ){
     }
 
-    /**
-     * @param Request $request
-     *
-     * @return bool
-     */
     public function supports(Request $request): bool
     {
         return str_contains($request->getRequestUri(), '/api/v');
     }
 
-    /**
-     * @param Request $request
-     *
-     * @return Passport
-     */
     public function authenticate(Request $request): Passport
     {
         $apiToken = $request->headers->get('X-AUTH-TOKEN');
@@ -405,24 +364,11 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
         ));
     }
 
-    /**
-     * @param Request        $request
-     * @param TokenInterface $token
-     * @param string         $firewallName
-     *
-     * @return Response|null
-     */
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
     {
         return null;
     }
 
-    /**
-     * @param Request                 $request
-     * @param AuthenticationException $exception
-     *
-     * @return Response|null
-     */
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response
     {
         $data = [
