@@ -5,7 +5,7 @@ The bundle allows you to quickly and conveniently deploy JSON RPC API applicatio
 ## Features
 - easy api versioning
 - easy bundle installation
-- compatible with both annotations and attributes
+- compatible with attributes
 - compatible with POST, GET, PUT, PATCH, DELETE requests
 - fully compatible with https://www.jsonrpc.org/specification
 - swagger openapi out of the box
@@ -16,28 +16,13 @@ Instructions: https://otezvikentiy.tech/articles/symfony-json-rpc-api-bundle-pro
 
 # Bundle installation
 
-1) add endpoint to composer.json as followed:
-
-```json
-{
-    "extra": {
-        "symfony": {
-            "endpoint": [
-                "https://api.github.com/repos/otezvikentiy/json-rpc-api-recipe/contents/index.json?ref=flex/main",
-                "flex://defaults"
-            ]
-        }
-    }
-}
-```
-
-2) Require the bundle as a dependency.
+1) Require the bundle as a dependency.
 
 ```bash
 $ composer require otezvikentiy/json-rpc-api
 ```
 
-3) Enable it in your application Kernel. ( not required if using flex )
+2) Enable it in your application Kernel. ( not required if using flex )
 
 ```php
 <?php
@@ -48,8 +33,7 @@ return [
 ];
 ```
 
-4) Create or update these config files
-
+3) Create / update these config files
 ```yaml
 # config/routes/ov_json_rpc_api.yaml
 ov_json_rpc_api:
