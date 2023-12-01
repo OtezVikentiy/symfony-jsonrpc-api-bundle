@@ -79,7 +79,7 @@ class CompilerPass implements CompilerPassInterface
             $methodRequestReflection = null;
             $callParameters          = $methodReflectionClass->getMethod('call')->getParameters();
             foreach ($callParameters as $callParameter) {
-                if ($callParameter->getName() === 'request') {
+                if ($callParameter->getName() === 'request') { //TODO тут получается так, что на входе можно использовать только переменную request
                     $methodRequestReflection = new ReflectionClass($callParameter->getType()->getName());
                     $validators              = $this->getValidatorsForRequest($methodRequestReflection);
                     $allParameters           = $this->getProperties($methodRequestReflection->getProperties() ?? []);
