@@ -222,6 +222,18 @@ In total, in order to create a new endpoint for your RPC API, you only need to a
 
 ---
 
+## Swagger
+
+If you wish to generate openapi swagger yaml file - then run this command:
+
+```bash
+bin/console ov:swagger:generate
+```
+
+It would generate a swagger file ( example public/openapi/api_v1.yaml ) which you can use in your swagger instance
+
+---
+
 ## Security
 
 You can also add token authorization like this:
