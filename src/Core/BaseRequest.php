@@ -15,7 +15,7 @@ class BaseRequest
     private string $jsonrpc;
     private string $method;
     private array $params = [];
-    private ?string $id = null;
+    private $id = null;
 
     public function __construct(array $data)
     {
@@ -24,7 +24,7 @@ class BaseRequest
             || empty($data['method'])
             || (!empty($data['params']) && !is_array($data['params']))
         ) {
-            throw new JRPCException('Invalid Request', JRPCException::INVALID_REQUEST);
+            throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
         }
 
         $this->jsonrpc = $data['jsonrpc'];
@@ -53,7 +53,7 @@ class BaseRequest
         return $this->params;
     }
 
-    public function getId(): ?string
+    public function getId()
     {
         return $this->id;
     }

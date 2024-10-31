@@ -45,14 +45,14 @@ class ApiController extends AbstractController
                 if (!empty($requestContent)) {
                     $jsonData = json_decode($requestContent, true);
                     if (is_null($jsonData)) {
-                        throw new JRPCException('Parse error', JRPCException::PARSE_ERROR);
+                        throw new JRPCException('Parse error.', JRPCException::PARSE_ERROR);
                     }
                 }
                 $data = array_merge($requestData, $jsonData);
             }
 
             if (empty($data)) {
-                throw new JRPCException('Invalid Request', JRPCException::INVALID_REQUEST);
+                throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
             }
 
             $batches = $data;
@@ -73,7 +73,7 @@ class ApiController extends AbstractController
                 $method = $specCollection->getMethodSpec($baseRequest->getMethod());
 
                 if ($method->getRequestType() !== $methodType) {
-                    throw new JRPCException('Invalid Request', JRPCException::INVALID_REQUEST);
+                    throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
                 }
 
                 $requestClass = $method->getRequest();
@@ -85,6 +85,31 @@ class ApiController extends AbstractController
                             continue;
                         }
                         $constructorParams[] = $baseRequest->getParams()[$requiredParameter['name']] ?? null;
+                    }
+
+                    $validators = [];
+                    foreach ($method->getValidators() as $field => $validatorItem) {
+                        $validators[$field] = new Assert\Type($validatorItem);
+                    }
+
+                    $requestData = $baseRequest->getParams();
+                    if (!is_null($baseRequest->getId())) {
+                        $requestData = $requestData + ['id' => $baseRequest->getId()];
+                    }
+
+                    $violations = $validator->validate(
+                        $requestData,
+                        new Assert\Collection($validators)
+                    );
+
+                    if ($violations->count()) {
+                        $errs = [];
+
+                        foreach ($violations as $violation) {
+                            $errs[] = sprintf('%s - %s', $violation->getPropertyPath(), $violation->getMessage());
+                        }
+
+                        throw new JRPCException('Invalid params.', JRPCException::INVALID_PARAMS, implode(PHP_EOL, $errs));
                     }
 
                     $requestInstance = new $requestClass(...$constructorParams);
@@ -100,30 +125,6 @@ class ApiController extends AbstractController
 
                             $requestInstance->$requestSetter($value);
                         }
-                    }
-
-                    $validators = [];
-                    foreach ($method->getValidators() as $field => $validatorItem) {
-                        $validators[$field] = new Assert\Type($validatorItem);
-                    }
-
-                    $requestData = $baseRequest->getParams();
-                    if (!is_null($baseRequest->getId())) {
-                        $requestData = $requestData + ['id' => $baseRequest->getId()];
-                    }
-                    $violations = $validator->validate(
-                        $requestData,
-                        new Assert\Collection($validators)
-                    );
-
-                    if ($violations->count()) {
-                        $errs = [];
-
-                        foreach ($violations as $violation) {
-                            $errs[] = sprintf('%s - %s', $violation->getPropertyPath(), $violation->getMessage());
-                        }
-
-                        throw new JRPCException('Invalid params', JRPCException::INVALID_PARAMS, implode(PHP_EOL, $errs));
                     }
                 }
 

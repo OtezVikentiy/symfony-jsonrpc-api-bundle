@@ -30,7 +30,7 @@ class MethodSpecCollection
     public function getMethodSpec(string $methodName): MethodSpec
     {
         if (!isset($this->methodSpecs[$methodName])) {
-            throw new JRPCException('Method not found', JRPCException::METHOD_NOT_FOUND);
+            throw new JRPCException('Method not found.', JRPCException::METHOD_NOT_FOUND);
         }
 
         return $this->methodSpecs[$methodName];

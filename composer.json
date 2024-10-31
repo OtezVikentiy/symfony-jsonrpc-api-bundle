@@ -1,7 +1,7 @@
 {
   "name": "otezvikentiy/json-rpc-api",
   "description": "Symfony Json RPC API bundle",
-  "version": "1.7",
+  "version": "1.8",
   "stability": "stable",
   "minimum-stability": "stable",
   "keywords": [
