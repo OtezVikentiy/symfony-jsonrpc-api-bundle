@@ -146,7 +146,10 @@ class CompilerPass implements CompilerPassInterface
 
         $propertiesIdx = [];
         foreach ($properties as $property) {
-            $propertiesIdx[$property->getName()] = $property->getType()->getName();
+            $propertiesIdx[$property->getName()] = [
+                'type' => $property->getType()->getName(),
+                'allowsNull' => $property->getType()->allowsNull(),
+            ];
         }
 
         $methodsIdx = [];
@@ -154,10 +157,10 @@ class CompilerPass implements CompilerPassInterface
             $methodsIdx[$method->getName()] = $method;
         }
 
-        foreach ($propertiesIdx as $name => $type) {
+        foreach ($propertiesIdx as $name => $typeData) {
             $getter                         = $methodsIdx['get' . ucfirst($name)];
             $setter                         = $methodsIdx['set' . ucfirst($name)];
-            $setterAndPropertyTypesAreEqual = $setter->getParameters()[0]->getType()->getName() !== $type;
+            $setterAndPropertyTypesAreEqual = $setter->getParameters()[0]->getType()->getName() !== $typeData['type'];
             if ($setterAndPropertyTypesAreEqual) {
                 throw new Exception(
                     sprintf(
@@ -168,7 +171,7 @@ class CompilerPass implements CompilerPassInterface
                     )
                 );
             }
-            $getterAndPropertyTypesAreEqual = $getter->getReturnType()->getName() !== $type;
+            $getterAndPropertyTypesAreEqual = $getter->getReturnType()->getName() !== $typeData['type'];
             if ($getterAndPropertyTypesAreEqual) {
                 throw new Exception(
                     sprintf(
@@ -180,7 +183,7 @@ class CompilerPass implements CompilerPassInterface
                 );
             }
 
-            $validatorsIdx[$name] = $type;
+            $validatorsIdx[$name] = $typeData;
         }
 
         return $validatorsIdx;

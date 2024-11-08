@@ -208,6 +208,178 @@ And the answer will be something like this:
 In total, in order to create a new endpoint for your RPC API, you only need to add 3 classes - this is the method itself and the folder with the request and response.
 
 
+In order to return array of objects you can do something like this:
+
+```
+└── src
+    └── RPC
+        └── V1
+            └── GetProducts
+                ├── GetProductsRequest.php
+                ├── Product.php
+                └── GetProductsResponse.php
+            └── GetProductsMethod.php
+```
+
+```php
+<?php
+
+namespace App\RPC\V1\GetProducts;
+
+class GetProductsRequest
+{
+    private array $ids;
+
+    public function __construct(array $ids)
+    {
+        $this->ids = $ids;
+    }
+
+    public function getIds(): array
+    {
+        return $this->ids;
+    }
+
+    public function setIds(array $ids): void
+    {
+        $this->ids = $ids;
+    }
+}
+```
+```php
+<?php
+
+namespace App\RPC\V1\GetProducts;
+
+class GetProductsResponse
+{
+    private bool $success;
+    private array $products;
+
+    public function __construct(bool $success = true)
+    {
+        $this->success = $success;
+    }
+
+    public function isSuccess(): bool
+    {
+        return $this->success;
+    }
+
+    public function setSuccess(bool $success): void
+    {
+        $this->success = $success;
+    }
+
+    public function getProducts(): array
+    {
+        return $this->products;
+    }
+
+    public function setProducts(array $products): void
+    {
+        $this->products = $products;
+    }
+
+    public function addProduct(Product $product): void
+    {
+        $this->products[] = $product;
+    }
+}
+```
+```php
+<?php
+
+namespace App\RPC\V1\GetProducts;
+
+class Product
+{
+    private bool $active;
+    private int $id;
+    private string $title;
+    
+    public function isActive(): bool
+    {
+        return $this->active;
+    }
+    
+    public function setActive(bool $active): Product
+    {
+        $this->active = $active;
+        
+        return $this;
+    }
+    
+    public function getId(): int
+    {
+        return $this->id;
+    }
+    
+    public function setId(int $id): Product
+    {
+        $this->id = $id;
+        
+        return $this;
+    }
+    
+    public function getTitle(): string
+    {
+        return $this->title;
+    }
+    
+    public function setTitle(string $title): Product
+    {
+        $this->title = $title;
+        
+        return $this;
+    }
+}
+```
+```php
+<?php
+
+namespace App\RPC\V1;
+
+use Doctrine\ORM\EntityManagerInterface;
+use App\Entity\Product;
+use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+use App\RPC\V1\GetProducts\Product as ApiProduct;
+use App\RPC\V1\GetProducts\GetProductsRequest;
+use App\RPC\V1\GetProducts\GetProductsResponse;
+
+#[JsonRPCAPI(methodName: 'getProducts', type: 'POST')]
+class GetProductsMethod
+{
+    public function __construct(
+        private readonly EntityManagerInterface $em,
+    ) {}
+
+    /**
+     * @param GetProductsRequest $request // !!!ATTENTION!!! Do not rename this param - just change type, but not the name of variable
+     * @return GetProductsResponse
+     */
+    public function call(GetProductsRequest $request): GetProductsResponse
+    {
+        $products = $this->em->getRepository(Product::class)->findBy(['id' => $request->getIds()]);
+        
+        $response = new Response();
+        
+        foreach ($products as $product) {
+            $response->addProduct(
+                (new ApiProduct())
+                ->setActive($product->isActive())
+                ->setId($product->getId())
+                ->setTitle($product->getTitle());
+            );
+        }
+        
+        return $response;
+    }
+}
+```
+
+In such way you will be able to return any necessary data as array of objects.
+
 ---
 
 ## Swagger

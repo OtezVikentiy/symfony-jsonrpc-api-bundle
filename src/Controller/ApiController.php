@@ -89,7 +89,17 @@ class ApiController extends AbstractController
 
                     $validators = [];
                     foreach ($method->getValidators() as $field => $validatorItem) {
-                        $validators[$field] = new Assert\Type($validatorItem);
+                        if ($validatorItem['allowsNull'] === false) {
+                            $validators[$field] = new Assert\Type($validatorItem['type']);
+                        } else {
+                            $validators[$field] = new Assert\Optional([
+                                new Assert\AtLeastOneOf([
+                                    new Assert\Type($validatorItem['type']),
+                                    new Assert\Blank(),
+                                    new Assert\IsNull(),
+                                ])
+                            ]);
+                        }
                     }
 
                     $requestData = $baseRequest->getParams();
