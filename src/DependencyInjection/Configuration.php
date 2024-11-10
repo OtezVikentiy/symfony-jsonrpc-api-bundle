@@ -22,6 +22,9 @@ class Configuration implements ConfigurationInterface
 
         $rootNode
             ->children()
+                ->arrayNode('access_control_allow_origin_list')
+                    ->prototype('scalar')->end()
+                ->end()
                 ->arrayNode('swagger')
                     ->arrayPrototype()
                         ->children()

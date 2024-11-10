@@ -73,7 +73,7 @@ class BaseTest extends TestCase
             [['name' => 'id', 'type' => 'int']],
             TestRequest::class,
             ['id' => 'setId', 'title' => 'setTitle'],
-            ['id' => 'int', 'title' => 'string']
+            ['id' => ['allowsNull' => false, 'type' => 'int'], 'title' => ['allowsNull' => false, 'type' => 'string']]
         );
         $responseData = [
             'jsonrpc' => '2.0',
@@ -85,7 +85,50 @@ class BaseTest extends TestCase
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare($data, $methodSpec);
 
-        $controller = new ApiController();
+        $controller = new ApiController(['*']);
+        $controller->setContainer($serviceLocator);
+
+        $result = $controller->index($request, $methodSpecCollection, $validator, $container);
+
+        $this->assertInstanceOf(JsonResponse::class, $result);
+        $this->assertEquals(200, $result->getStatusCode());
+        $this->assertEquals(json_encode($responseData), $result->getContent());
+    }
+
+    public function testController2()
+    {
+        $data = [
+            'jsonrpc' => '2.0',
+            'method' => 'test',
+            'params' => [
+                'title' => 'AZAZAZA',
+            ],
+            'id' => '1',
+        ];
+        $methodSpec = new MethodSpec(
+            TestMethod::class,
+            'POST',
+            '',
+            '',
+            false,
+            'test',
+            [['name' => 'id', 'type' => 'int'], ['name' => 'title', 'type' => 'string']],
+            [['name' => 'id', 'type' => 'int']],
+            TestRequest::class,
+            ['id' => 'setId', 'title' => 'setTitle'],
+            ['id' => ['allowsNull' => false, 'type' => 'int'], 'title' => ['allowsNull' => false, 'type' => 'string']]
+        );
+        $responseData = [
+            'jsonrpc' => '2.0',
+            'result' => [
+                'title' => 'AZAZAZA',
+                'success' => true,
+            ],
+            'id' => '1',
+        ];
+        [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare($data, $methodSpec);
+
+        $controller = new ApiController([]);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -114,7 +157,7 @@ class BaseTest extends TestCase
             [],
             SubtractRequest::class,
             ['params' => 'setParams'],
-            ['params' => 'array']
+            ['params' => ['allowsNull' => false, 'type' => 'array']]
         );
         $responseData = [
             'jsonrpc' => '2.0',
@@ -123,7 +166,7 @@ class BaseTest extends TestCase
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare($data, $methodSpec);
 
-        $controller = new ApiController();
+        $controller = new ApiController(['*']);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -152,7 +195,7 @@ class BaseTest extends TestCase
             [],
             SubtractRequest::class,
             ['params' => 'setParams'],
-            ['params' => 'array']
+            ['params' => ['allowsNull' => false, 'type' => 'array']]
         );
         $responseData = [
             'jsonrpc' => '2.0',
@@ -161,7 +204,7 @@ class BaseTest extends TestCase
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare($data, $methodSpec);
 
-        $controller = new ApiController();
+        $controller = new ApiController(['*']);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -193,7 +236,7 @@ class BaseTest extends TestCase
             [],
             Subtract2Request::class,
             ['subtrahend' => 'setSubtrahend', 'minuend' => 'setMinuend'],
-            ['subtrahend' => 'int', 'minuend' => 'int']
+            ['subtrahend' => ['allowsNull' => false, 'type' => 'int'], 'minuend' => ['allowsNull' => false, 'type' => 'int']]
         );
         $responseData = [
             'jsonrpc' => '2.0',
@@ -202,7 +245,7 @@ class BaseTest extends TestCase
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare($data, $methodSpec);
 
-        $controller = new ApiController();
+        $controller = new ApiController(['*']);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -234,7 +277,7 @@ class BaseTest extends TestCase
             [],
             Subtract2Request::class,
             ['subtrahend' => 'setSubtrahend', 'minuend' => 'setMinuend'],
-            ['subtrahend' => 'int', 'minuend' => 'int']
+            ['subtrahend' => ['allowsNull' => false, 'type' => 'int'], 'minuend' => ['allowsNull' => false, 'type' => 'int']]
         );
         $responseData = [
             'jsonrpc' => '2.0',
@@ -243,7 +286,7 @@ class BaseTest extends TestCase
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare($data, $methodSpec);
 
-        $controller = new ApiController();
+        $controller = new ApiController(['*']);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -271,12 +314,12 @@ class BaseTest extends TestCase
             [],
             UpdateRequest::class,
             ['params' => 'setParams'],
-            ['params' => 'array']
+            ['params' => ['allowsNull' => false, 'type' => 'array']]
         );
         $responseData = '{}';
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare($data, $methodSpec);
 
-        $controller = new ApiController();
+        $controller = new ApiController(['*']);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -372,19 +415,19 @@ class BaseTest extends TestCase
             [],
             UpdateRequest::class,
             ['params' => 'setParams'],
-            ['params' => 'array']
+            ['params' => ['allowsNull' => false, 'type' => 'array']]
         );
         $responseData = [
             'jsonrpc' => '2.0',
             'error' => [
                 'code' => -32601,
-                'message' => 'Method not found'
+                'message' => 'Method not found. Additional info: '
             ],
             'id' => '1'
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare2($data, $methodSpec);
 
-        $controller = new ApiController();
+        $controller = new ApiController(['*']);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -466,19 +509,19 @@ class BaseTest extends TestCase
             [],
             UpdateRequest::class,
             ['params' => 'setParams'],
-            ['params' => 'array']
+            ['params' => ['allowsNull' => false, 'type' => 'array']]
         );
         $responseData = [
             'jsonrpc' => '2.0',
             'error' => [
                 'code' => -32700,
-                'message' => 'Parse error'
+                'message' => 'Parse error. Additional info: '
             ],
             //'id' => null //todo тот параметр сейчас не пробрасывается из-за настроек нормалайзера - он все null значения чистит
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare3($data, $methodSpec);
 
-        $controller = new ApiController();
+        $controller = new ApiController(['*']);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -560,19 +603,19 @@ class BaseTest extends TestCase
             [],
             UpdateRequest::class,
             ['params' => 'setParams'],
-            ['params' => 'array']
+            ['params' => ['allowsNull' => false, 'type' => 'array']]
         );
         $responseData = [
             'jsonrpc' => '2.0',
             'error' => [
                 'code' => -32600,
-                'message' => 'Invalid Request'
+                'message' => 'Invalid Request. Additional info: '
             ],
             //'id' => null //todo тот параметр сейчас не пробрасывается из-за настроек нормалайзера - он все null значения чистит
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare4($data, $methodSpec);
 
-        $controller = new ApiController();
+        $controller = new ApiController(['*']);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -654,19 +697,19 @@ class BaseTest extends TestCase
             [],
             UpdateRequest::class,
             ['params' => 'setParams'],
-            ['params' => 'array']
+            ['params' => ['allowsNull' => false, 'type' => 'array']]
         );
         $responseData = [
             'jsonrpc' => '2.0',
             'error' => [
                 'code' => -32700,
-                'message' => 'Parse error'
+                'message' => 'Parse error. Additional info: '
             ],
             //'id' => null //todo тот параметр сейчас не пробрасывается из-за настроек нормалайзера - он все null значения чистит
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare5($data, $methodSpec);
 
-        $controller = new ApiController();
+        $controller = new ApiController(['*']);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -748,19 +791,19 @@ class BaseTest extends TestCase
             [],
             UpdateRequest::class,
             ['params' => 'setParams'],
-            ['params' => 'array']
+            ['params' => ['allowsNull' => false, 'type' => 'array']]
         );
         $responseData = [
             'jsonrpc' => '2.0',
             'error' => [
                 'code' => -32600,
-                'message' => 'Invalid Request'
+                'message' => 'Invalid Request. Additional info: '
             ],
             //'id' => null //todo тот параметр сейчас не пробрасывается из-за настроек нормалайзера - он все null значения чистит
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare6($data, $methodSpec);
 
-        $controller = new ApiController();
+        $controller = new ApiController(['*']);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -842,19 +885,19 @@ class BaseTest extends TestCase
             [],
             UpdateRequest::class,
             ['params' => 'setParams'],
-            ['params' => 'array']
+            ['params' => ['allowsNull' => false, 'type' => 'array']]
         );
         $responseData = [
             'jsonrpc' => '2.0',
             'error' => [
                 'code' => -32600,
-                'message' => 'Invalid Request'
+                'message' => 'Invalid Request. Additional info: '
             ],
             //'id' => null //todo тот параметр сейчас не пробрасывается из-за настроек нормалайзера - он все null значения чистит
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare7($data, $methodSpec);
 
-        $controller = new ApiController();
+        $controller = new ApiController(['*']);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -936,19 +979,19 @@ class BaseTest extends TestCase
             [],
             UpdateRequest::class,
             ['params' => 'setParams'],
-            ['params' => 'array']
+            ['params' => ['allowsNull' => false, 'type' => 'array']]
         );
         $responseData = [
             'jsonrpc' => '2.0',
             'error' => [
                 'code' => -32600,
-                'message' => 'Invalid Request'
+                'message' => 'Invalid Request. Additional info: '
             ],
             //'id' => null //todo тот параметр сейчас не пробрасывается из-за настроек нормалайзера - он все null значения чистит
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare8($data, $methodSpec);
 
-        $controller = new ApiController();
+        $controller = new ApiController(['*']);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -1063,7 +1106,7 @@ class BaseTest extends TestCase
                 [],
                 SumRequest::class,
                 ['params' => 'setParams'],
-                ['params' => 'array']
+                ['params' => ['allowsNull' => false, 'type' => 'array']]
             ),
             new MethodSpec(
                 NotifyHelloMethod::class,
@@ -1076,7 +1119,7 @@ class BaseTest extends TestCase
                 [],
                 NotifyHelloRequest::class,
                 ['params' => 'setParams'],
-                ['params' => 'array']
+                ['params' => ['allowsNull' => false, 'type' => 'array']]
             ),
             new MethodSpec(
                 SubtractMethod::class,
@@ -1089,7 +1132,7 @@ class BaseTest extends TestCase
                 [],
                 SubtractRequest::class,
                 ['params' => 'setParams'],
-                ['params' => 'array']
+                ['params' => ['allowsNull' => false, 'type' => 'array']]
             ),
             new MethodSpec(
                 GetDataMethod::class,
@@ -1120,14 +1163,14 @@ class BaseTest extends TestCase
                 'jsonrpc' => '2.0',
                 'error' => [
                     'code' => -32600,
-                    'message' => 'Invalid Request'
+                    'message' => 'Invalid Request. Additional info: '
                 ],
             ],
             [
                 'jsonrpc' => '2.0',
                 'error' => [
                     'code' => -32601,
-                    'message' => 'Method not found'
+                    'message' => 'Method not found. Additional info: '
                 ],
                 'id' => '5'
             ],
@@ -1139,7 +1182,7 @@ class BaseTest extends TestCase
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare9($data, $methodSpecs);
 
-        $controller = new ApiController();
+        $controller = new ApiController(['*']);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -1175,7 +1218,7 @@ class BaseTest extends TestCase
                 [],
                 NotifySumRequest::class,
                 ['params' => 'setParams'],
-                ['params' => 'array']
+                ['params' => ['allowsNull' => false, 'type' => 'array']]
             ),
             new MethodSpec(
                 NotifyHelloMethod::class,
@@ -1188,13 +1231,13 @@ class BaseTest extends TestCase
                 [],
                 NotifyHelloRequest::class,
                 ['params' => 'setParams'],
-                ['params' => 'array']
+                ['params' => ['allowsNull' => false, 'type' => 'array']]
             ),
         ];
         $responseData = '{}';
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare9($data, $methodSpecs);
 
-        $controller = new ApiController();
+        $controller = new ApiController(['*']);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);

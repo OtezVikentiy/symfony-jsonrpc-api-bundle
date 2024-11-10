@@ -52,6 +52,10 @@ services:
 ```yaml
 # config/packages/ov_json_rpc_api.yaml
 ov_json_rpc_api:
+    access_control_allow_origin_list:
+        - localhost
+        - api.localhost
+        - *
     swagger:
         api_v1:
             api_version: '1'

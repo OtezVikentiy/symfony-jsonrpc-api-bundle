@@ -22,12 +22,17 @@ use Throwable;
 
 class ApiController extends AbstractController
 {
+    public function __construct(
+        private readonly array $accessControlAllowOriginList,
+    ) {
+    }
+
     #[Route('/api/v{version<\d+>}', name: 'ov_json_rpc_api_index', methods: ['POST', 'GET', 'PUT', 'PATCH', 'DELETE'])]
     public function index(
         Request $request,
         MethodSpecCollection $specCollection,
         ValidatorInterface $validator,
-        Container $container
+        Container $container,
     ): JsonResponse {
         $baseRequest = null;
         try {
@@ -60,9 +65,9 @@ class ApiController extends AbstractController
                 $batches = [$data];
             }
         } catch (JRPCException $e) {
-            return $this->json(new ErrorResponse(error: $e, id: $data['id'] ?? null));
+            return $this->json(data: new ErrorResponse(error: $e, id: $data['id'] ?? null), headers: ['Access-Control-Allow-Origin' => implode(', ', $this->accessControlAllowOriginList)]);
         } catch (Throwable $e) {
-            return $this->json(new ErrorResponse(error: $e, id: $data['id'] ?? null));
+            return $this->json(data: new ErrorResponse(error: $e, id: $data['id'] ?? null), headers: ['Access-Control-Allow-Origin' => implode(', ', $this->accessControlAllowOriginList)]);
         }
 
         $responses = [];
@@ -158,11 +163,11 @@ class ApiController extends AbstractController
         }
 
         if (count($responses) > 1) {
-            return $this->json($responses);
+            return $this->json(data: $responses, headers: ['Access-Control-Allow-Origin' => implode(', ', $this->accessControlAllowOriginList)]);
         } elseif(!empty($responses)) {
-            return $this->json($responses[0]);
+            return $this->json(data: $responses[0], headers: ['Access-Control-Allow-Origin' => implode(', ', $this->accessControlAllowOriginList)]);
         }
-        return new JsonResponse();
+        return new JsonResponse(headers: ['Access-Control-Allow-Origin' => implode(', ', $this->accessControlAllowOriginList)]);
     }
 
     private function isBatch(array $data): bool
