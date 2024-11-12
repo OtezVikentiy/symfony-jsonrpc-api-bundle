@@ -24,6 +24,7 @@ class MethodSpec
         private readonly ?string $request,
         private readonly array $requestSetters,
         private readonly array $validators,
+        private readonly bool $plainResponse = false,
     ) {
     }
 
@@ -80,5 +81,10 @@ class MethodSpec
     public function getRequiredParameters(): array
     {
         return $this->requiredParameters;
+    }
+
+    public function isPlainResponse(): bool
+    {
+        return $this->plainResponse;
     }
 }

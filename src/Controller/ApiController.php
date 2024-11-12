@@ -10,10 +10,10 @@
 
 namespace OV\JsonRPCAPIBundle\Controller;
 
-use OV\JsonRPCAPIBundle\Core\{BaseRequest, BaseResponse, ErrorResponse, JRPCException};
+use OV\JsonRPCAPIBundle\Core\{BaseRequest, BaseResponse, ErrorResponse, JRPCException, PlainResponseInterface};
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\{JsonResponse, Request};
+use Symfony\Component\HttpFoundation\{JsonResponse, Request, Response};
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -33,7 +33,7 @@ class ApiController extends AbstractController
         MethodSpecCollection $specCollection,
         ValidatorInterface $validator,
         Container $container,
-    ): JsonResponse {
+    ): JsonResponse|Response|PlainResponseInterface {
         $baseRequest = null;
         try {
             $methodType = $request->getMethod();
@@ -146,13 +146,20 @@ class ApiController extends AbstractController
                 $processorClass = $method->getMethodClass();
                 $processor      = $container->get($processorClass);
 
-                $result   = $processor->call($requestInstance ?? null);
-                if (!is_null($baseRequest->getId())) {
-                    $responses[] = new BaseResponse($result, $baseRequest?->getId() ?? null);
-                } elseif (!empty((array)$result)) {
-                    $responses[] = new BaseResponse($result);
+                /** @var mixed|Response $result */
+                $result = $processor->call($requestInstance ?? null);
+
+                if ($method->isPlainResponse() && $result instanceof PlainResponseInterface) {
+                    $result->headers->add(['Access-Control-Allow-Origin' => implode(', ', $this->accessControlAllowOriginList)]);
+                    return $result;
+                } else {
+                    if (!is_null($baseRequest->getId())) {
+                        $responses[] = new BaseResponse($result, $baseRequest?->getId() ?? null);
+                    } elseif (!empty((array)$result)) {
+                        $responses[] = new BaseResponse($result);
+                    }
+                    unset($baseRequest);
                 }
-                unset($baseRequest);
             } catch (JRPCException $e) {
                 $responses[] = new ErrorResponse(error: $e, id: $baseRequest?->getId() ?? $batch['id'] ?? null);
                 unset($baseRequest);

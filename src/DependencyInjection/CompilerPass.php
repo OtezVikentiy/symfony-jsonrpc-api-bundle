@@ -12,6 +12,7 @@ namespace OV\JsonRPCAPIBundle\DependencyInjection;
 
 use Exception;
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+use OV\JsonRPCAPIBundle\Core\PlainResponseInterface;
 use ReflectionClass;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -97,6 +98,21 @@ class CompilerPass implements CompilerPassInterface
                 }
             }
 
+            $plainResponse = false;
+            $callResponseType = $methodReflectionClass->getMethod('call')->getReturnType();
+            if ($callResponseType instanceof \ReflectionUnionType) {
+                $callResponseTypes = $callResponseType->getTypes();
+                foreach ($callResponseTypes as $callResponseType) {
+                    $responseTypeReflection = new ReflectionClass($callResponseType->getName());
+                    $interfaces = $responseTypeReflection->getInterfaces();
+                    foreach ($interfaces as $interface) {
+                        if ($interface->getName() === PlainResponseInterface::class) {
+                            $plainResponse = true;
+                        }
+                    }
+                }
+            }
+
             $methodAlias            = $this->getMethodAlias($methodName, $tags[0]['namespace'] ?? '');
             $methodSpecDefinitionId = uniqid('OV_JSON_RPC_API_' . $methodAlias, true);
             $methodSpec             = $container->register($methodSpecDefinitionId, MethodSpec::class);
@@ -113,6 +129,7 @@ class CompilerPass implements CompilerPassInterface
                 $methodRequestReflection?->getName() ?? null,
                 $requestSetters,
                 $validators,
+                $plainResponse,
             ])->setPublic(true)->setAutowired(true)->setAutoconfigured(true);
 
             $methodSpecCollectionDefinition->addMethodCall(
