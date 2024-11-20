@@ -132,6 +132,7 @@ class ApiController extends AbstractController
                     foreach ($method->getAllParameters() as $allParameter) {
                         $requestSetter = $method->getRequestSetters()[$allParameter['name']] ?? null;
                         if (!is_null($requestSetter)) {
+                            $value = $baseRequest->getParams()[$allParameter['name']] ?? null;
                             if ($allParameter['name'] === 'id') {
                                 $value = $baseRequest->getParams()[$allParameter['name']] ?? $baseRequest->getId() ?? null;
                             }
