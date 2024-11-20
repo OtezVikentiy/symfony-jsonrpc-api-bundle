@@ -88,7 +88,7 @@ class CompilerPass implements CompilerPassInterface
                     $requestMethods          = $methodRequestReflection->getMethods();
 
                     foreach ($requestMethods as $requestSingleMethod) {
-                        if (str_contains($requestSingleMethod->getName(), 'set')) {
+                        if (str_starts_with($requestSingleMethod->getName(), 'set')) {
                             $name = $requestSingleMethod->getParameters()[0]?->getName() ?? null;
                             if (!is_null($name)) {
                                 $requestSetters[$name] = $requestSingleMethod->getName();
