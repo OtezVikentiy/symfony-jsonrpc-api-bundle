@@ -37,6 +37,8 @@ class ApiController extends AbstractController
         $baseRequest = null;
         try {
             $methodType = $request->getMethod();
+            $pathArray = explode('/', $request->getPathInfo());
+            $version = (int)preg_replace('/\D+/', '', $pathArray[count($pathArray) - 1]);
             $data = [];
             if ($methodType === 'GET') {
                 $data = $request->query->all();
@@ -75,7 +77,7 @@ class ApiController extends AbstractController
             try {
                 $baseRequest = new BaseRequest($batch);
 
-                $method = $specCollection->getMethodSpec($baseRequest->getMethod());
+                $method = $specCollection->getMethodSpec($version, $baseRequest->getMethod());
 
                 if ($method->getRequestType() !== $methodType) {
                     throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);

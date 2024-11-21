@@ -143,6 +143,7 @@ class CompilerPass implements CompilerPassInterface
             $methodSpecCollectionDefinition->addMethodCall(
                 'addMethodSpec',
                 [
+                    '$version' => $tags[0]['version'] ?? 1,
                     '$methodName' => $methodName,
                     '$methodSpec' => new Reference($methodSpecDefinitionId),
                 ]

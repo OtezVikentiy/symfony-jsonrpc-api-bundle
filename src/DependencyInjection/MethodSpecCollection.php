@@ -18,22 +18,22 @@ class MethodSpecCollection
 {
     private array $methodSpecs = [];
 
-    public function addMethodSpec(string $methodName, MethodSpec $methodSpec): void
+    public function addMethodSpec(string $version, string $methodName, MethodSpec $methodSpec): void
     {
-        if (!empty($this->methodSpecs[$methodName])) {
+        if (!empty($this->methodSpecs[$version][$methodName])) {
             throw new Exception(sprintf('Method name %s already in use.', $methodName));
         }
 
-        $this->methodSpecs[$methodName] = $methodSpec;
+        $this->methodSpecs[$version][$methodName] = $methodSpec;
     }
 
-    public function getMethodSpec(string $methodName): MethodSpec
+    public function getMethodSpec(string $version, string $methodName): MethodSpec
     {
-        if (!isset($this->methodSpecs[$methodName])) {
+        if (!isset($this->methodSpecs[$version][$methodName])) {
             throw new JRPCException('Method not found.', JRPCException::METHOD_NOT_FOUND);
         }
 
-        return $this->methodSpecs[$methodName];
+        return $this->methodSpecs[$version][$methodName];
     }
 
     /**
