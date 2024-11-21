@@ -25,6 +25,7 @@ class MethodSpec
         private readonly array $requestSetters,
         private readonly array $validators,
         private readonly bool $plainResponse = false,
+        private readonly bool $callbacksExists = false,
     ) {
     }
 
@@ -86,5 +87,10 @@ class MethodSpec
     public function isPlainResponse(): bool
     {
         return $this->plainResponse;
+    }
+
+    public function isCallbacksExists(): bool
+    {
+        return $this->callbacksExists;
     }
 }

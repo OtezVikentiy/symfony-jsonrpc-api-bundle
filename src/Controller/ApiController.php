@@ -149,6 +149,22 @@ class ApiController extends AbstractController
                 $processorClass = $method->getMethodClass();
                 $processor      = $container->get($processorClass);
 
+                if ($method->isCallbacksExists()) {
+                    $callbacks = $processor->getCallbacks();
+
+                    if (!empty($callbacks)) {
+                        foreach ($callbacks as $processorClassName => $callbackArr) {
+                            if ($processorClassName !== $processorClass) {
+                                continue;
+                            }
+
+                            foreach ($callbackArr as $func) {
+                                $processor->$func($requestInstance ?? null);
+                            }
+                        }
+                    }
+                }
+
                 /** @var mixed|Response $result */
                 $result = $processor->call($requestInstance ?? null);
 

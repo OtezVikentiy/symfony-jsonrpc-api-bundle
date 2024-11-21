@@ -12,6 +12,7 @@ namespace OV\JsonRPCAPIBundle\DependencyInjection;
 
 use Exception;
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+use OV\JsonRPCAPIBundle\Core\CallbacksInterface;
 use OV\JsonRPCAPIBundle\Core\PlainResponseInterface;
 use ReflectionClass;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
@@ -113,6 +114,12 @@ class CompilerPass implements CompilerPassInterface
                 }
             }
 
+            $callbacksExists = false;
+            $parentClass = $methodReflectionClass->getParentClass();
+            if ($parentClass) {
+                $callbacksExists = $parentClass->implementsInterface(CallbacksInterface::class);
+            }
+
             $methodAlias            = $this->getMethodAlias($methodName, $tags[0]['namespace'] ?? '');
             $methodSpecDefinitionId = uniqid('OV_JSON_RPC_API_' . $methodAlias, true);
             $methodSpec             = $container->register($methodSpecDefinitionId, MethodSpec::class);
@@ -130,6 +137,7 @@ class CompilerPass implements CompilerPassInterface
                 $requestSetters,
                 $validators,
                 $plainResponse,
+                $callbacksExists,
             ])->setPublic(true)->setAutowired(true)->setAutoconfigured(true);
 
             $methodSpecCollectionDefinition->addMethodCall(

@@ -9,6 +9,7 @@ The bundle allows you to quickly and conveniently deploy JSON RPC API applicatio
 - compatible with POST, GET, PUT, PATCH, DELETE requests
 - fully compatible with https://www.jsonrpc.org/specification
 - swagger openapi out of the box
+- callbacks
 
 github: https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle
 
