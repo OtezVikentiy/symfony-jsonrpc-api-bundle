@@ -21,6 +21,7 @@ class JsonRPCAPI
         private readonly string $summary = '',
         private readonly string $description = '',
         private readonly bool $ignoreInSwagger = false,
+        private readonly array $roles = [],
     ) {
     }
 
@@ -47,5 +48,10 @@ class JsonRPCAPI
     public function isIgnoreInSwagger(): bool
     {
         return $this->ignoreInSwagger;
+    }
+
+    public function getRoles(): array
+    {
+        return $this->roles;
     }
 }

@@ -50,6 +50,7 @@ class CompilerPass implements CompilerPassInterface
 
             $methodName = $requestType = null;
             $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
+            $roles = [];
             foreach ($attributes as $attribute) {
                 if ($attribute->getName() === JsonRPCAPI::class) {
                     $methodName = $attribute->getArguments()['methodName'] ?? throw new Exception(sprintf('Class %s does not have attribute param methdoName', $className));
@@ -57,6 +58,7 @@ class CompilerPass implements CompilerPassInterface
                     $summary = $attribute->getArguments()['summary'] ?? '';
                     $description = $attribute->getArguments()['description'] ?? '';
                     $ignoreInSwagger = $attribute->getArguments()['ignoreInSwagger'] ?? false;
+                    $roles = $attribute->getArguments()['roles'] ?? [];
                 }
             }
 
@@ -136,6 +138,7 @@ class CompilerPass implements CompilerPassInterface
                 $methodRequestReflection?->getName() ?? null,
                 $requestSetters,
                 $validators,
+                $roles,
                 $plainResponse,
                 $callbacksExists,
             ])->setPublic(true)->setAutowired(true)->setAutoconfigured(true);

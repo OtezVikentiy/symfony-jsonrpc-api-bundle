@@ -96,7 +96,7 @@ class SwaggerGenerateTest extends TestCase
             }
 
             if (is_null($methodName)) throw new Exception('Could not define method name');
-            $methodSpecCollection->addMethodSpec($methodName, $methodSpec);
+            $methodSpecCollection->addMethodSpec(1, $methodName, $methodSpec);
         }
 
         return $methodSpecCollection;

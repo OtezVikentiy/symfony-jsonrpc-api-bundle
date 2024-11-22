@@ -14,6 +14,7 @@ use OV\JsonRPCAPIBundle\Core\{BaseRequest, BaseResponse, ErrorResponse, JRPCExce
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\{JsonResponse, Request, Response};
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -24,6 +25,7 @@ class ApiController extends AbstractController
 {
     public function __construct(
         private readonly array $accessControlAllowOriginList,
+        private readonly Security $security,
     ) {
     }
 
@@ -78,6 +80,19 @@ class ApiController extends AbstractController
                 $baseRequest = new BaseRequest($batch);
 
                 $method = $specCollection->getMethodSpec($version, $baseRequest->getMethod());
+
+                $allowed = false;
+                if (!empty($method->getRoles())) {
+                    foreach ($method->getRoles() as $role) {
+                        if ($this->security->isGranted($role)) {
+                            $allowed = true;
+                        }
+                    }
+                }
+
+                if (!$allowed && !empty($method->getRoles())) {
+                    return $this->json(data: 'Access not allowed', status: 403, headers: ['Access-Control-Allow-Origin' => implode(', ', $this->accessControlAllowOriginList)]);
+                }
 
                 if ($method->getRequestType() !== $methodType) {
                     throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);

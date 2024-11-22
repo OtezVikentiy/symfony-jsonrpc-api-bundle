@@ -24,6 +24,7 @@ class MethodSpec
         private readonly ?string $request,
         private readonly array $requestSetters,
         private readonly array $validators,
+        private readonly array $roles = [],
         private readonly bool $plainResponse = false,
         private readonly bool $callbacksExists = false,
     ) {
@@ -92,5 +93,10 @@ class MethodSpec
     public function isCallbacksExists(): bool
     {
         return $this->callbacksExists;
+    }
+
+    public function getRoles(): array
+    {
+        return $this->roles;
     }
 }

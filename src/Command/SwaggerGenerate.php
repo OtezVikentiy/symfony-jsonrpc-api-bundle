@@ -78,90 +78,130 @@ class SwaggerGenerate extends Command
         $components = [];
 
         $methods = $this->methodSpecCollection->getAllMethods();
-        foreach ($methods as $name => $method) {
-            if ($method->isIgnoreInSwagger()) continue;
-
-            $tag = new Tag($name, $method->getSummary());
-            $tags[] = $tag;
-
-            $parameters = [];
-
-            $globalRequest = new Schema(sprintf('%sMainRequest', $name));
-            $globalRequest->addProperty(new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0'));
-            $globalRequest->addRequired(new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0'));
-            $globalRequest->addProperty(new SchemaProperty(name: 'method', type: 'string', default: $method->getMethodName(), example: $method->getMethodName()));
-            $globalRequest->addRequired(new SchemaProperty(name: 'method', type: 'string', default: $method->getMethodName(), example: $method->getMethodName()));
-
-            $requestSchema = new Schema(sprintf('%sRequest', $name));
-            $addIdToGlobalRequest = false;
-            foreach ($method->getRequiredParameters() as $requiredParameter) {
-                $prop = new SchemaProperty($requiredParameter['name'], $requiredParameter['type']);
-                $requestSchema->addProperty($prop);
-                $requestSchema->addRequired($prop);
-                $parameters[$requiredParameter['name']] = $requiredParameter['name'];
-            }
-            foreach ($method->getAllParameters() as $parameter) {
-                if ($parameter['name'] === 'id') {
-                    $addIdToGlobalRequest = true;
+        foreach ($methods as $version => $methodsArray) {
+            foreach ($methodsArray as $name => $method) {
+                if ($method->isIgnoreInSwagger()) {
+                    continue;
                 }
-                if (isset($parameters[$parameter['name']])) continue;
-                $prop = new SchemaProperty($parameter['name'], $parameter['type']);
-                $requestSchema->addProperty($prop);
+
+                $tag = new Tag($name, $method->getSummary());
+                $tags[] = $tag;
+
+                $parameters = [];
+
+                $globalRequest = new Schema(sprintf('%sMainRequest', $name));
+                $globalRequest->addProperty(
+                    new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0')
+                );
+                $globalRequest->addRequired(
+                    new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0')
+                );
+                $globalRequest->addProperty(
+                    new SchemaProperty(
+                        name: 'method',
+                        type: 'string',
+                        default: $method->getMethodName(),
+                        example: $method->getMethodName()
+                    )
+                );
+                $globalRequest->addRequired(
+                    new SchemaProperty(
+                        name: 'method',
+                        type: 'string',
+                        default: $method->getMethodName(),
+                        example: $method->getMethodName()
+                    )
+                );
+
+                $requestSchema = new Schema(sprintf('%sRequest', $name));
+                $addIdToGlobalRequest = false;
+                foreach ($method->getRequiredParameters() as $requiredParameter) {
+                    $prop = new SchemaProperty($requiredParameter['name'], $requiredParameter['type']);
+                    $requestSchema->addProperty($prop);
+                    $requestSchema->addRequired($prop);
+                    $parameters[$requiredParameter['name']] = $requiredParameter['name'];
+                }
+                foreach ($method->getAllParameters() as $parameter) {
+                    if ($parameter['name'] === 'id') {
+                        $addIdToGlobalRequest = true;
+                    }
+                    if (isset($parameters[$parameter['name']])) {
+                        continue;
+                    }
+                    $prop = new SchemaProperty($parameter['name'], $parameter['type']);
+                    $requestSchema->addProperty($prop);
+                }
+                unset($parameters);
+
+                $components[] = $requestSchema;
+
+                $globalRequest->addProperty(new SchemaProperty(name: 'params', ref: sprintf('%sRequest', $name)));
+                $globalRequest->addRequired(new SchemaProperty(name: 'params', ref: sprintf('%sRequest', $name)));
+                if ($addIdToGlobalRequest) {
+                    $globalRequest->addProperty(
+                        new SchemaProperty(name: 'id', type: 'int', default: '0', example: '0')
+                    );
+                    $globalRequest->addRequired(
+                        new SchemaProperty(name: 'id', type: 'int', default: '0', example: '0')
+                    );
+                }
+
+                $components[] = $globalRequest;
+
+                $requestBody = new RequestBody(sprintf('%sMainRequest', $name));
+
+                $methodRef = new ReflectionClass($method->getMethodClass());
+                $callMethod = $methodRef->getMethod('call');
+                $responseClassRef = new ReflectionClass($callMethod->getReturnType()?->getName());
+                $responseProperties = $responseClassRef->getProperties();
+
+                $responseSchema = new Schema(sprintf('%sResponse', $responseClassRef->getShortName()));
+                $responseSchema->addProperty(
+                    new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0')
+                );
+                $responseSchema->addRequired(
+                    new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0')
+                );
+
+                foreach ($responseProperties as $responseProperty) {
+                    $respProp = new SchemaProperty(
+                        $responseProperty->getName(), $responseProperty->getType()->getName()
+                    );
+                    $responseSchema->addProperty($respProp);
+                    $responseSchema->addRequired($respProp);
+                }
+                $components[] = $responseSchema;
+
+                if ($addIdToGlobalRequest) {
+                    $responseSchema->addProperty(
+                        new SchemaProperty(name: 'id', type: 'int', default: '0', example: '0')
+                    );
+                    $responseSchema->addRequired(
+                        new SchemaProperty(name: 'id', type: 'int', default: '0', example: '0')
+                    );
+                }
+
+                $response = new Response('200', sprintf('%sResponse', $responseClassRef->getShortName()));
+
+                $path = new Path(
+                    name: '#' . $this->camelToSnake($method->getMethodName(), '_'),
+                    methodType: $method->getRequestType(),
+                    summary: $method->getSummary(),
+                    description: $method->getDescription(),
+                    requestBody: $requestBody,
+                    tags: [$tag],
+                    responses: [$response],
+                    parameters: [
+                        [
+                            'in' => 'header',
+                            'name' => $authTokenName,
+                            'schema' => ['type' => 'string'],
+                            'default' => $authTokenDefaultValue
+                        ]
+                    ],
+                );
+                $paths[] = $path;
             }
-            unset($parameters);
-
-            $components[] = $requestSchema;
-
-            $globalRequest->addProperty(new SchemaProperty(name: 'params', ref: sprintf('%sRequest', $name)));
-            $globalRequest->addRequired(new SchemaProperty(name: 'params', ref: sprintf('%sRequest', $name)));
-            if ($addIdToGlobalRequest) {
-                $globalRequest->addProperty(new SchemaProperty(name: 'id', type: 'int', default: '0', example: '0'));
-                $globalRequest->addRequired(new SchemaProperty(name: 'id', type: 'int', default: '0', example: '0'));
-            }
-
-            $components[] = $globalRequest;
-
-            $requestBody = new RequestBody(sprintf('%sMainRequest', $name));
-
-            $methodRef = new ReflectionClass($method->getMethodClass());
-            $callMethod = $methodRef->getMethod('call');
-            $responseClassRef = new ReflectionClass($callMethod->getReturnType()?->getName());
-            $responseProperties = $responseClassRef->getProperties();
-
-            $responseSchema = new Schema(sprintf('%sResponse', $responseClassRef->getShortName()));
-            $responseSchema->addProperty(new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0'));
-            $responseSchema->addRequired(new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0'));
-
-            foreach ($responseProperties as $responseProperty) {
-                $respProp = new SchemaProperty($responseProperty->getName(), $responseProperty->getType()->getName());
-                $responseSchema->addProperty($respProp);
-                $responseSchema->addRequired($respProp);
-            }
-            $components[] = $responseSchema;
-
-            if ($addIdToGlobalRequest) {
-                $responseSchema->addProperty(new SchemaProperty(name: 'id', type: 'int', default: '0', example: '0'));
-                $responseSchema->addRequired(new SchemaProperty(name: 'id', type: 'int', default: '0', example: '0'));
-            }
-
-            $response = new Response('200', sprintf('%sResponse', $responseClassRef->getShortName()));
-
-            $path = new Path(
-                name: '#'.$this->camelToSnake($method->getMethodName(), '_'),
-                methodType: $method->getRequestType(),
-                summary: $method->getSummary(),
-                description: $method->getDescription(),
-                requestBody: $requestBody,
-                tags: [$tag],
-                responses: [$response],
-                parameters: [[
-                    'in' => 'header',
-                    'name' => $authTokenName,
-                    'schema' => ['type' => 'string'],
-                    'default' => $authTokenDefaultValue
-                ]],
-            );
-            $paths[] = $path;
         }
 
         return [$tags, $paths, $components];

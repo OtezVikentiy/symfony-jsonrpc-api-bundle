@@ -32,9 +32,10 @@ use OV\JsonRPCAPIBundle\RPC\V1\TestMethod;
 use OV\JsonRPCAPIBundle\RPC\V1\Update\UpdateRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\UpdateMethod;
 use PHPUnit\Framework\TestCase;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ServiceLocator;
-use Symfony\Component\HttpFoundation\{InputBag, JsonResponse, ParameterBag, Request};
+use Symfony\Component\HttpFoundation\{InputBag, JsonResponse, Request};
 use Symfony\Component\Serializer\DataCollector\SerializerDataCollector;
 use Symfony\Component\Serializer\Debug\TraceableNormalizer;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
@@ -85,7 +86,13 @@ class BaseTest extends TestCase
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare($data, $methodSpec);
 
-        $controller = new ApiController(['*']);
+        $security = $this->createMock(Security::class);
+        $security
+            ->expects($this->any())
+            ->method('isGranted')
+            ->willReturn(true);
+
+        $controller = new ApiController(['*'], $security);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -128,7 +135,13 @@ class BaseTest extends TestCase
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare($data, $methodSpec);
 
-        $controller = new ApiController([]);
+        $security = $this->createMock(Security::class);
+        $security
+            ->expects($this->any())
+            ->method('isGranted')
+            ->willReturn(true);
+
+        $controller = new ApiController([], $security);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -166,7 +179,13 @@ class BaseTest extends TestCase
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare($data, $methodSpec);
 
-        $controller = new ApiController(['*']);
+        $security = $this->createMock(Security::class);
+        $security
+            ->expects($this->any())
+            ->method('isGranted')
+            ->willReturn(true);
+
+        $controller = new ApiController(['*'], $security);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -204,7 +223,13 @@ class BaseTest extends TestCase
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare($data, $methodSpec);
 
-        $controller = new ApiController(['*']);
+        $security = $this->createMock(Security::class);
+        $security
+            ->expects($this->any())
+            ->method('isGranted')
+            ->willReturn(true);
+
+        $controller = new ApiController(['*'], $security);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -245,7 +270,13 @@ class BaseTest extends TestCase
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare($data, $methodSpec);
 
-        $controller = new ApiController(['*']);
+        $security = $this->createMock(Security::class);
+        $security
+            ->expects($this->any())
+            ->method('isGranted')
+            ->willReturn(true);
+
+        $controller = new ApiController(['*'], $security);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -286,7 +317,13 @@ class BaseTest extends TestCase
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare($data, $methodSpec);
 
-        $controller = new ApiController(['*']);
+        $security = $this->createMock(Security::class);
+        $security
+            ->expects($this->any())
+            ->method('isGranted')
+            ->willReturn(true);
+
+        $controller = new ApiController(['*'], $security);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -319,7 +356,13 @@ class BaseTest extends TestCase
         $responseData = '{}';
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare($data, $methodSpec);
 
-        $controller = new ApiController(['*']);
+        $security = $this->createMock(Security::class);
+        $security
+            ->expects($this->any())
+            ->method('isGranted')
+            ->willReturn(true);
+
+        $controller = new ApiController(['*'], $security);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -337,6 +380,10 @@ class BaseTest extends TestCase
             ->expects($this->once())
             ->method('getMethod')
             ->willReturn($methodSpec->getRequestType());
+        $request
+            ->expects($this->once())
+            ->method('getPathInfo')
+            ->willReturn('/api/v1');
         $request
             ->expects($this->once())
             ->method('getContent')
@@ -363,7 +410,7 @@ class BaseTest extends TestCase
         }
 
         $methodSpecCollection = new MethodSpecCollection();
-        $methodSpecCollection->addMethodSpec($methodName, $methodSpec);
+        $methodSpecCollection->addMethodSpec(1, $methodName, $methodSpec);
 
         $validator = $this->createMock(ValidatorInterface::class);
         $violations = new ConstraintViolationList();
@@ -427,7 +474,13 @@ class BaseTest extends TestCase
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare2($data, $methodSpec);
 
-        $controller = new ApiController(['*']);
+        $security = $this->createMock(Security::class);
+        $security
+            ->expects($this->any())
+            ->method('isGranted')
+            ->willReturn(true);
+
+        $controller = new ApiController(['*'], $security);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -445,6 +498,11 @@ class BaseTest extends TestCase
             ->expects($this->once())
             ->method('getMethod')
             ->willReturn('POST');
+
+        $request
+            ->expects($this->once())
+            ->method('getPathInfo')
+            ->willReturn('/api/v1');
         $request
             ->expects($this->once())
             ->method('getContent')
@@ -471,7 +529,7 @@ class BaseTest extends TestCase
         }
 
         $methodSpecCollection = new MethodSpecCollection();
-        $methodSpecCollection->addMethodSpec($methodName, $methodSpec);
+        $methodSpecCollection->addMethodSpec(1, $methodName, $methodSpec);
 
         $validator = $this->createMock(ValidatorInterface::class);
 
@@ -521,7 +579,13 @@ class BaseTest extends TestCase
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare3($data, $methodSpec);
 
-        $controller = new ApiController(['*']);
+        $security = $this->createMock(Security::class);
+        $security
+            ->expects($this->any())
+            ->method('isGranted')
+            ->willReturn(true);
+
+        $controller = new ApiController(['*'], $security);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -539,6 +603,11 @@ class BaseTest extends TestCase
             ->expects($this->once())
             ->method('getMethod')
             ->willReturn('POST');
+
+        $request
+            ->expects($this->once())
+            ->method('getPathInfo')
+            ->willReturn('/api/v1');
         $request
             ->expects($this->once())
             ->method('getContent')
@@ -565,7 +634,7 @@ class BaseTest extends TestCase
         }
 
         $methodSpecCollection = new MethodSpecCollection();
-        $methodSpecCollection->addMethodSpec($methodName, $methodSpec);
+        $methodSpecCollection->addMethodSpec(1, $methodName, $methodSpec);
 
         $validator = $this->createMock(ValidatorInterface::class);
 
@@ -615,7 +684,13 @@ class BaseTest extends TestCase
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare4($data, $methodSpec);
 
-        $controller = new ApiController(['*']);
+        $security = $this->createMock(Security::class);
+        $security
+            ->expects($this->any())
+            ->method('isGranted')
+            ->willReturn(true);
+
+        $controller = new ApiController(['*'], $security);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -633,6 +708,11 @@ class BaseTest extends TestCase
             ->expects($this->once())
             ->method('getMethod')
             ->willReturn('POST');
+
+        $request
+            ->expects($this->once())
+            ->method('getPathInfo')
+            ->willReturn('/api/v1');
         $request
             ->expects($this->once())
             ->method('getContent')
@@ -659,7 +739,7 @@ class BaseTest extends TestCase
         }
 
         $methodSpecCollection = new MethodSpecCollection();
-        $methodSpecCollection->addMethodSpec($methodName, $methodSpec);
+        $methodSpecCollection->addMethodSpec(1, $methodName, $methodSpec);
 
         $validator = $this->createMock(ValidatorInterface::class);
 
@@ -709,7 +789,13 @@ class BaseTest extends TestCase
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare5($data, $methodSpec);
 
-        $controller = new ApiController(['*']);
+        $security = $this->createMock(Security::class);
+        $security
+            ->expects($this->any())
+            ->method('isGranted')
+            ->willReturn(true);
+
+        $controller = new ApiController(['*'], $security);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -727,6 +813,11 @@ class BaseTest extends TestCase
             ->expects($this->once())
             ->method('getMethod')
             ->willReturn('POST');
+
+        $request
+            ->expects($this->once())
+            ->method('getPathInfo')
+            ->willReturn('/api/v1');
         $request
             ->expects($this->once())
             ->method('getContent')
@@ -753,7 +844,7 @@ class BaseTest extends TestCase
         }
 
         $methodSpecCollection = new MethodSpecCollection();
-        $methodSpecCollection->addMethodSpec($methodName, $methodSpec);
+        $methodSpecCollection->addMethodSpec(1, $methodName, $methodSpec);
 
         $validator = $this->createMock(ValidatorInterface::class);
 
@@ -803,7 +894,13 @@ class BaseTest extends TestCase
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare6($data, $methodSpec);
 
-        $controller = new ApiController(['*']);
+        $security = $this->createMock(Security::class);
+        $security
+            ->expects($this->any())
+            ->method('isGranted')
+            ->willReturn(true);
+
+        $controller = new ApiController(['*'], $security);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -821,6 +918,11 @@ class BaseTest extends TestCase
             ->expects($this->once())
             ->method('getMethod')
             ->willReturn('POST');
+
+        $request
+            ->expects($this->once())
+            ->method('getPathInfo')
+            ->willReturn('/api/v1');
         $request
             ->expects($this->once())
             ->method('getContent')
@@ -847,7 +949,7 @@ class BaseTest extends TestCase
         }
 
         $methodSpecCollection = new MethodSpecCollection();
-        $methodSpecCollection->addMethodSpec($methodName, $methodSpec);
+        $methodSpecCollection->addMethodSpec(1, $methodName, $methodSpec);
 
         $validator = $this->createMock(ValidatorInterface::class);
 
@@ -897,7 +999,13 @@ class BaseTest extends TestCase
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare7($data, $methodSpec);
 
-        $controller = new ApiController(['*']);
+        $security = $this->createMock(Security::class);
+        $security
+            ->expects($this->any())
+            ->method('isGranted')
+            ->willReturn(true);
+
+        $controller = new ApiController(['*'], $security);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -915,6 +1023,11 @@ class BaseTest extends TestCase
             ->expects($this->once())
             ->method('getMethod')
             ->willReturn('POST');
+
+        $request
+            ->expects($this->once())
+            ->method('getPathInfo')
+            ->willReturn('/api/v1');
         $request
             ->expects($this->once())
             ->method('getContent')
@@ -941,7 +1054,7 @@ class BaseTest extends TestCase
         }
 
         $methodSpecCollection = new MethodSpecCollection();
-        $methodSpecCollection->addMethodSpec($methodName, $methodSpec);
+        $methodSpecCollection->addMethodSpec(1, $methodName, $methodSpec);
 
         $validator = $this->createMock(ValidatorInterface::class);
 
@@ -991,7 +1104,13 @@ class BaseTest extends TestCase
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare8($data, $methodSpec);
 
-        $controller = new ApiController(['*']);
+        $security = $this->createMock(Security::class);
+        $security
+            ->expects($this->any())
+            ->method('isGranted')
+            ->willReturn(true);
+
+        $controller = new ApiController(['*'], $security);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -1009,6 +1128,11 @@ class BaseTest extends TestCase
             ->expects($this->once())
             ->method('getMethod')
             ->willReturn('POST');
+
+        $request
+            ->expects($this->once())
+            ->method('getPathInfo')
+            ->willReturn('/api/v1');
         $request
             ->expects($this->once())
             ->method('getContent')
@@ -1035,7 +1159,7 @@ class BaseTest extends TestCase
         }
 
         $methodSpecCollection = new MethodSpecCollection();
-        $methodSpecCollection->addMethodSpec($methodName, $methodSpec);
+        $methodSpecCollection->addMethodSpec(1, $methodName, $methodSpec);
 
         $validator = $this->createMock(ValidatorInterface::class);
 
@@ -1182,7 +1306,13 @@ class BaseTest extends TestCase
         ];
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare9($data, $methodSpecs);
 
-        $controller = new ApiController(['*']);
+        $security = $this->createMock(Security::class);
+        $security
+            ->expects($this->any())
+            ->method('isGranted')
+            ->willReturn(true);
+
+        $controller = new ApiController(['*'], $security);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -1237,7 +1367,13 @@ class BaseTest extends TestCase
         $responseData = '{}';
         [$serviceLocator, $request, $methodSpecCollection, $validator, $container] = $this->prepare9($data, $methodSpecs);
 
-        $controller = new ApiController(['*']);
+        $security = $this->createMock(Security::class);
+        $security
+            ->expects($this->any())
+            ->method('isGranted')
+            ->willReturn(true);
+
+        $controller = new ApiController(['*'], $security);
         $controller->setContainer($serviceLocator);
 
         $result = $controller->index($request, $methodSpecCollection, $validator, $container);
@@ -1255,6 +1391,11 @@ class BaseTest extends TestCase
             ->expects($this->once())
             ->method('getMethod')
             ->willReturn('POST');
+
+        $request
+            ->expects($this->once())
+            ->method('getPathInfo')
+            ->willReturn('/api/v1');
         $request
             ->expects($this->once())
             ->method('getContent')
@@ -1283,7 +1424,7 @@ class BaseTest extends TestCase
             if (is_null($methodName)) {
                 throw new Exception('Could not define method name');
             }
-            $methodSpecCollection->addMethodSpec($methodName, $methodSpec);
+            $methodSpecCollection->addMethodSpec(1, $methodName, $methodSpec);
             $container
                 ->expects($this->any())
                 ->method('get')
