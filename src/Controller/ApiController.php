@@ -176,7 +176,7 @@ class ApiController extends AbstractController
                             }
 
                             foreach ($callbackArr as $func) {
-                                $processor->$func($requestInstance ?? null);
+                                $processor->$func($processorClass, $requestInstance ?? null);
                             }
                         }
                     }
