@@ -81,15 +81,15 @@ abstract class AbstractTest extends TestCase
         $request = $this->createMock(Request::class);
         $request->request = new InputBag([]);
         $request
-            ->expects($this->once())
+            ->expects($this->any())
             ->method('getMethod')
             ->willReturn(!is_null($methodSpec) ? $methodSpec->getRequestType() : 'POST');
         $request
-            ->expects($this->once())
+            ->expects($this->any())
             ->method('getPathInfo')
             ->willReturn(sprintf('/api/v%d', $version));
         $request
-            ->expects($this->once())
+            ->expects($this->any())
             ->method('getContent')
             ->willReturn(is_array($data) ? json_encode($data, JSON_UNESCAPED_UNICODE) : $data);
 

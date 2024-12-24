@@ -8,11 +8,11 @@
  * file that was distributed with this source code.
  */
 
-namespace OV\JsonRPCAPIBundle\Core;
+namespace OV\JsonRPCAPIBundle\Core\Response;
 
 use ReflectionClass;
 
-class BaseResponse
+class BaseResponse implements OvResponseInterface
 {
     public function __construct(
         private readonly mixed $result,

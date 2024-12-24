@@ -8,7 +8,9 @@
  * file that was distributed with this source code.
  */
 
-namespace OV\JsonRPCAPIBundle\Core;
+namespace OV\JsonRPCAPIBundle\Core\Request;
+
+use OV\JsonRPCAPIBundle\Core\JRPCException;
 
 class BaseRequest
 {

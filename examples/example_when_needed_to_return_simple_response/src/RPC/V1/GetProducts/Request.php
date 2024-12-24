@@ -2,7 +2,7 @@
 
 namespace App\RPC\V1\GetProducts;
 
-use OV\JsonRPCAPIBundle\Core\JsonRpcRequest;
+use OV\JsonRPCAPIBundle\Core\Request\JsonRpcRequest;
 
 class Request extends JsonRpcRequest
 {

@@ -8,11 +8,12 @@
  * file that was distributed with this source code.
  */
 
-namespace OV\JsonRPCAPIBundle\Core;
+namespace OV\JsonRPCAPIBundle\Core\Response;
 
+use OV\JsonRPCAPIBundle\Core\JRPCException;
 use Throwable;
 
-class ErrorResponse
+class ErrorResponse implements OvResponseInterface
 {
     public function __construct(
         private readonly JRPCException|Throwable $error,

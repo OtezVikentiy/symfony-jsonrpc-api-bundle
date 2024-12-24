@@ -10,10 +10,16 @@
 
 namespace OV\JsonRPCAPIBundle\Controller;
 
-use OV\JsonRPCAPIBundle\Core\{BaseRequest, BaseResponse, ErrorResponse, JRPCException, PlainResponseInterface};
+
+use OV\JsonRPCAPIBundle\Core\Request\BaseRequest;
+use OV\JsonRPCAPIBundle\Core\JRPCException;
+use OV\JsonRPCAPIBundle\Core\Response\BaseResponse;
+use OV\JsonRPCAPIBundle\Core\Response\ErrorResponse;
+use OV\JsonRPCAPIBundle\Core\Response\JsonResponse;
+use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
+use OV\JsonRPCAPIBundle\Core\Response\PlainResponseInterface;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\{JsonResponse, Request, Response};
+use Symfony\Component\HttpFoundation\{Request, Response};
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\Routing\Annotation\Route;
@@ -21,7 +27,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
 
-final class ApiController extends AbstractController
+final class ApiController extends BaseController
 {
     public function __construct(
         private readonly array $accessControlAllowOriginList,
@@ -32,30 +38,10 @@ final class ApiController extends AbstractController
     }
 
     #[Route('/api/v{version<\d+>}', name: 'ov_json_rpc_api_index', methods: ['POST', 'GET', 'PUT', 'PATCH', 'DELETE'])]
-    public function index(Request $request, Container $container): JsonResponse|Response|PlainResponseInterface
+    public function index(Request $request, Container $container): OvResponseInterface
     {
         try {
-            $methodType = $request->getMethod();
-            $pathArray = explode('/', $request->getPathInfo());
-            $version = (int)preg_replace('/\D+/', '', $pathArray[count($pathArray) - 1]);
-            $data = [];
-            if ($methodType === 'GET') {
-                $data = $request->query->all();
-            } elseif (in_array($methodType, ['POST', 'DELETE', 'PUT', 'PATCH'])) {
-                $requestData = [];
-                if (!empty($request->request->all())) {
-                    $requestData = $request->request->all();
-                }
-                $jsonData = [];
-                $requestContent = $request->getContent();
-                if (!empty($requestContent)) {
-                    $jsonData = json_decode($requestContent, true);
-                    if (is_null($jsonData)) {
-                        throw new JRPCException('Parse error.', JRPCException::PARSE_ERROR);
-                    }
-                }
-                $data = array_merge($requestData, $jsonData);
-            }
+            $data = $this->prepareData($request);
 
             if (empty($data)) {
                 throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
@@ -65,63 +51,65 @@ final class ApiController extends AbstractController
             if (!$this->isBatch($data)) {
                 $batches = [$data];
             }
-        } catch (JRPCException $e) {
-            return $this->json(data: new ErrorResponse(error: $e, id: $data['id'] ?? null), headers: ['Access-Control-Allow-Origin' => implode(', ', $this->accessControlAllowOriginList)]);
-        } catch (Throwable $e) {
-            return $this->json(data: new ErrorResponse(error: $e, id: $data['id'] ?? null), headers: ['Access-Control-Allow-Origin' => implode(', ', $this->accessControlAllowOriginList)]);
+        } catch (JRPCException|Throwable $e) {
+            return $this->json(
+                data: new ErrorResponse(error: $e, id: $data['id'] ?? null),
+                headers: $this->prepareHeaders()
+            );
         }
 
         $responses = [];
         foreach ($batches as $batch) {
-            $responses[] = $this->processBatch($container, $batch, $version, $methodType);
+            $responses[] = $this->processBatch($container, $batch, $this->getVersion($request), $request->getMethod());
         }
 
         $responses = array_values(array_filter($responses, fn($item) => !is_null($item)));
+
+        if (empty($responses)) {
+            return new JsonResponse(headers: $this->prepareHeaders());
+        }
 
         if (count($responses) === 1 && $responses[0] instanceof PlainResponseInterface) {
             return $responses[0];
         }
 
-        if (count($responses) > 1) {
-            return $this->json(data: $responses, headers: ['Access-Control-Allow-Origin' => implode(', ', $this->accessControlAllowOriginList)]);
-        } elseif(!empty($responses)) {
-            return $this->json(data: $responses[0], headers: ['Access-Control-Allow-Origin' => implode(', ', $this->accessControlAllowOriginList)]);
-        }
-        return new JsonResponse(headers: ['Access-Control-Allow-Origin' => implode(', ', $this->accessControlAllowOriginList)]);
+        $data = (count($responses) > 1) ? $responses : $responses[0];
+
+        return $this->json(data: $data, headers: $this->prepareHeaders());
     }
 
     private function processBatch(
         Container $container,
         array $batch,
-        string $version,
+        int $version,
         string $methodType,
-    ): ErrorResponse|BaseResponse|JsonResponse|PlainResponseInterface|null {
+    ): ?OvResponseInterface {
         try {
             $baseRequest = new BaseRequest($batch);
 
-            $method = $this->specCollection->getMethodSpec($version, $baseRequest->getMethod());
+            $methodSpec = $this->specCollection->getMethodSpec($version, $baseRequest->getMethod());
+
+            if ($methodSpec->getRequestType() !== $methodType) {
+                throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
+            }
 
             $allowed = false;
-            if (!empty($method->getRoles())) {
-                foreach ($method->getRoles() as $role) {
+            if (!empty($methodSpec->getRoles())) {
+                foreach ($methodSpec->getRoles() as $role) {
                     if ($this->security->isGranted($role)) {
                         $allowed = true;
                     }
                 }
             }
 
-            if (!$allowed && !empty($method->getRoles())) {
-                return $this->json(data: 'Access not allowed', status: 403, headers: ['Access-Control-Allow-Origin' => implode(', ', $this->accessControlAllowOriginList)]);
+            if (!$allowed && !empty($methodSpec->getRoles())) {
+                return $this->json(data: 'Access not allowed', status: 403, headers: $this->prepareHeaders());
             }
 
-            if ($method->getRequestType() !== $methodType) {
-                throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
-            }
-
-            $requestClass = $method->getRequest();
+            $requestClass = $methodSpec->getRequest();
             if (!is_null($requestClass)) {
                 $constructorParams = [];
-                foreach ($method->getRequiredParameters() as $requiredParameter) {
+                foreach ($methodSpec->getRequiredParameters() as $requiredParameter) {
                     if ($requiredParameter['name'] === 'id') {
                         $constructorParams[] = $baseRequest->getId();
                         continue;
@@ -130,7 +118,7 @@ final class ApiController extends AbstractController
                 }
 
                 $validators = [];
-                foreach ($method->getValidators() as $field => $validatorItem) {
+                foreach ($methodSpec->getValidators() as $field => $validatorItem) {
                     if ($validatorItem['allowsNull'] === false) {
                         $validators[$field] = new Assert\Type($validatorItem['type']);
                     } else {
@@ -139,7 +127,7 @@ final class ApiController extends AbstractController
                                 new Assert\Type($validatorItem['type']),
                                 new Assert\Blank(),
                                 new Assert\IsNull(),
-                            ])
+                            ]),
                         ]);
                     }
                 }
@@ -166,8 +154,8 @@ final class ApiController extends AbstractController
 
                 $requestInstance = new $requestClass(...$constructorParams);
 
-                foreach ($method->getAllParameters() as $allParameter) {
-                    $requestSetter = $method->getRequestSetters()[$allParameter['name']] ?? null;
+                foreach ($methodSpec->getAllParameters() as $allParameter) {
+                    $requestSetter = $methodSpec->getRequestSetters()[$allParameter['name']] ?? null;
                     if (!is_null($requestSetter)) {
                         $value = $baseRequest->getParams()[$allParameter['name']] ?? null;
                         if ($allParameter['name'] === 'id') {
@@ -183,10 +171,10 @@ final class ApiController extends AbstractController
                 }
             }
 
-            $processorClass = $method->getMethodClass();
-            $processor      = $container->get($processorClass);
+            $processorClass = $methodSpec->getMethodClass();
+            $processor = $container->get($processorClass);
 
-            if ($method->isCallbacksExists()) {
+            if ($methodSpec->isCallbacksExists()) {
                 $callbacks = $processor->getCallbacks();
 
                 if (!empty($callbacks)) {
@@ -205,8 +193,9 @@ final class ApiController extends AbstractController
             /** @var mixed|Response $result */
             $result = $processor->call($requestInstance ?? null);
 
-            if ($method->isPlainResponse() && $result instanceof PlainResponseInterface) {
-                $result->headers->add(['Access-Control-Allow-Origin' => implode(', ', $this->accessControlAllowOriginList)]);
+            if ($methodSpec->isPlainResponse() && $result instanceof PlainResponseInterface) {
+                $result->headers->add($this->prepareHeaders());
+
                 return $result;
             } else {
                 if (!is_null($baseRequest->getId())) {
@@ -216,13 +205,54 @@ final class ApiController extends AbstractController
                 }
                 unset($baseRequest);
             }
-        } catch (JRPCException $e) {
-            return new ErrorResponse(error: $e, id: $baseRequest?->getId() ?? $batch['id'] ?? null);
-        } catch (Throwable $e) {
-            return new ErrorResponse(error: $e, id: $baseRequest?->getId() ?? $batch['id'] ?? null);
+        } catch (JRPCException|Throwable $e) {
+            match (true) {
+                isset($baseRequest) => $id = $baseRequest->getId(),
+                isset($batch['id']) => $id = $batch['id'],
+                default => $id = null,
+            };
+
+            return new ErrorResponse(error: $e, id: $id);
         }
 
         return null;
+    }
+
+    private function getVersion(Request $request): int
+    {
+        $pathArray = explode('/', $request->getPathInfo());
+
+        return (int)preg_replace('/\D+/', '', $pathArray[count($pathArray) - 1]);
+    }
+
+    private function prepareData(Request $request): array
+    {
+        $data = [];
+
+        if ($request->getMethod() === 'GET') {
+            $data = $request->query->all();
+        } elseif (in_array($request->getMethod(), ['POST', 'DELETE', 'PUT', 'PATCH'])) {
+            $requestData = [];
+            if (!empty($request->request->all())) {
+                $requestData = $request->request->all();
+            }
+            $jsonData = [];
+            $requestContent = $request->getContent();
+            if (!empty($requestContent)) {
+                $jsonData = json_decode($requestContent, true);
+                if (is_null($jsonData)) {
+                    throw new JRPCException('Parse error.', JRPCException::PARSE_ERROR);
+                }
+            }
+            $data = array_merge($requestData, $jsonData);
+        }
+
+        return $data;
+    }
+
+    private function prepareHeaders(): array
+    {
+        return ['Access-Control-Allow-Origin' => implode(', ', $this->accessControlAllowOriginList)];
     }
 
     private function isBatch(array $data): bool

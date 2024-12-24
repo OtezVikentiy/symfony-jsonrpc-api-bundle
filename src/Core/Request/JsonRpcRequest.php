@@ -1,6 +1,6 @@
 <?php
 
-namespace OV\JsonRPCAPIBundle\Core;
+namespace OV\JsonRPCAPIBundle\Core\Request;
 
 abstract class JsonRpcRequest
 {
