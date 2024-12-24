@@ -11,17 +11,17 @@
 namespace OV\JsonRPCAPIBundle\RPC\V1;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
-use OV\JsonRPCAPIBundle\RPC\V1\Test\TestRequest;
-use OV\JsonRPCAPIBundle\RPC\V1\Test\TestResponse;
+use OV\JsonRPCAPIBundle\RPC\V1\TestCallback\Request;
+use OV\JsonRPCAPIBundle\RPC\V1\TestCallback\Response;
 
-#[JsonRPCAPI(methodName: 'test', type: 'POST', ignoreInSwagger: true)]
-class TestMethod
+#[JsonRPCAPI(methodName: 'testCallback', type: 'POST', ignoreInSwagger: true)]
+class TestCallbackMethod extends AbstractMethod
 {
-    public function call(TestRequest $request): TestResponse
+    public function call(Request $request): Response
     {
         //... do some api logic here and return SubtractResponse
         //... use this class as any other service in Symfony
 
-        return new TestResponse($request->getTitle());
+        return new Response($request->getTitle());
     }
 }

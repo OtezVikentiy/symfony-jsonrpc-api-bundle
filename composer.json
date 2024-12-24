@@ -6,7 +6,10 @@
   "minimum-stability": "stable",
   "keywords": [
     "symfony",
-    "bundle"
+    "bundle",
+    "JsonRPC",
+    "API",
+    "Swagger"
   ],
   "type": "symfony-bundle",
   "license": "MIT",
