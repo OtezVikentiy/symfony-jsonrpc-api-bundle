@@ -5,6 +5,8 @@ namespace OV\JsonRPCAPIBundle\Tests\Controller;
 use Doctrine\Common\Annotations\AnnotationReader;
 use OV\JsonRPCAPIBundle\Controller\ApiController;
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+use OV\JsonRPCAPIBundle\Core\Services\HeadersPreparer;
+use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use PHPUnit\Framework\TestCase;
@@ -31,6 +33,8 @@ abstract class AbstractTest extends TestCase
     private ?Security $security = null;
     private ?Request $request = null;
     private string $validateMethodExpectation = 'atLeastOnce';
+    private ?HeadersPreparer $headersPreparer = null;
+    private ?RequestHandler $requestHandler = null;
 
     protected function tearDown(): void
     {
@@ -40,6 +44,8 @@ abstract class AbstractTest extends TestCase
         $this->validator = null;
         $this->security = null;
         $this->request = null;
+        $this->headersPreparer = null;
+        $this->requestHandler = null;
         $this->after();
     }
 
@@ -64,16 +70,29 @@ abstract class AbstractTest extends TestCase
         $this->prepareMethodSpecCollection($methodSpecs);
         $this->prepareValidator($violationList);
         $this->prepareSecurity();
+        $this->prepareHeadersPreparer();
+        $this->prepareRequestHandler();
 
-        $controller = new ApiController(
-            ['*'],
+        $controller = new ApiController();
+        $controller->setContainer($this->serviceLocator);
+
+        return $controller->index($this->request, $this->requestHandler, $this->headersPreparer);
+    }
+
+    private function prepareRequestHandler(): void
+    {
+        $this->requestHandler = new RequestHandler(
             $this->security,
             $this->methodSpecCollection,
             $this->validator,
+            $this->headersPreparer,
+            $this->container,
         );
-        $controller->setContainer($this->serviceLocator);
+    }
 
-        return $controller->index($this->request, $this->container);
+    private function prepareHeadersPreparer(): void
+    {
+        $this->headersPreparer = new HeadersPreparer(['*']);
     }
 
     private function prepareRequest(array|string $data, ?MethodSpec $methodSpec = null, int $version = 1): void
