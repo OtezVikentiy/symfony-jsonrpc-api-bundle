@@ -15,7 +15,7 @@ use Throwable;
 
 class JRPCException extends Exception
 {
-    public const
+    public const int
         PARSE_ERROR = -32700,
         INVALID_REQUEST = -32600,
         METHOD_NOT_FOUND = -32601,
@@ -23,6 +23,9 @@ class JRPCException extends Exception
         INTERNAL_ERROR = -32603,
         SERVER_ERROR = -32000; // [-32000;-32099] - Server error codes reserved for implementation-defined server-errors.
 
+    /**
+     * @throws Exception
+     */
     public function __construct(
         string $message,
         int $code,
@@ -38,10 +41,5 @@ class JRPCException extends Exception
         }
 
         parent::__construct($message . sprintf(' Additional info: %s', $this->additionalInfo), $code, $previous);
-    }
-
-    public function getAdditionalInfo(): string
-    {
-        return $this->additionalInfo;
     }
 }

@@ -1,4 +1,6 @@
 <?php
+/** @noinspection PhpUnused */
+
 /*
  * This file is part of the OtezVikentiy Json RPC API package.
  *
@@ -17,6 +19,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\GetData\GetDataResponse;
 #[JsonRPCAPI(methodName: 'get_data', type: 'POST', ignoreInSwagger: true)]
 class GetDataMethod
 {
+    /** @noinspection PhpUnusedParameterInspection */
     public function call(GetDataRequest $request): GetDataResponse
     {
         //... do some api logic here and return SubtractResponse

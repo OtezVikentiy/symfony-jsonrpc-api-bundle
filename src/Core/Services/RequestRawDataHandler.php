@@ -14,6 +14,9 @@ class RequestRawDataHandler
         return (int)preg_replace('/\D+/', '', $pathArray[count($pathArray) - 1]);
     }
 
+    /**
+     * @throws JRPCException
+     */
     public function prepareData(Request $request): array
     {
         if ($request->getMethod() === Request::METHOD_GET) {

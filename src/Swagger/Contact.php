@@ -2,12 +2,12 @@
 
 namespace OV\JsonRPCAPIBundle\Swagger;
 
-class Contact
+readonly class Contact
 {
     public function __construct(
-        private readonly string $name = '',
-        private readonly string $url = '',
-        private readonly string $email = '',
+        private string $name = '',
+        private string $url = '',
+        private string $email = '',
     ) {}
 
     public function getName(): string

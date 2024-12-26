@@ -2,15 +2,15 @@
 
 namespace OV\JsonRPCAPIBundle\Swagger;
 
-class Info
+readonly class Info
 {
     public function __construct(
-        private readonly string $title = '',
-        private readonly string $description = '',
-        private readonly string $termsOfService = '',
-        private readonly string $version = '',
-        private readonly ?Contact $contact = null,
-        private readonly ?License $license = null,
+        private string $title = '',
+        private string $description = '',
+        private string $termsOfService = '',
+        private string $version = '',
+        private ?Contact $contact = null,
+        private ?License $license = null,
     ) {}
 
     public function toArray(): array

@@ -1,4 +1,5 @@
 <?php
+/** @noinspection PhpUnused */
 
 namespace OV\JsonRPCAPIBundle\RPC\V1\PlainResponse;
 
@@ -28,7 +29,7 @@ class ErrorResponse
         return $this->errors;
     }
 
-    public function setErrors(array $errors): \App\RPC\V1\GetProducts\ErrorResponse
+    public function setErrors(array $errors): ErrorResponse
     {
         $this->errors = $errors;
 

@@ -10,6 +10,7 @@
 
 namespace OV\JsonRPCAPIBundle\DependencyInjection;
 
+use Exception;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -18,6 +19,10 @@ use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 
 class OVJsonRPCAPIExtension extends Extension
 {
+    /**
+     * @noinspection PhpUnused
+     * @throws Exception
+     */
     public function load(array $configs, ContainerBuilder $container): void
     {
         $loader = new YamlFileLoader(

@@ -2,14 +2,14 @@
 
 namespace OV\JsonRPCAPIBundle\Swagger;
 
-class Openapi
+readonly class Openapi
 {
     public function __construct(
-        private readonly Info $info,
-        private readonly array $servers,
-        private readonly array $tags,
-        private readonly array $paths,
-        private readonly array $components,
+        private Info $info,
+        private array $servers,
+        private array $tags,
+        private array $paths,
+        private array $components,
     ) {}
 
     public function toArray(): array

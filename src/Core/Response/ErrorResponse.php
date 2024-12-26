@@ -13,20 +13,22 @@ namespace OV\JsonRPCAPIBundle\Core\Response;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
 use Throwable;
 
-class ErrorResponse implements OvResponseInterface, BaseJsonResponseInterface
+readonly class ErrorResponse implements OvResponseInterface, BaseJsonResponseInterface
 {
     public function __construct(
-        private readonly JRPCException|Throwable $error,
-        private readonly ?string $id = null,
-        private readonly string $jsonrpc = '2.0',
+        private JRPCException|Throwable $error,
+        private ?string $id = null,
+        private string $jsonrpc = '2.0',
     ) {
     }
 
+    /** @noinspection PhpUnused */
     public function getJsonrpc(): string
     {
         return $this->jsonrpc;
     }
 
+    /** @noinspection PhpUnused */
     public function getError(): array
     {
         return [
@@ -35,6 +37,7 @@ class ErrorResponse implements OvResponseInterface, BaseJsonResponseInterface
         ];
     }
 
+    /** @noinspection PhpUnused */
     public function getId(): string
     {
         return $this->id;

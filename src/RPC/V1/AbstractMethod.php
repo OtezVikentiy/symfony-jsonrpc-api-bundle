@@ -1,10 +1,9 @@
 <?php
+/** @noinspection PhpUnused */
 
 namespace OV\JsonRPCAPIBundle\RPC\V1;
 
-use App\RPC\V1\GetProductsMethod;
 use OV\JsonRPCAPIBundle\Core\CallbacksInterface;
-use Psr\Log\LoggerInterface;
 
 abstract class AbstractMethod implements CallbacksInterface
 {
@@ -16,7 +15,9 @@ abstract class AbstractMethod implements CallbacksInterface
         ];
     }
 
-    public function log(string $processorClass, $request) {
+    /** @noinspection PhpUnusedParameterInspection */
+    public function log(string $processorClass, $request): void
+    {
         file_put_contents('./tests/_tmp/AfterMethodCallbackTest.log', sprintf('AfterMethodCallbackTest: %s', $request->getTitle()));
     }
 }

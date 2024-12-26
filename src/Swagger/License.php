@@ -2,11 +2,11 @@
 
 namespace OV\JsonRPCAPIBundle\Swagger;
 
-class License
+readonly class License
 {
     public function __construct(
-        private readonly string $name = '',
-        private readonly string $url = '',
+        private string $name = '',
+        private string $url = '',
     ) {}
 
     public function getName(): string

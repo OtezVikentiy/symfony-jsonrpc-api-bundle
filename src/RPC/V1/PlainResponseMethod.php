@@ -1,4 +1,5 @@
 <?php
+/** @noinspection PhpUnused */
 
 namespace OV\JsonRPCAPIBundle\RPC\V1;
 

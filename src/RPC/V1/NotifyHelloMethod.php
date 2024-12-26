@@ -1,4 +1,6 @@
 <?php
+/** @noinspection PhpUnused */
+
 /*
  * This file is part of the OtezVikentiy Json RPC API package.
  *
@@ -17,6 +19,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\NotifyHello\NotifyHelloResponse;
 #[JsonRPCAPI(methodName: 'notify_hello', type: 'POST', ignoreInSwagger: true)]
 class NotifyHelloMethod
 {
+    /** @noinspection PhpUnusedParameterInspection */
     public function call(NotifyHelloRequest $request): NotifyHelloResponse
     {
         //... do some api logic here and return SubtractResponse

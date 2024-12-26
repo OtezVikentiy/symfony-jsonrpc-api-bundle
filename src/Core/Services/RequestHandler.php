@@ -5,7 +5,6 @@ namespace OV\JsonRPCAPIBundle\Core\Services;
 use OV\JsonRPCAPIBundle\Core\CallbacksInterface;
 use OV\JsonRPCAPIBundle\Core\Request\BaseRequest;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
-use OV\JsonRPCAPIBundle\Core\Response\BaseJsonResponseInterface;
 use OV\JsonRPCAPIBundle\Core\Response\BaseResponse;
 use OV\JsonRPCAPIBundle\Core\Response\ErrorResponse;
 use OV\JsonRPCAPIBundle\Core\Response\JsonResponse;
@@ -29,6 +28,7 @@ final readonly class RequestHandler
         private ValidatorInterface $validator,
         private HeadersPreparer $headersPreparer,
         private ContainerInterface $container,
+        private ResponseService $responseService,
     ) {
     }
 
@@ -81,7 +81,7 @@ final readonly class RequestHandler
             }
 
             if (!is_null($baseRequest->getId()) || !empty((array)$result)) {
-                return $this->prepareJsonResponse(new BaseResponse($result, $baseRequest->getId() ?? null));
+                return $this->responseService->prepareJsonResponse(new BaseResponse($result, $baseRequest->getId() ?? null));
             }
             unset($baseRequest);
         } catch (JRPCException|Throwable $e) {
@@ -91,23 +91,10 @@ final readonly class RequestHandler
                 default => $id = null,
             };
 
-            return $this->prepareJsonResponse(new ErrorResponse(error: $e, id: $id));
+            return $this->responseService->prepareJsonResponse(new ErrorResponse(error: $e, id: $id));
         }
 
         return null;
-    }
-
-    private function prepareJsonResponse(BaseJsonResponseInterface $data): JsonResponse
-    {
-        if ($this->container->has('serializer')) {
-            $json = $this->container->get('serializer')->serialize($data, 'json', [
-                'json_encode_options' => JsonResponse::DEFAULT_ENCODING_OPTIONS,
-            ]);
-
-            return new JsonResponse($json, JsonResponse::HTTP_OK, $this->headersPreparer->prepareHeaders(), true);
-        }
-
-        return new JsonResponse($data, JsonResponse::HTTP_OK, $this->headersPreparer->prepareHeaders());
     }
 
     private function processCallbacks(
@@ -162,6 +149,9 @@ final readonly class RequestHandler
         return $requestInstance;
     }
 
+    /**
+     * @throws JRPCException
+     */
     private function processValidatorsForRequestInstance(MethodSpec $methodSpec, BaseRequest $baseRequest): void
     {
         $validators = [];

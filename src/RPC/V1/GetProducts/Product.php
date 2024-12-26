@@ -1,4 +1,9 @@
 <?php
+/** @noinspection PhpUnused */
+
+/** @noinspection PhpUnused */
+
+/** @noinspection PhpUnused */
 
 namespace OV\JsonRPCAPIBundle\RPC\V1\GetProducts;
 

@@ -8,6 +8,7 @@ use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 use OV\JsonRPCAPIBundle\Core\Services\HeadersPreparer;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 use OV\JsonRPCAPIBundle\Core\Services\RequestRawDataHandler;
+use OV\JsonRPCAPIBundle\Core\Services\ResponseService;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use PHPUnit\Framework\TestCase;
@@ -37,6 +38,7 @@ abstract class AbstractTest extends TestCase
     private ?HeadersPreparer $headersPreparer = null;
     private ?RequestHandler $requestHandler = null;
     private ?RequestRawDataHandler $requestRawDataHandler = null;
+    private ?ResponseService $responseService = null;
 
     protected function tearDown(): void
     {
@@ -49,6 +51,7 @@ abstract class AbstractTest extends TestCase
         $this->headersPreparer = null;
         $this->requestHandler = null;
         $this->requestRawDataHandler = null;
+        $this->responseService = null;
         $this->after();
     }
 
@@ -74,13 +77,19 @@ abstract class AbstractTest extends TestCase
         $this->prepareValidator($violationList);
         $this->prepareSecurity();
         $this->prepareHeadersPreparer();
+        $this->prepareResponseService();
         $this->prepareRequestHandler();
         $this->prepareRequestRawDataHandler();
 
         $controller = new ApiController();
         $controller->setContainer($this->serviceLocator);
 
-        return $controller->index($this->request, $this->requestHandler, $this->headersPreparer, $this->requestRawDataHandler);
+        return $controller->index($this->request, $this->requestHandler, $this->requestRawDataHandler, $this->responseService);
+    }
+
+    private function prepareResponseService(): void
+    {
+        $this->responseService = new ResponseService($this->container, $this->headersPreparer);
     }
 
     private function prepareRequestRawDataHandler(): void
@@ -96,6 +105,7 @@ abstract class AbstractTest extends TestCase
             $this->validator,
             $this->headersPreparer,
             $this->container,
+            $this->responseService,
         );
     }
 
@@ -152,13 +162,6 @@ abstract class AbstractTest extends TestCase
             }
             $methodSpecCollection->addMethodSpec(1, $methodName, $methodSpec);
             $callbacks[] = [$class, 1, new $class()];
-//            $container
-//                ->expects($this->any())
-//                ->method('get')
-//                ->with($this->identicalTo($class))
-//                ->willReturnCallback(function ($class) {
-//                    return new $class;
-//                });
         }
 
         $serializer = $this->serviceLocator->get('serializer');

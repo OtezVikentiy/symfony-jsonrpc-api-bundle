@@ -17,8 +17,11 @@ class BaseRequest
     private string $jsonrpc;
     private string $method;
     private array $params = [];
-    private $id = null;
+    private mixed $id = null;
 
+    /**
+     * @throws JRPCException
+     */
     public function __construct(array $data)
     {
         if (
@@ -40,6 +43,7 @@ class BaseRequest
         }
     }
 
+    /** @noinspection PhpUnused */
     public function getJsonrpc(): string
     {
         return $this->jsonrpc;

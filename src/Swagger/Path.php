@@ -2,18 +2,18 @@
 
 namespace OV\JsonRPCAPIBundle\Swagger;
 
-class Path
+readonly class Path
 {
     public function __construct(
-        private readonly string $name = '',
-        private readonly string $methodType = '',
-        private readonly string $summary = '',
-        private readonly string $description = '',
-        private readonly ?RequestBody $requestBody = null,
-        private readonly array $tags = [],
-        private readonly array $responses = [],
-        private readonly array $parameters = [],
-        private readonly string $operationId = '',
+        private string $name = '',
+        private string $methodType = '',
+        private string $summary = '',
+        private string $description = '',
+        private ?RequestBody $requestBody = null,
+        private array $tags = [],
+        private array $responses = [],
+        private array $parameters = [],
+        private string $operationId = '',
     ) {}
 
     public function getName(): string

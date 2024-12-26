@@ -12,12 +12,14 @@ namespace OV\JsonRPCAPIBundle\DependencyInjection;
 
 use Exception;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
-use RuntimeException;
 
 class MethodSpecCollection
 {
     private array $methodSpecs = [];
 
+    /**
+     * @throws Exception
+     */
     public function addMethodSpec(string $version, string $methodName, MethodSpec $methodSpec): void
     {
         if (!empty($this->methodSpecs[$version][$methodName])) {
@@ -27,6 +29,9 @@ class MethodSpecCollection
         $this->methodSpecs[$version][$methodName] = $methodSpec;
     }
 
+    /**
+     * @throws JRPCException
+     */
     public function getMethodSpec(string $version, string $methodName): MethodSpec
     {
         if (!isset($this->methodSpecs[$version][$methodName])) {
@@ -44,6 +49,7 @@ class MethodSpecCollection
         return $this->methodSpecs;
     }
 
+    /** @noinspection PhpUnused */
     public function getMethodNames(): array
     {
         return array_keys($this->methodSpecs);

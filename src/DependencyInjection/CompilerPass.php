@@ -15,6 +15,9 @@ use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 use OV\JsonRPCAPIBundle\Core\CallbacksInterface;
 use OV\JsonRPCAPIBundle\Core\Response\PlainResponseInterface;
 use ReflectionClass;
+use ReflectionException;
+use ReflectionUnionType;
+use RuntimeException;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
@@ -22,13 +25,18 @@ use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
 
 class CompilerPass implements CompilerPassInterface
 {
-    private const CALL_METHOD = 'call';
+    private const string CALL_METHOD = 'call';
 
     public function __construct(
         private readonly NameConverterInterface $nameConverter,
     ) {
     }
 
+    /**
+     * @noinspection PhpUnused
+     * @throws ReflectionException
+     * @throws Exception
+     */
     public function process(ContainerBuilder $container): void
     {
         $methodSpecCollectionDefinition = $container->autowire(
@@ -51,9 +59,12 @@ class CompilerPass implements CompilerPassInterface
             $methodName = $requestType = null;
             $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
             $roles = [];
+            $summary = '';
+            $description = '';
+            $ignoreInSwagger = false;
             foreach ($attributes as $attribute) {
                 if ($attribute->getName() === JsonRPCAPI::class) {
-                    $methodName = $attribute->getArguments()['methodName'] ?? throw new Exception(sprintf('Class %s does not have attribute param methdoName', $className));
+                    $methodName = $attribute->getArguments()['methodName'] ?? throw new Exception(sprintf('Class %s does not have attribute param methodName', $className));
                     $requestType = $attribute->getArguments()['type'] ?? throw new Exception(sprintf('Class %s does not have attribute param type', $className));
                     $summary = $attribute->getArguments()['summary'] ?? '';
                     $description = $attribute->getArguments()['description'] ?? '';
@@ -67,7 +78,7 @@ class CompilerPass implements CompilerPassInterface
             }
 
             if (!$methodReflectionClass->hasMethod(self::CALL_METHOD)) {
-                throw new \RuntimeException(
+                throw new RuntimeException(
                     sprintf(
                         'Method %s::%s is not defined',
                         $className,
@@ -103,7 +114,7 @@ class CompilerPass implements CompilerPassInterface
 
             $plainResponse = false;
             $callResponseType = $methodReflectionClass->getMethod('call')->getReturnType();
-            if ($callResponseType instanceof \ReflectionUnionType) {
+            if ($callResponseType instanceof ReflectionUnionType) {
                 $callResponseTypes = $callResponseType->getTypes();
                 foreach ($callResponseTypes as $callResponseType) {
                     $responseTypeReflection = new ReflectionClass($callResponseType->getName());
@@ -166,6 +177,9 @@ class CompilerPass implements CompilerPassInterface
         return $return;
     }
 
+    /**
+     * @throws Exception
+     */
     private function getValidatorsForRequest(ReflectionClass $requestReflection): array
     {
         $validatorsIdx = [];

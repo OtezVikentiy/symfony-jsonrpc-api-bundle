@@ -11,21 +11,27 @@
 namespace OV\JsonRPCAPIBundle\Core\Response;
 
 use ReflectionClass;
+use ReflectionException;
 
-class BaseResponse implements OvResponseInterface, BaseJsonResponseInterface
+readonly class BaseResponse implements OvResponseInterface, BaseJsonResponseInterface
 {
     public function __construct(
-        private readonly mixed $result,
-        private readonly ?string $id = null,
-        private readonly string $jsonrpc = '2.0'
+        private mixed $result,
+        private ?string $id = null,
+        private string $jsonrpc = '2.0'
     ) {
     }
 
+    /** @noinspection PhpUnused */
     public function getJsonrpc(): string
     {
         return $this->jsonrpc;
     }
 
+    /**
+     * @throws ReflectionException
+     * @noinspection PhpUnused
+     */
     public function getResult(): mixed
     {
         $ref = new ReflectionClass($this->result::class);
@@ -42,6 +48,7 @@ class BaseResponse implements OvResponseInterface, BaseJsonResponseInterface
         return $this->result;
     }
 
+    /** @noinspection PhpUnused */
     public function getId(): ?string
     {
         return $this->id;

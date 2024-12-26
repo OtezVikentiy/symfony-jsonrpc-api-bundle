@@ -2,15 +2,15 @@
 
 namespace OV\JsonRPCAPIBundle\Swagger;
 
-class SchemaProperty
+readonly class SchemaProperty
 {
     public function __construct(
-        private readonly string $name = '',
-        private readonly string $type = '',
-        private readonly string $default = '',
-        private readonly string $format = '',
-        private readonly ?string $example = '',
-        private readonly ?string $ref = null,
+        private string $name = '',
+        private string $type = '',
+        private string $default = '',
+        private string $format = '',
+        private ?string $example = '',
+        private ?string $ref = null,
     ) {}
 
     public function getName(): string

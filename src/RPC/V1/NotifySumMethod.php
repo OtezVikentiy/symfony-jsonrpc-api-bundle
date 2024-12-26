@@ -1,4 +1,6 @@
 <?php
+/** @noinspection PhpUnused */
+
 /*
  * This file is part of the OtezVikentiy Json RPC API package.
  *
@@ -17,6 +19,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\NotifySum\NotifySumResponse;
 #[JsonRPCAPI(methodName: 'notify_sum', type: 'POST', ignoreInSwagger: true)]
 class NotifySumMethod
 {
+    /** @noinspection PhpUnusedParameterInspection */
     public function call(NotifySumRequest $request): NotifySumResponse
     {
         //... do some api logic here and return SubtractResponse

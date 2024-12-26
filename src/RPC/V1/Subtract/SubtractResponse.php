@@ -1,4 +1,8 @@
 <?php
+/** @noinspection PhpUnused */
+
+/** @noinspection PhpUnused */
+
 /*
  * This file is part of the OtezVikentiy Json RPC API package.
  *

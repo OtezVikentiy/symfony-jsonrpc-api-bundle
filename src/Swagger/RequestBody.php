@@ -2,14 +2,14 @@
 
 namespace OV\JsonRPCAPIBundle\Swagger;
 
-class RequestBody
+readonly class RequestBody
 {
     public function __construct(
-        private readonly string $contentRef = '',
-        private readonly string $description = '',
+        private string $contentRef = '',
+        private string $description = '',
     ) {}
 
-    private function getContentRef()
+    private function getContentRef(): array
     {
         return [
             'application/json' => [

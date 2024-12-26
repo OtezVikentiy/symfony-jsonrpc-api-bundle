@@ -1,4 +1,6 @@
 <?php
+/** @noinspection PhpUnused */
+
 /*
  * This file is part of the OtezVikentiy Json RPC API package.
  *
@@ -17,6 +19,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\Update\UpdateResponse;
 #[JsonRPCAPI(methodName: 'update', type: 'PUT', ignoreInSwagger: true)]
 class UpdateMethod
 {
+    /** @noinspection PhpUnusedParameterInspection */
     public function call(UpdateRequest $request): UpdateResponse
     {
         // do some logic here

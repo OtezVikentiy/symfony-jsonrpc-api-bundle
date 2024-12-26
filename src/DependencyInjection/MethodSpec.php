@@ -10,23 +10,23 @@
 
 namespace OV\JsonRPCAPIBundle\DependencyInjection;
 
-class MethodSpec
+readonly class MethodSpec
 {
     public function __construct(
-        private readonly string $methodClass,
-        private readonly string $requestType,
-        private readonly string $summary,
-        private readonly string $description,
-        private readonly bool $ignoreInSwagger,
-        private readonly string $methodName,
-        private readonly array $allParameters,
-        private readonly array $requiredParameters,
-        private readonly ?string $request,
-        private readonly array $requestSetters,
-        private readonly array $validators,
-        private readonly array $roles = [],
-        private readonly bool $plainResponse = false,
-        private readonly bool $callbacksExists = false,
+        private string $methodClass,
+        private string $requestType,
+        private string $summary,
+        private string $description,
+        private bool $ignoreInSwagger,
+        private string $methodName,
+        private array $allParameters,
+        private array $requiredParameters,
+        private ?string $request,
+        private array $requestSetters,
+        private array $validators,
+        private array $roles = [],
+        private bool $plainResponse = false,
+        private bool $callbacksExists = false,
     ) {
     }
 
@@ -35,21 +35,25 @@ class MethodSpec
         return $this->requestType;
     }
 
+    /** @noinspection PhpUnused */
     public function getSummary(): string
     {
         return $this->summary;
     }
 
+    /** @noinspection PhpUnused */
     public function getDescription(): string
     {
         return $this->description;
     }
 
+    /** @noinspection PhpUnused */
     public function isIgnoreInSwagger(): bool
     {
         return $this->ignoreInSwagger;
     }
 
+    /** @noinspection PhpUnused */
     public function getMethodName(): string
     {
         return $this->methodName;

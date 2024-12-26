@@ -11,18 +11,19 @@
 namespace OV\JsonRPCAPIBundle\Controller;
 
 use OV\JsonRPCAPIBundle\Core\JRPCException;
-use OV\JsonRPCAPIBundle\Core\Response\{ErrorResponse, JsonResponse, OvResponseInterface, PlainResponseInterface};
+use OV\JsonRPCAPIBundle\Core\Response\{ErrorResponse, OvResponseInterface};
 use OV\JsonRPCAPIBundle\Core\Services\{
-    HeadersPreparer,
     RequestHandler,
     RequestHandler\BatchStrategyFactory,
-    RequestRawDataHandler
+    RequestRawDataHandler,
+    ResponseService
 };
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Throwable;
 
-final class ApiController extends BaseController
+final class ApiController extends AbstractController
 {
     #[Route(
         path: '/api/v{version<\d+>}',
@@ -38,8 +39,8 @@ final class ApiController extends BaseController
     public function index(
         Request $request,
         RequestHandler $requestHandler,
-        HeadersPreparer $headersPreparer,
         RequestRawDataHandler $requestRawDataHandler,
+        ResponseService $responseService,
     ): OvResponseInterface {
         try {
             $data = $requestRawDataHandler->prepareData($request);
@@ -48,27 +49,14 @@ final class ApiController extends BaseController
                 throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
             }
         } catch (JRPCException|Throwable $e) {
-            return $this->json(
-                data: new ErrorResponse(error: $e, id: $data['id'] ?? null),
-                headers: $headersPreparer->prepareHeaders()
-            );
+            return $responseService->prepareJsonResponse(data: new ErrorResponse(error: $e, id: $data['id'] ?? null));
         }
 
-        $strategy = BatchStrategyFactory::createBatchStrategy($data);
-        return $requestHandler->applyStrategy($strategy, $data, $requestRawDataHandler->getVersion($request), $request->getMethod());
-
-        $responses = array_values(array_filter($responses, fn($item) => !is_null($item)));
-
-        if (empty($responses)) {
-            return new JsonResponse(headers: $headersPreparer->prepareHeaders());
-        }
-
-        if (count($responses) === 1 && $responses[0] instanceof PlainResponseInterface) {
-            return $responses[0];
-        }
-
-        $data = (count($responses) > 1) ? $responses : $responses[0];
-
-        return $this->json(data: $data, headers: $headersPreparer->prepareHeaders());
+        return $requestHandler->applyStrategy(
+            BatchStrategyFactory::createBatchStrategy($data),
+            $data,
+            $requestRawDataHandler->getVersion($request),
+            $request->getMethod()
+        );
     }
 }

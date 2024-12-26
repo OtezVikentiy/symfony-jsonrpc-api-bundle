@@ -15,6 +15,7 @@ use OV\JsonRPCAPIBundle\Swagger\SchemaProperty;
 use OV\JsonRPCAPIBundle\Swagger\Server;
 use OV\JsonRPCAPIBundle\Swagger\Tag;
 use ReflectionClass;
+use ReflectionException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -34,6 +35,10 @@ class SwaggerGenerate extends Command
         parent::__construct($name);
     }
 
+    /**
+     * @throws ReflectionException
+     * @noinspection PhpUnused
+     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         foreach ($this->swagger as $name => $item) {
@@ -49,7 +54,10 @@ class SwaggerGenerate extends Command
         return self::SUCCESS;
     }
 
-    private function generateSwaggerYaml(array $item)
+    /**
+     * @throws ReflectionException
+     */
+    private function generateSwaggerYaml(array $item): string
     {
         $info = new Info(
             $item['info']['title'],
@@ -71,6 +79,9 @@ class SwaggerGenerate extends Command
         return Yaml::dump($swagger->toArray(), 4);
     }
 
+    /**
+     * @throws ReflectionException
+     */
     private function generateApis(string $authTokenName, string $authTokenDefaultValue): array
     {
         $tags = [];

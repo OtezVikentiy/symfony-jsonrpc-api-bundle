@@ -13,15 +13,15 @@ namespace OV\JsonRPCAPIBundle\Core\Annotation;
 use Attribute;
 
 #[Attribute(Attribute::TARGET_CLASS)]
-class JsonRPCAPI
+readonly class JsonRPCAPI
 {
     public function __construct(
-        private readonly string $methodName,
-        private readonly string $type,
-        private readonly string $summary = '',
-        private readonly string $description = '',
-        private readonly bool $ignoreInSwagger = false,
-        private readonly array $roles = [],
+        private string $methodName,
+        private string $type,
+        private string $summary = '',
+        private string $description = '',
+        private bool $ignoreInSwagger = false,
+        private array $roles = [],
     ) {
     }
 
@@ -30,26 +30,31 @@ class JsonRPCAPI
         return $this->methodName;
     }
 
+    /** @noinspection PhpUnused */
     public function getType(): string
     {
         return $this->type;
     }
 
+    /** @noinspection PhpUnused */
     public function getSummary(): string
     {
         return $this->summary;
     }
 
+    /** @noinspection PhpUnused */
     public function getDescription(): string
     {
         return $this->description;
     }
 
+    /** @noinspection PhpUnused */
     public function isIgnoreInSwagger(): bool
     {
         return $this->ignoreInSwagger;
     }
 
+    /** @noinspection PhpUnused */
     public function getRoles(): array
     {
         return $this->roles;

@@ -1,4 +1,5 @@
 <?php
+/** @noinspection PhpUnused */
 
 namespace OV\JsonRPCAPIBundle\RPC\V1;
 
@@ -10,6 +11,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\GetProducts\Product;
 #[JsonRPCAPI(methodName: 'getProducts', type: 'POST', ignoreInSwagger: true)]
 class GetProductsMethod
 {
+    /** @noinspection PhpUnusedParameterInspection */
     public function call(GetProductsRequest $request): GetProductsResponse
     {
         $response = new GetProductsResponse();

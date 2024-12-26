@@ -16,13 +16,16 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 
+/** @noinspection PhpUnused */
 class OVJsonRPCAPIBundle extends AbstractBundle
 {
+    /** @noinspection PhpUnused */
     public function getContainerExtension(): ?ExtensionInterface
     {
         return new OVJsonRPCAPIExtension();
     }
 
+    /** @noinspection PhpUnused */
     public function build(ContainerBuilder $container): void
     {
         $container->addCompilerPass(CompilerPassBuilder::build($container));
