@@ -17,7 +17,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\GetData\GetDataRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\GetData\GetDataResponse;
 
 #[JsonRPCAPI(methodName: 'get_data', type: 'POST', ignoreInSwagger: true)]
-class GetDataMethod
+final class GetDataMethod
 {
     /** @noinspection PhpUnusedParameterInspection */
     public function call(GetDataRequest $request): GetDataResponse

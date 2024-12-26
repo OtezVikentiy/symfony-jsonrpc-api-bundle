@@ -9,7 +9,7 @@
 
 namespace OV\JsonRPCAPIBundle\RPC\V1\GetProducts;
 
-class GetProductsResponse
+final class GetProductsResponse
 {
     private bool $success;
     private array $products;

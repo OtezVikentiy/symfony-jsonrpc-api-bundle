@@ -13,7 +13,7 @@ namespace OV\JsonRPCAPIBundle\DependencyInjection;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
-class Configuration implements ConfigurationInterface
+final class Configuration implements ConfigurationInterface
 {
     /** @noinspection PhpUnused */
     public function getConfigTreeBuilder(): TreeBuilder

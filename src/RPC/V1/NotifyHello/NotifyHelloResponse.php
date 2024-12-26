@@ -10,7 +10,7 @@
 
 namespace OV\JsonRPCAPIBundle\RPC\V1\NotifyHello;
 
-class NotifyHelloResponse
+final class NotifyHelloResponse
 {
 
 }

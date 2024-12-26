@@ -14,7 +14,7 @@
 
 namespace OV\JsonRPCAPIBundle\RPC\V1\GetData;
 
-class GetDataResponse
+final class GetDataResponse
 {
     private array $result;
 

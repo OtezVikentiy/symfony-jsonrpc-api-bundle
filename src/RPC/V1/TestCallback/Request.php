@@ -16,7 +16,7 @@
 
 namespace OV\JsonRPCAPIBundle\RPC\V1\TestCallback;
 
-class Request
+final class Request
 {
     private int $id;
     private string $title;

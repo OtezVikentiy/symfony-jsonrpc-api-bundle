@@ -14,7 +14,7 @@
 
 namespace OV\JsonRPCAPIBundle\RPC\V1\NotifyHello;
 
-class NotifyHelloRequest
+final class NotifyHelloRequest
 {
     private array $params;
 

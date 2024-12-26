@@ -14,7 +14,7 @@
 
 namespace OV\JsonRPCAPIBundle\RPC\V1\Sum;
 
-class SumResponse
+final class SumResponse
 {
     private int $result;
 

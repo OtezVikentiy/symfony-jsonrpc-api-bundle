@@ -7,7 +7,7 @@
 
 namespace OV\JsonRPCAPIBundle\RPC\V1\GetProducts;
 
-class Product
+final class Product
 {
     private bool $active;
     private int $id;

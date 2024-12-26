@@ -2,12 +2,12 @@
 
 namespace OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 
-class BatchStrategyFactory
+final class BatchStrategyFactory
 {
     public static function createBatchStrategy(array $data): HandleBatchInterface
     {
         $strategy = new SingleBatchStrategy();
-        if (static::isBatch($data)) {
+        if (BatchStrategyFactory::isBatch($data)) {
             $strategy = new MultiBatchStrategy();
         }
 

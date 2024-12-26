@@ -13,7 +13,7 @@ namespace OV\JsonRPCAPIBundle\Core\Annotation;
 use Attribute;
 
 #[Attribute(Attribute::TARGET_CLASS)]
-readonly class JsonRPCAPI
+final readonly class JsonRPCAPI
 {
     public function __construct(
         private string $methodName,

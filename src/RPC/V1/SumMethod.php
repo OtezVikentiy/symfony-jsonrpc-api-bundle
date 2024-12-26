@@ -17,7 +17,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\Sum\SumRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\Sum\SumResponse;
 
 #[JsonRPCAPI(methodName: 'sum', type: 'POST', ignoreInSwagger: true)]
-class SumMethod
+final class SumMethod
 {
     public function call(SumRequest $request): SumResponse
     {

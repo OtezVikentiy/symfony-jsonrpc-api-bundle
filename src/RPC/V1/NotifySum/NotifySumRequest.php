@@ -14,7 +14,7 @@
 
 namespace OV\JsonRPCAPIBundle\RPC\V1\NotifySum;
 
-class NotifySumRequest
+final class NotifySumRequest
 {
     private array $params;
 

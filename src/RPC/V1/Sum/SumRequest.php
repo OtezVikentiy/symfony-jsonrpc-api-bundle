@@ -12,7 +12,7 @@
 
 namespace OV\JsonRPCAPIBundle\RPC\V1\Sum;
 
-class SumRequest
+final class SumRequest
 {
     private array $params;
 

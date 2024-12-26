@@ -10,7 +10,7 @@
 
 namespace OV\JsonRPCAPIBundle\RPC\V1\GetData;
 
-class GetDataRequest
+final class GetDataRequest
 {
 
 }

@@ -17,7 +17,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\Test\TestRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\Test\TestResponse;
 
 #[JsonRPCAPI(methodName: 'test', type: 'POST', ignoreInSwagger: true)]
-class TestMethod
+final class TestMethod
 {
     public function call(TestRequest $request): TestResponse
     {

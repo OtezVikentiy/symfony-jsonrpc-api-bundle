@@ -17,7 +17,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\Subtract\SubtractRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\Subtract\SubtractResponse;
 
 #[JsonRPCAPI(methodName: 'subtract', type: 'POST', ignoreInSwagger: true)]
-class SubtractMethod
+final class SubtractMethod
 {
     public function call(SubtractRequest $request): SubtractResponse
     {

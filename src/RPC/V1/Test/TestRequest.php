@@ -14,7 +14,7 @@
 
 namespace OV\JsonRPCAPIBundle\RPC\V1\Test;
 
-class TestRequest
+final class TestRequest
 {
     private int $id;
     private string $title;

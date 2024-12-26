@@ -5,7 +5,7 @@
 
 namespace OV\JsonRPCAPIBundle\RPC\V1\GetProducts;
 
-class GetProductsRequest
+final class GetProductsRequest
 {
     private array $ids;
 

@@ -15,7 +15,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\TestCallback\Request;
 use OV\JsonRPCAPIBundle\RPC\V1\TestCallback\Response;
 
 #[JsonRPCAPI(methodName: 'testCallback', type: 'POST', ignoreInSwagger: true)]
-class TestCallbackMethod extends AbstractMethod
+final class TestCallbackMethod extends AbstractMethod
 {
     public function call(Request $request): Response
     {

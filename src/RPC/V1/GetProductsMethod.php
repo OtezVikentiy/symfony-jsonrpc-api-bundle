@@ -9,7 +9,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\GetProducts\GetProductsResponse;
 use OV\JsonRPCAPIBundle\RPC\V1\GetProducts\Product;
 
 #[JsonRPCAPI(methodName: 'getProducts', type: 'POST', ignoreInSwagger: true)]
-class GetProductsMethod
+final class GetProductsMethod
 {
     /** @noinspection PhpUnusedParameterInspection */
     public function call(GetProductsRequest $request): GetProductsResponse

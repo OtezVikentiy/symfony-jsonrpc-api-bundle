@@ -14,7 +14,7 @@
 
 namespace OV\JsonRPCAPIBundle\RPC\V1\Update;
 
-class UpdateRequest
+final class UpdateRequest
 {
     private array $params;
 

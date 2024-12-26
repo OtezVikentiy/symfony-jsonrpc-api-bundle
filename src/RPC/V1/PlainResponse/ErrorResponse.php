@@ -3,7 +3,7 @@
 
 namespace OV\JsonRPCAPIBundle\RPC\V1\PlainResponse;
 
-class ErrorResponse
+final class ErrorResponse
 {
     private bool $success;
     private array $errors;

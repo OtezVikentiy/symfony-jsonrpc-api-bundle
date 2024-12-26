@@ -23,7 +23,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Yaml\Yaml;
 
 #[AsCommand(name: 'ov:swagger:generate')]
-class SwaggerGenerate extends Command
+final class SwaggerGenerate extends Command
 {
     public function __construct(
         private readonly string $ovJsonRpcApiSwaggerPath,

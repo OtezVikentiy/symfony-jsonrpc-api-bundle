@@ -17,7 +17,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\Update\UpdateRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\Update\UpdateResponse;
 
 #[JsonRPCAPI(methodName: 'update', type: 'PUT', ignoreInSwagger: true)]
-class UpdateMethod
+final class UpdateMethod
 {
     /** @noinspection PhpUnusedParameterInspection */
     public function call(UpdateRequest $request): UpdateResponse

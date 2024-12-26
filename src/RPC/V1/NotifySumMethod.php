@@ -17,7 +17,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\NotifySum\NotifySumRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\NotifySum\NotifySumResponse;
 
 #[JsonRPCAPI(methodName: 'notify_sum', type: 'POST', ignoreInSwagger: true)]
-class NotifySumMethod
+final class NotifySumMethod
 {
     /** @noinspection PhpUnusedParameterInspection */
     public function call(NotifySumRequest $request): NotifySumResponse

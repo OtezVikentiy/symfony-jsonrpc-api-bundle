@@ -18,7 +18,7 @@
 
 namespace OV\JsonRPCAPIBundle\RPC\V1\Test;
 
-class TestResponse
+final class TestResponse
 {
     private bool $success;
     private string $title;

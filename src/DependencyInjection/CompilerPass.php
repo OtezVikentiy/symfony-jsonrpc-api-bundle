@@ -23,7 +23,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
 
-class CompilerPass implements CompilerPassInterface
+final class CompilerPass implements CompilerPassInterface
 {
     private const string CALL_METHOD = 'call';
 

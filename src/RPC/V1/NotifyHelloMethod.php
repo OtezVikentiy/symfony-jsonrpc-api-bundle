@@ -17,7 +17,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\NotifyHello\NotifyHelloRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\NotifyHello\NotifyHelloResponse;
 
 #[JsonRPCAPI(methodName: 'notify_hello', type: 'POST', ignoreInSwagger: true)]
-class NotifyHelloMethod
+final class NotifyHelloMethod
 {
     /** @noinspection PhpUnusedParameterInspection */
     public function call(NotifyHelloRequest $request): NotifyHelloResponse

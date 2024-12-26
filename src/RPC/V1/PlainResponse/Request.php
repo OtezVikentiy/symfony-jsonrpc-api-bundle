@@ -7,7 +7,7 @@ namespace OV\JsonRPCAPIBundle\RPC\V1\PlainResponse;
 
 use OV\JsonRPCAPIBundle\Core\Request\JsonRpcRequest;
 
-class Request extends JsonRpcRequest
+final class Request extends JsonRpcRequest
 {
     private int $id;
 

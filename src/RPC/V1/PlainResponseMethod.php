@@ -9,7 +9,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\PlainResponse\PlainResponse;
 use OV\JsonRPCAPIBundle\RPC\V1\PlainResponse\Request;
 
 #[JsonRPCAPI(methodName: 'plainResponse', type: 'POST', ignoreInSwagger: true)]
-class PlainResponseMethod
+final class PlainResponseMethod
 {
     public function call(Request $request): ErrorResponse|PlainResponse
     {

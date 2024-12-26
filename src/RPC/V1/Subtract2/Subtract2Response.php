@@ -14,7 +14,7 @@
 
 namespace OV\JsonRPCAPIBundle\RPC\V1\Subtract2;
 
-class Subtract2Response
+final class Subtract2Response
 {
     private int $result;
 

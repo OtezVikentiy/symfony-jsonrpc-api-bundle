@@ -12,7 +12,7 @@ namespace OV\JsonRPCAPIBundle\Core\Request;
 
 use OV\JsonRPCAPIBundle\Core\JRPCException;
 
-class BaseRequest
+final class BaseRequest
 {
     private string $jsonrpc;
     private string $method;

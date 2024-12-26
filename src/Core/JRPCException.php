@@ -13,7 +13,7 @@ namespace OV\JsonRPCAPIBundle\Core;
 use Exception;
 use Throwable;
 
-class JRPCException extends Exception
+final class JRPCException extends Exception
 {
     public const int
         PARSE_ERROR = -32700,

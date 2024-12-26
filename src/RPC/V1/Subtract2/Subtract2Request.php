@@ -14,7 +14,7 @@
 
 namespace OV\JsonRPCAPIBundle\RPC\V1\Subtract2;
 
-class Subtract2Request
+final class Subtract2Request
 {
     private int $subtrahend;
     private int $minuend;

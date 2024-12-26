@@ -13,7 +13,7 @@ namespace OV\JsonRPCAPIBundle\Core\Response;
 use ReflectionClass;
 use ReflectionException;
 
-readonly class BaseResponse implements OvResponseInterface, BaseJsonResponseInterface
+final readonly class BaseResponse implements OvResponseInterface, BaseJsonResponseInterface
 {
     public function __construct(
         private mixed $result,

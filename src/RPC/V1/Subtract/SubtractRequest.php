@@ -12,7 +12,7 @@
 
 namespace OV\JsonRPCAPIBundle\RPC\V1\Subtract;
 
-class SubtractRequest
+final class SubtractRequest
 {
     private array $params;
 

@@ -17,7 +17,7 @@ use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 
-class OVJsonRPCAPIExtension extends Extension
+final class OVJsonRPCAPIExtension extends Extension
 {
     /**
      * @noinspection PhpUnused

@@ -5,7 +5,7 @@ namespace OV\JsonRPCAPIBundle\Core\Services;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
 use Symfony\Component\HttpFoundation\Request;
 
-class RequestRawDataHandler
+final class RequestRawDataHandler
 {
     public function getVersion(Request $request): int
     {

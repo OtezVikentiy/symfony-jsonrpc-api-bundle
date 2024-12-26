@@ -10,7 +10,7 @@
 
 namespace OV\JsonRPCAPIBundle\DependencyInjection;
 
-readonly class MethodSpec
+final readonly class MethodSpec
 {
     public function __construct(
         private string $methodClass,
