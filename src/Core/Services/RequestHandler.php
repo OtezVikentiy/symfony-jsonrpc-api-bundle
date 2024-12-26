@@ -14,7 +14,7 @@ use OV\JsonRPCAPIBundle\Core\Services\RequestHandler\HandleBatchInterface;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -27,7 +27,7 @@ final readonly class RequestHandler
         private MethodSpecCollection $specCollection,
         private ValidatorInterface $validator,
         private HeadersPreparer $headersPreparer,
-        private ContainerInterface $container,
+        private Container $container,
         private ResponseService $responseService,
     ) {
     }
