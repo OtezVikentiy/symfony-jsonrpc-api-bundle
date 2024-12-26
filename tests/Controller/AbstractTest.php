@@ -7,6 +7,7 @@ use OV\JsonRPCAPIBundle\Controller\ApiController;
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 use OV\JsonRPCAPIBundle\Core\Services\HeadersPreparer;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
+use OV\JsonRPCAPIBundle\Core\Services\RequestRawDataHandler;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use PHPUnit\Framework\TestCase;
@@ -35,6 +36,7 @@ abstract class AbstractTest extends TestCase
     private string $validateMethodExpectation = 'atLeastOnce';
     private ?HeadersPreparer $headersPreparer = null;
     private ?RequestHandler $requestHandler = null;
+    private ?RequestRawDataHandler $requestRawDataHandler = null;
 
     protected function tearDown(): void
     {
@@ -46,6 +48,7 @@ abstract class AbstractTest extends TestCase
         $this->request = null;
         $this->headersPreparer = null;
         $this->requestHandler = null;
+        $this->requestRawDataHandler = null;
         $this->after();
     }
 
@@ -72,11 +75,17 @@ abstract class AbstractTest extends TestCase
         $this->prepareSecurity();
         $this->prepareHeadersPreparer();
         $this->prepareRequestHandler();
+        $this->prepareRequestRawDataHandler();
 
         $controller = new ApiController();
         $controller->setContainer($this->serviceLocator);
 
-        return $controller->index($this->request, $this->requestHandler, $this->headersPreparer);
+        return $controller->index($this->request, $this->requestHandler, $this->headersPreparer, $this->requestRawDataHandler);
+    }
+
+    private function prepareRequestRawDataHandler(): void
+    {
+        $this->requestRawDataHandler = new RequestRawDataHandler();
     }
 
     private function prepareRequestHandler(): void
@@ -121,6 +130,7 @@ abstract class AbstractTest extends TestCase
         $methodSpecCollection = new MethodSpecCollection();
 
         $container = $this->createMock(Container::class);
+        $callbacks = [];
         foreach ($methodSpecs as $methodSpec) {
             $class = $methodSpec->getMethodClass();
             $methodReflectionClass = new \ReflectionClass(new $class());
@@ -141,13 +151,27 @@ abstract class AbstractTest extends TestCase
                 throw new \Exception('Could not define method name');
             }
             $methodSpecCollection->addMethodSpec(1, $methodName, $methodSpec);
-            $container
-                ->expects($this->any())
-                ->method('get')
-                ->willReturnCallback(function ($class) {
-                    return new $class;
-                });
+            $callbacks[] = [$class, 1, new $class()];
+//            $container
+//                ->expects($this->any())
+//                ->method('get')
+//                ->with($this->identicalTo($class))
+//                ->willReturnCallback(function ($class) {
+//                    return new $class;
+//                });
         }
+
+        $serializer = $this->serviceLocator->get('serializer');
+        $container
+            ->expects($this->any())
+            ->method('has')
+            ->with($this->identicalTo('serializer'))
+            ->willReturn(true);
+        $callbacks[] = ['serializer', 1, $serializer];
+        $container
+            ->expects($this->any())
+            ->method('get')
+            ->willReturnMap($callbacks);
 
         $this->methodSpecCollection = $methodSpecCollection;
         $this->container = $container;
@@ -159,6 +183,7 @@ abstract class AbstractTest extends TestCase
         $serviceLocator
             ->expects($this->any())
             ->method('has')
+            ->with($this->identicalTo('serializer'))
             ->willReturn(true);
 
         $jsonEncoder = new JsonEncoder();
@@ -168,6 +193,7 @@ abstract class AbstractTest extends TestCase
         $serviceLocator
             ->expects($this->any())
             ->method('get')
+            ->with($this->identicalTo('serializer'))
             ->willReturn($serializer);
 
         $this->serviceLocator = $serviceLocator;

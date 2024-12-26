@@ -13,7 +13,7 @@ namespace OV\JsonRPCAPIBundle\Core\Response;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
 use Throwable;
 
-class ErrorResponse implements OvResponseInterface
+class ErrorResponse implements OvResponseInterface, BaseJsonResponseInterface
 {
     public function __construct(
         private readonly JRPCException|Throwable $error,

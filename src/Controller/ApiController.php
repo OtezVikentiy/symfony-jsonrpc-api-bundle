@@ -11,39 +11,41 @@
 namespace OV\JsonRPCAPIBundle\Controller;
 
 use OV\JsonRPCAPIBundle\Core\JRPCException;
-use OV\JsonRPCAPIBundle\Core\Response\ErrorResponse;
-use OV\JsonRPCAPIBundle\Core\Response\JsonResponse;
-use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
-use OV\JsonRPCAPIBundle\Core\Response\PlainResponseInterface;
-use OV\JsonRPCAPIBundle\Core\Services\HeadersPreparer;
-use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
+use OV\JsonRPCAPIBundle\Core\Response\{ErrorResponse, JsonResponse, OvResponseInterface, PlainResponseInterface};
+use OV\JsonRPCAPIBundle\Core\Services\{
+    HeadersPreparer,
+    RequestHandler,
+    RequestHandler\BatchStrategyFactory,
+    RequestRawDataHandler
+};
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\Routing\Annotation\Route;
 use Throwable;
 
 final class ApiController extends BaseController
 {
-    public function __construct(
-    ) {
-    }
-
-    #[Route('/api/v{version<\d+>}', name: 'ov_json_rpc_api_index', methods: ['POST', 'GET', 'PUT', 'PATCH', 'DELETE'])]
+    #[Route(
+        path: '/api/v{version<\d+>}',
+        name: 'ov_json_rpc_api_index',
+        methods: [
+            Request::METHOD_POST,
+            Request::METHOD_GET,
+            Request::METHOD_PUT,
+            Request::METHOD_PATCH,
+            Request::METHOD_DELETE
+        ]
+    )]
     public function index(
         Request $request,
         RequestHandler $requestHandler,
-        HeadersPreparer $headersPreparer
+        HeadersPreparer $headersPreparer,
+        RequestRawDataHandler $requestRawDataHandler,
     ): OvResponseInterface {
         try {
-            $data = $this->prepareData($request);
+            $data = $requestRawDataHandler->prepareData($request);
 
             if (empty($data)) {
                 throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
-            }
-
-            $batches = $data;
-            if (!$this->isBatch($data)) {
-                $batches = [$data];
             }
         } catch (JRPCException|Throwable $e) {
             return $this->json(
@@ -52,10 +54,8 @@ final class ApiController extends BaseController
             );
         }
 
-        $responses = [];
-        foreach ($batches as $batch) {
-            $responses[] = $requestHandler->processBatch($batch, $this->getVersion($request), $request->getMethod());
-        }
+        $strategy = BatchStrategyFactory::createBatchStrategy($data);
+        return $requestHandler->applyStrategy($strategy, $data, $requestRawDataHandler->getVersion($request), $request->getMethod());
 
         $responses = array_values(array_filter($responses, fn($item) => !is_null($item)));
 
@@ -70,53 +70,5 @@ final class ApiController extends BaseController
         $data = (count($responses) > 1) ? $responses : $responses[0];
 
         return $this->json(data: $data, headers: $headersPreparer->prepareHeaders());
-    }
-
-    private function getVersion(Request $request): int
-    {
-        $pathArray = explode('/', $request->getPathInfo());
-
-        return (int)preg_replace('/\D+/', '', $pathArray[count($pathArray) - 1]);
-    }
-
-    private function prepareData(Request $request): array
-    {
-        $data = [];
-
-        if ($request->getMethod() === 'GET') {
-            $data = $request->query->all();
-        } elseif (in_array($request->getMethod(), ['POST', 'DELETE', 'PUT', 'PATCH'])) {
-            $requestData = [];
-            if (!empty($request->request->all())) {
-                $requestData = $request->request->all();
-            }
-            $jsonData = [];
-            $requestContent = $request->getContent();
-            if (!empty($requestContent)) {
-                $jsonData = json_decode($requestContent, true);
-                if (is_null($jsonData)) {
-                    throw new JRPCException('Parse error.', JRPCException::PARSE_ERROR);
-                }
-            }
-            $data = array_merge($requestData, $jsonData);
-        }
-
-        return $data;
-    }
-
-    private function isBatch(array $data): bool
-    {
-        if (
-            isset($data[0])
-            && isset($data[1])
-            && is_array($data[0])
-            && is_array($data[1])
-            && array_key_exists('jsonrpc', $data[0])
-            && array_key_exists('jsonrpc', $data[1])
-        ) {
-            return true;
-        }
-
-        return false;
     }
 }

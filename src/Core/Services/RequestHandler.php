@@ -5,11 +5,13 @@ namespace OV\JsonRPCAPIBundle\Core\Services;
 use OV\JsonRPCAPIBundle\Core\CallbacksInterface;
 use OV\JsonRPCAPIBundle\Core\Request\BaseRequest;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
+use OV\JsonRPCAPIBundle\Core\Response\BaseJsonResponseInterface;
 use OV\JsonRPCAPIBundle\Core\Response\BaseResponse;
 use OV\JsonRPCAPIBundle\Core\Response\ErrorResponse;
 use OV\JsonRPCAPIBundle\Core\Response\JsonResponse;
 use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
 use OV\JsonRPCAPIBundle\Core\Response\PlainResponseInterface;
+use OV\JsonRPCAPIBundle\Core\Services\RequestHandler\HandleBatchInterface;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -28,6 +30,11 @@ final readonly class RequestHandler
         private HeadersPreparer $headersPreparer,
         private ContainerInterface $container,
     ) {
+    }
+
+    public function applyStrategy(HandleBatchInterface $strategy, array $data, int $version, string $methodType): ?OvResponseInterface
+    {
+        return $strategy->handleBatch($data, $version, $methodType, [$this, 'processBatch']);
     }
 
     public function processBatch(
@@ -74,7 +81,7 @@ final readonly class RequestHandler
             }
 
             if (!is_null($baseRequest->getId()) || !empty((array)$result)) {
-                return new BaseResponse($result, $baseRequest->getId() ?? null);
+                return $this->prepareJsonResponse(new BaseResponse($result, $baseRequest->getId() ?? null));
             }
             unset($baseRequest);
         } catch (JRPCException|Throwable $e) {
@@ -84,10 +91,23 @@ final readonly class RequestHandler
                 default => $id = null,
             };
 
-            return new ErrorResponse(error: $e, id: $id);
+            return $this->prepareJsonResponse(new ErrorResponse(error: $e, id: $id));
         }
 
         return null;
+    }
+
+    private function prepareJsonResponse(BaseJsonResponseInterface $data): JsonResponse
+    {
+        if ($this->container->has('serializer')) {
+            $json = $this->container->get('serializer')->serialize($data, 'json', [
+                'json_encode_options' => JsonResponse::DEFAULT_ENCODING_OPTIONS,
+            ]);
+
+            return new JsonResponse($json, JsonResponse::HTTP_OK, $this->headersPreparer->prepareHeaders(), true);
+        }
+
+        return new JsonResponse($data, JsonResponse::HTTP_OK, $this->headersPreparer->prepareHeaders());
     }
 
     private function processCallbacks(
