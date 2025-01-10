@@ -1,12 +1,13 @@
 <?php
 
-namespace OV\JsonRPCAPIBundle\Swagger;
+namespace OV\JsonRPCAPIBundle\Swagger\Informational;
 
-readonly class License
+final readonly class Contact
 {
     public function __construct(
         private string $name = '',
         private string $url = '',
+        private string $email = '',
     ) {}
 
     public function getName(): string
@@ -17,5 +18,10 @@ readonly class License
     public function getUrl(): string
     {
         return $this->url;
+    }
+
+    public function getEmail(): string
+    {
+        return $this->email;
     }
 }

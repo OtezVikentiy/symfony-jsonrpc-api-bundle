@@ -2,7 +2,7 @@
 
 namespace OV\JsonRPCAPIBundle\Swagger;
 
-readonly class Response
+final readonly class Response
 {
     public function __construct(
         private string $code = '',

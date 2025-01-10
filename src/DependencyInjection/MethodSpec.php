@@ -25,6 +25,7 @@ final readonly class MethodSpec
         private array $requestSetters,
         private array $validators,
         private array $roles = [],
+        private ?array $tags = null,
         private bool $plainResponse = false,
         private bool $callbacksExists = false,
     ) {
@@ -39,6 +40,12 @@ final readonly class MethodSpec
     public function getSummary(): string
     {
         return $this->summary;
+    }
+
+    /** @noinspection PhpUnused */
+    public function getTags(): ?array
+    {
+        return $this->tags;
     }
 
     /** @noinspection PhpUnused */

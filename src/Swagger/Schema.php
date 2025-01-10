@@ -2,7 +2,7 @@
 
 namespace OV\JsonRPCAPIBundle\Swagger;
 
-class Schema
+final class Schema
 {
     public function __construct(
         private readonly string $name = '',
@@ -33,10 +33,15 @@ class Schema
             $properties[$property->getName()] = $property->toArray();
         }
 
-        return [
+        $arr = [
             'type' => $this->type,
             'properties' => $properties,
-            'required' => $this->required,
         ];
+
+        if (!empty($this->required)) {
+            $arr['required'] = $this->required;
+        }
+
+        return $arr;
     }
 }

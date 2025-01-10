@@ -2,7 +2,7 @@
 
 namespace OV\JsonRPCAPIBundle\Swagger;
 
-readonly class RequestBody
+final readonly class RequestBody
 {
     public function __construct(
         private string $contentRef = '',

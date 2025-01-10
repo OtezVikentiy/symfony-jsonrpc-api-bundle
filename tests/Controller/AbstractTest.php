@@ -89,7 +89,7 @@ abstract class AbstractTest extends TestCase
 
     private function prepareResponseService(): void
     {
-        $this->responseService = new ResponseService($this->container, $this->headersPreparer);
+        $this->responseService = new ResponseService($this->headersPreparer);
     }
 
     private function prepareRequestRawDataHandler(): void

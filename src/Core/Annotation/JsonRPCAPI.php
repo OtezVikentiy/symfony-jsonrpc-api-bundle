@@ -19,6 +19,7 @@ final readonly class JsonRPCAPI
         private string $methodName,
         private string $type,
         private string $summary = '',
+        private ?array $tags = null,
         private string $description = '',
         private bool $ignoreInSwagger = false,
         private array $roles = [],
@@ -40,6 +41,12 @@ final readonly class JsonRPCAPI
     public function getSummary(): string
     {
         return $this->summary;
+    }
+
+    /** @noinspection PhpUnused */
+    public function getTags(): ?array
+    {
+        return $this->tags;
     }
 
     /** @noinspection PhpUnused */

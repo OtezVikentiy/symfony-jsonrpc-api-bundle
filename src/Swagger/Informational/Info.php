@@ -1,8 +1,8 @@
 <?php
 
-namespace OV\JsonRPCAPIBundle\Swagger;
+namespace OV\JsonRPCAPIBundle\Swagger\Informational;
 
-readonly class Info
+final readonly class Info
 {
     public function __construct(
         private string $title = '',
@@ -28,7 +28,7 @@ readonly class Info
             'license' => [
                 'name' => $this->license?->getName(),
                 'url' => $this->license?->getUrl(),
-            ]
+            ],
         ];
     }
 }

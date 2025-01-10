@@ -59,6 +59,7 @@ final class CompilerPass implements CompilerPassInterface
             $methodName = $requestType = null;
             $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
             $roles = [];
+            $apiTags = [];
             $summary = '';
             $description = '';
             $ignoreInSwagger = false;
@@ -70,6 +71,7 @@ final class CompilerPass implements CompilerPassInterface
                     $description = $attribute->getArguments()['description'] ?? '';
                     $ignoreInSwagger = $attribute->getArguments()['ignoreInSwagger'] ?? false;
                     $roles = $attribute->getArguments()['roles'] ?? [];
+                    $apiTags = $attribute->getArguments()['tags'] ?? [];
                 }
             }
 
@@ -150,6 +152,7 @@ final class CompilerPass implements CompilerPassInterface
                 $requestSetters,
                 $validators,
                 $roles,
+                $apiTags,
                 $plainResponse,
                 $callbacksExists,
             ])->setPublic(true)->setAutowired(true)->setAutoconfigured(true);

@@ -2,29 +2,35 @@
 
 namespace OV\JsonRPCAPIBundle\Command;
 
+use OV\JsonRPCAPIBundle\Core\Annotation\SwaggerArrayProperty;
+use OV\JsonRPCAPIBundle\Core\Annotation\SwaggerProperty;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
-use OV\JsonRPCAPIBundle\Swagger\Contact;
-use OV\JsonRPCAPIBundle\Swagger\Info;
-use OV\JsonRPCAPIBundle\Swagger\License;
-use OV\JsonRPCAPIBundle\Swagger\Openapi;
+use OV\JsonRPCAPIBundle\Swagger\Informational\Contact;
+use OV\JsonRPCAPIBundle\Swagger\Informational\Info;
+use OV\JsonRPCAPIBundle\Swagger\Informational\License;
+use OV\JsonRPCAPIBundle\Swagger\Informational\Openapi;
 use OV\JsonRPCAPIBundle\Swagger\Path;
 use OV\JsonRPCAPIBundle\Swagger\RequestBody;
 use OV\JsonRPCAPIBundle\Swagger\Response;
 use OV\JsonRPCAPIBundle\Swagger\Schema;
+use OV\JsonRPCAPIBundle\Swagger\SchemaItem;
 use OV\JsonRPCAPIBundle\Swagger\SchemaProperty;
 use OV\JsonRPCAPIBundle\Swagger\Server;
-use OV\JsonRPCAPIBundle\Swagger\Tag;
 use ReflectionClass;
 use ReflectionException;
+use ReflectionProperty;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\TypeInfo\Type\UnionType;
 use Symfony\Component\Yaml\Yaml;
 
 #[AsCommand(name: 'ov:swagger:generate')]
 final class SwaggerGenerate extends Command
 {
+    private array $components = [];
+
     public function __construct(
         private readonly string $ovJsonRpcApiSwaggerPath,
         private readonly array $swagger,
@@ -68,45 +74,60 @@ final class SwaggerGenerate extends Command
             new License($item['info']['license'], $item['info']['licenseUrl'])
         );
 
+        $basePathVariables = $item['base_path_variables'];
+        $testPathVariables = $item['test_path_variables'];
+
+        $basePath = sprintf('%s/api/v%s', $item['base_path'], $item['api_version']);
+        foreach ($basePathVariables as $basePathVariable) {
+            $basePath = str_replace(sprintf('{%s}', $basePathVariable['name']), $basePathVariable['value'], $basePath);
+        }
+
+        $testPath = sprintf('%s/api/v%s', $item['test_path'], $item['api_version']);
+        foreach ($testPathVariables as $testPathVariable) {
+            $testPath = str_replace(sprintf('{%s}', $testPathVariable['name']), $testPathVariable['value'], $testPath);
+        }
+
         $servers = [
-            new Server(sprintf('%s/api/v%s', $item['base_path'], $item['api_version']))
+            new Server($basePath, $item['base_path_description'] ?? ''),
+            new Server($testPath, $item['test_path_description'] ?? ''),
         ];
 
-        [$tags, $paths, $components] = $this->generateApis($item['auth_token_name'], $item['auth_token_test_value']);
+        [$tags, $paths] = $this->generateApis($item['auth_token_name'], $item['auth_token_test_value'], $item['api_version']);
 
-        $swagger = new Openapi($info, $servers, $tags, $paths, $components);
+        $swagger = new Openapi($info, $servers, $tags, $paths, $this->components);
 
-        return Yaml::dump($swagger->toArray(), 4);
+        return Yaml::dump($swagger->toArray(), 12);
     }
 
     /**
      * @throws ReflectionException
      */
-    private function generateApis(string $authTokenName, string $authTokenDefaultValue): array
+    private function generateApis(string $authTokenName, string $authTokenDefaultValue, int $apiVersion): array
     {
         $tags = [];
         $paths = [];
-        $components = [];
 
         $methods = $this->methodSpecCollection->getAllMethods();
         foreach ($methods as $version => $methodsArray) {
+            if ($version !== $apiVersion) {
+                continue;
+            }
+
             foreach ($methodsArray as $name => $method) {
                 if ($method->isIgnoreInSwagger()) {
                     continue;
                 }
 
-                $tag = new Tag($name, $method->getSummary());
-                $tags[] = $tag;
+                foreach ($method->getTags() as $tag) {
+                    $tags[$tag] = ['name' => $tag];
+                }
 
                 $parameters = [];
 
                 $globalRequest = new Schema(sprintf('%sMainRequest', $name));
-                $globalRequest->addProperty(
-                    new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0')
-                );
-                $globalRequest->addRequired(
-                    new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0')
-                );
+                $globalRequest->addProperty(new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0'));
+                $globalRequest->addRequired(new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0'));
+
                 $globalRequest->addProperty(
                     new SchemaProperty(
                         name: 'method',
@@ -126,12 +147,20 @@ final class SwaggerGenerate extends Command
 
                 $requestSchema = new Schema(sprintf('%sRequest', $name));
                 $addIdToGlobalRequest = false;
+
                 foreach ($method->getRequiredParameters() as $requiredParameter) {
-                    $prop = new SchemaProperty($requiredParameter['name'], $requiredParameter['type']);
+                    $type = $requiredParameter['type'];
+                    if ($type === 'int') {
+                        $type = 'integer';
+                    }  elseif ($type === 'bool') {
+                        $type = 'boolean';
+                    }
+                    $prop = new SchemaProperty($requiredParameter['name'], $type);
                     $requestSchema->addProperty($prop);
                     $requestSchema->addRequired($prop);
                     $parameters[$requiredParameter['name']] = $requiredParameter['name'];
                 }
+
                 foreach ($method->getAllParameters() as $parameter) {
                     if ($parameter['name'] === 'id') {
                         $addIdToGlobalRequest = true;
@@ -139,75 +168,75 @@ final class SwaggerGenerate extends Command
                     if (isset($parameters[$parameter['name']])) {
                         continue;
                     }
-                    $prop = new SchemaProperty($parameter['name'], $parameter['type']);
+                    $type = $parameter['type'];
+                    if ($type === 'int') {
+                        $type = 'integer';
+                    } elseif ($type === 'bool') {
+                        $type = 'boolean';
+                    }
+                    $prop = new SchemaProperty($parameter['name'], $type);
                     $requestSchema->addProperty($prop);
                 }
+
                 unset($parameters);
 
-                $components[] = $requestSchema;
+                $this->components[] = $requestSchema;
 
                 $globalRequest->addProperty(new SchemaProperty(name: 'params', ref: sprintf('%sRequest', $name)));
                 $globalRequest->addRequired(new SchemaProperty(name: 'params', ref: sprintf('%sRequest', $name)));
                 if ($addIdToGlobalRequest) {
-                    $globalRequest->addProperty(
-                        new SchemaProperty(name: 'id', type: 'int', default: '0', example: '0')
-                    );
-                    $globalRequest->addRequired(
-                        new SchemaProperty(name: 'id', type: 'int', default: '0', example: '0')
-                    );
+                    $globalRequest->addProperty(new SchemaProperty(name: 'id', type: 'integer', default: '0', example: '0'));
+                    $globalRequest->addRequired(new SchemaProperty(name: 'id', type: 'integer', default: '0', example: '0'));
                 }
 
-                $components[] = $globalRequest;
+                $this->components[] = $globalRequest;
 
                 $requestBody = new RequestBody(sprintf('%sMainRequest', $name));
 
                 $methodRef = new ReflectionClass($method->getMethodClass());
                 $callMethod = $methodRef->getMethod('call');
+                $returnType = $callMethod->getReturnType();
+
+                if ($returnType instanceof UnionType) {
+                    continue; //Todo костыль который надо исправить
+                }
+
                 $responseClassRef = new ReflectionClass($callMethod->getReturnType()?->getName());
                 $responseProperties = $responseClassRef->getProperties();
+                $requiredPropertiesOfResponse = $this->getRequiredPropertiesList($responseClassRef);
 
-                $responseSchema = new Schema(sprintf('%sResponse', $responseClassRef->getShortName()));
-                $responseSchema->addProperty(
-                    new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0')
-                );
-                $responseSchema->addRequired(
-                    new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0')
-                );
+                $responseSchemaName = str_replace('\\', '_', $responseClassRef->getName());
+                $responseSchema = new Schema(sprintf('%sResponse', $responseSchemaName));
+                $responseSchema->addProperty(new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0'));
+                $responseSchema->addRequired(new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0'));
 
                 foreach ($responseProperties as $responseProperty) {
-                    $respProp = new SchemaProperty(
-                        $responseProperty->getName(), $responseProperty->getType()->getName()
-                    );
-                    $responseSchema->addProperty($respProp);
-                    $responseSchema->addRequired($respProp);
+                    $this->processProperty($responseProperty, $responseSchema, in_array($responseProperty->getName(), $requiredPropertiesOfResponse));
                 }
-                $components[] = $responseSchema;
+
+                $this->components[] = $responseSchema;
 
                 if ($addIdToGlobalRequest) {
-                    $responseSchema->addProperty(
-                        new SchemaProperty(name: 'id', type: 'int', default: '0', example: '0')
-                    );
-                    $responseSchema->addRequired(
-                        new SchemaProperty(name: 'id', type: 'int', default: '0', example: '0')
-                    );
+                    $responseSchema->addProperty(new SchemaProperty(name: 'id', type: 'integer', default: '0', example: '0'));
+                    $responseSchema->addRequired(new SchemaProperty(name: 'id', type: 'integer', default: '0', example: '0'));
                 }
 
-                $response = new Response('200', sprintf('%sResponse', $responseClassRef->getShortName()));
+                $response = new Response('200', sprintf('%sResponse', $responseSchemaName));
 
                 $path = new Path(
-                    name: '#' . $this->camelToSnake($method->getMethodName(), '_'),
+                    name: '/' . $this->camelToSnake($method->getMethodName(), '_'),
                     methodType: $method->getRequestType(),
                     summary: $method->getSummary(),
                     description: $method->getDescription(),
                     requestBody: $requestBody,
-                    tags: [$tag],
+                    tags: $method->getTags(),
                     responses: [$response],
                     parameters: [
                         [
                             'in' => 'header',
                             'name' => $authTokenName,
                             'schema' => ['type' => 'string'],
-                            'default' => $authTokenDefaultValue
+                            'example' => $authTokenDefaultValue
                         ]
                     ],
                 );
@@ -215,7 +244,115 @@ final class SwaggerGenerate extends Command
             }
         }
 
-        return [$tags, $paths, $components];
+        return [array_values($tags), $paths];
+    }
+
+    private function processProperty(ReflectionProperty $property, Schema $schema, bool $required): void
+    {
+        $swaggerPropertyAttribute = $property->getAttributes(name: SwaggerProperty::class);
+
+        $default = null;
+        $example = null;
+        $format = null;
+
+        if (!empty($swaggerPropertyAttribute[0])) {
+            $default = $swaggerPropertyAttribute[0]->getArguments()['default'] ?? null;
+            $example = $swaggerPropertyAttribute[0]->getArguments()['example'] ?? null;
+            $format = $swaggerPropertyAttribute[0]->getArguments()['format'] ?? null;
+        }
+
+        $schemaProperty = new SchemaProperty(name: $property->getName());
+        if (!is_null($default)) {
+            $schemaProperty->setDefault($default);
+        }
+        if (!is_null($example)) {
+            $schemaProperty->setExample($example);
+        }
+        if (!is_null($format)) {
+            $schemaProperty->setFormat($format);
+        }
+
+        $type = $property->getType()->getName();
+        if ($type === 'int') {
+            $type = 'integer';
+        } elseif ($type === 'bool') {
+            $type = 'boolean';
+        }
+
+        if (!in_array($type, ['array', 'boolean', 'integer', 'number', 'object', 'string'])) {
+            $this->processObjectProperty($property->getType()->getName(), $schemaProperty, $schema, $required);
+            return;
+        }
+
+        if ($type !== 'array') {
+            $schemaProperty->setType($type);
+            $schema->addProperty($schemaProperty);
+            if ($required) $schema->addRequired($schemaProperty);
+            return;
+        }
+
+        $responseArrayPropertyAttributes = $property->getAttributes(SwaggerArrayProperty::class);
+        foreach ($responseArrayPropertyAttributes as $responseArrayPropertyAttribute) {
+            if ($responseArrayPropertyAttribute->getName() === SwaggerArrayProperty::class) {
+                $attributeType = $responseArrayPropertyAttribute->getArguments()['type'];
+                $ofClass = $responseArrayPropertyAttribute->getArguments()['ofClass'] ?? false;
+                if (!$ofClass) {
+                    $schemaProperty
+                        ->setType($type)
+                        ->setItems(new SchemaItem(type: $attributeType));
+                    $schema->addProperty($schemaProperty);
+                    if ($required) $schema->addRequired($schemaProperty);
+                    return;
+                } else {
+                    $this->processObjectProperty($attributeType, $schemaProperty, $schema, $required);
+                    return;
+                }
+            }
+        }
+
+        $schemaProperty->setType($type);
+        $schema->addProperty($schemaProperty);
+        if ($required) $schema->addRequired($schemaProperty);
+    }
+
+    private function processObjectProperty(
+        string $name,
+        SchemaProperty $schemaProperty,
+        Schema $schema,
+        bool $required
+    ): void {
+        $innerSchema = new Schema(str_replace('\\', '_', $name));
+        $reflection = new ReflectionClass($name);
+        $requiredPropertiesOfResponse = $this->getRequiredPropertiesList($reflection);
+        foreach ($reflection->getProperties() as $reflectionProperty) {
+            $this->processProperty(
+                $reflectionProperty,
+                $innerSchema,
+                in_array($reflectionProperty->getName(), $requiredPropertiesOfResponse)
+            );
+        }
+        $this->components[] = $innerSchema;
+        $schemaProperty
+            ->setType('object')
+            ->setRef(str_replace('\\', '_', $name));
+        $schema->addProperty($schemaProperty);
+        if ($required) $schema->addRequired($schemaProperty);
+    }
+
+    private function getRequiredPropertiesList(ReflectionClass $reflection): array
+    {
+        $constructor = $reflection->getConstructor();
+        $requiredPropertiesOfResponse = [];
+        if ($constructor) {
+            $parameters = $constructor->getParameters();
+            foreach ($parameters as $parameter) {
+                if ($parameter->isDefaultValueAvailable()) {
+                    continue;
+                }
+                $requiredPropertiesOfResponse[] = $parameter->getName();
+            }
+        }
+        return $requiredPropertiesOfResponse;
     }
 
     private function camelToSnake(string $string, string $us = "-"): string

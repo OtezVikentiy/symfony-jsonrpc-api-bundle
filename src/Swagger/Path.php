@@ -2,7 +2,7 @@
 
 namespace OV\JsonRPCAPIBundle\Swagger;
 
-readonly class Path
+final readonly class Path
 {
     public function __construct(
         private string $name = '',
@@ -13,7 +13,6 @@ readonly class Path
         private array $tags = [],
         private array $responses = [],
         private array $parameters = [],
-        private string $operationId = '',
     ) {}
 
     public function getName(): string
@@ -28,15 +27,20 @@ readonly class Path
             $responses[$response->getCode()] = $response->toArray();
         }
 
+        $data = [
+            'parameters' => $this->parameters,
+            'summary' => $this->summary,
+            'description' => $this->description,
+            'requestBody' => $this->requestBody->toArray(),
+            'responses' => $responses
+        ];
+
+        if (!empty($this->tags)) {
+            $data['tags'] = $this->tags;
+        }
+
         return [
-            mb_strtolower($this->methodType) => [
-                'parameters' => $this->parameters,
-                'tags' => array_map(fn (Tag $tag) => $tag->getName(), $this->tags),
-                'summary' => $this->summary,
-                'description' => $this->description,
-                'requestBody' => $this->requestBody->toArray(),
-                'responses' => $responses
-            ]
+            mb_strtolower($this->methodType) => $data,
         ];
     }
 }

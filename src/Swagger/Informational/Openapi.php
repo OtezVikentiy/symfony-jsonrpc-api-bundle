@@ -1,8 +1,8 @@
 <?php
 
-namespace OV\JsonRPCAPIBundle\Swagger;
+namespace OV\JsonRPCAPIBundle\Swagger\Informational;
 
-readonly class Openapi
+final readonly class Openapi
 {
     public function __construct(
         private Info $info,
@@ -19,11 +19,6 @@ readonly class Openapi
             $servers[] = $server->toArray();
         }
 
-        $tags = [];
-        foreach ($this->tags as $tag) {
-            $tags[] = $tag->toArray();
-        }
-
         $paths = [];
         foreach ($this->paths as $path) {
             $paths[$path->getName()] = $path->toArray();
@@ -35,10 +30,10 @@ readonly class Openapi
         }
 
         return [
-            'openapi' => '3.0.3',
+            'openapi' => '3.1.1',
             'info' => $this->info->toArray(),
             'servers' => $servers,
-            'tags' => $tags,
+            'tags' => $this->tags,
             'paths' => $paths,
             'components' => [
                 'schemas' => $schemas

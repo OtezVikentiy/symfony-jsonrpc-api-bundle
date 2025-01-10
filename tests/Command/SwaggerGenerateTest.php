@@ -39,9 +39,28 @@ class SwaggerGenerateTest extends TestCase
         $application->add(new SwaggerGenerate(
             '/app/public',
             [
-                'api_v1' => [
-                    'api_version' => '1',
-                    'base_path' => 'http://localhost:35080',
+                'api_v3' => [
+                    'api_version' => '3',
+                    'base_path' => 'http://localhost.{azaza}:{port}',
+                    'base_path_description' => 'Production server (uses live data)',
+                    'test_path' => 'http://localhost.{domain}:35080',
+                    'test_path_description' => 'Sandbox server (uses test data)',
+                    'base_path_variables' => [
+                        [
+                            'name' => 'azaza',
+                            'value' => 'ololo',
+                        ],
+                        [
+                            'name' => 'port',
+                            'value' => '35080',
+                        ],
+                    ],
+                    'test_path_variables' => [
+                        [
+                            'name' => 'domain',
+                            'value' => 'testoviy',
+                        ],
+                    ],
                     'auth_token_name' => 'X-AUTH-TOKEN',
                     'auth_token_test_value' => '2f1f6aee7d994528fde6e47a493cc097',
                     'info' => [
@@ -73,7 +92,7 @@ class SwaggerGenerateTest extends TestCase
     public function testExecute()
     {
         $this->commandTester->execute([]);
-        $this->assertEquals(file_get_contents('./swagger_generate_test_fixture.yaml'), $this->commandTester->getDisplay());
+        $this->assertEquals(file_get_contents('./tests/Command/swagger_generate_test_fixture.yaml'), $this->commandTester->getDisplay());
     }
 
     private function prepareMethodSpecCollection(): MethodSpecCollection
@@ -116,7 +135,8 @@ class SwaggerGenerateTest extends TestCase
                 requiredParameters: [],
                 request: GetDataRequest::class,
                 requestSetters: [],
-                validators: []
+                validators: [],
+                tags: []
             ),
             new MethodSpec(
                 methodClass: NotifyHelloMethod::class,
@@ -129,7 +149,8 @@ class SwaggerGenerateTest extends TestCase
                 requiredParameters: [],
                 request: NotifyHelloRequest::class,
                 requestSetters: ['params' => 'setParams'],
-                validators: ['params' => 'array']
+                validators: ['params' => 'array'],
+                tags: []
             ),
             new MethodSpec(
                 methodClass: NotifySumMethod::class,
@@ -142,7 +163,8 @@ class SwaggerGenerateTest extends TestCase
                 requiredParameters: [],
                 request: NotifySumRequest::class,
                 requestSetters: ['params' => 'setParams'],
-                validators: ['params' => 'array']
+                validators: ['params' => 'array'],
+                tags: []
             ),
             new MethodSpec(
                 methodClass: Subtract2Method::class,
@@ -155,7 +177,8 @@ class SwaggerGenerateTest extends TestCase
                 requiredParameters: [],
                 request: Subtract2Request::class,
                 requestSetters: ['subtrahend' => 'setSubtrahend', 'minuend' => 'setMinuend'],
-                validators: ['subtrahend' => 'int', 'minuend' => 'int']
+                validators: ['subtrahend' => 'int', 'minuend' => 'int'],
+                tags: []
             ),
             new MethodSpec(
                 methodClass: SubtractMethod::class,
@@ -168,7 +191,8 @@ class SwaggerGenerateTest extends TestCase
                 requiredParameters: [],
                 request: SubtractRequest::class,
                 requestSetters: ['params' => 'setParams'],
-                validators: ['params' => 'array']
+                validators: ['params' => 'array'],
+                tags: ['mathematic']
             ),
             new MethodSpec(
                 methodClass: SumMethod::class,
@@ -181,7 +205,8 @@ class SwaggerGenerateTest extends TestCase
                 requiredParameters: [],
                 request: SumRequest::class,
                 requestSetters: ['params' => 'setParams'],
-                validators: ['params' => 'array']
+                validators: ['params' => 'array'],
+                tags: ['mathematic']
             ),
             new MethodSpec(
                 methodClass: TestMethod::class,
@@ -194,7 +219,8 @@ class SwaggerGenerateTest extends TestCase
                 requiredParameters: [['name' => 'id', 'type' => 'int']],
                 request: TestRequest::class,
                 requestSetters: ['id' => 'setId', 'title' => 'setTitle'],
-                validators: ['id' => 'int', 'title' => 'string']
+                validators: ['id' => 'int', 'title' => 'string'],
+                tags: []
             ),
             new MethodSpec(
                 methodClass: UpdateMethod::class,
@@ -207,7 +233,8 @@ class SwaggerGenerateTest extends TestCase
                 requiredParameters: [],
                 request: UpdateRequest::class,
                 requestSetters: ['params' => 'setParams'],
-                validators: ['params' => 'array']
+                validators: ['params' => 'array'],
+                tags: []
             ),
         ];
     }

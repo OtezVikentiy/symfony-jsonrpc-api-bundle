@@ -2,7 +2,7 @@
 
 namespace OV\JsonRPCAPIBundle\Swagger;
 
-readonly class Server
+final readonly class Server
 {
     public function __construct(
         private string $url = '',
