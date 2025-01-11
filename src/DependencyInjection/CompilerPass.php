@@ -63,6 +63,7 @@ final class CompilerPass implements CompilerPassInterface
             $summary = '';
             $description = '';
             $ignoreInSwagger = false;
+            $version = null;
             foreach ($attributes as $attribute) {
                 if ($attribute->getName() === JsonRPCAPI::class) {
                     $methodName = $attribute->getArguments()['methodName'] ?? throw new Exception(sprintf('Class %s does not have attribute param methodName', $className));
@@ -72,6 +73,35 @@ final class CompilerPass implements CompilerPassInterface
                     $ignoreInSwagger = $attribute->getArguments()['ignoreInSwagger'] ?? false;
                     $roles = $attribute->getArguments()['roles'] ?? [];
                     $apiTags = $attribute->getArguments()['tags'] ?? [];
+                    $version = $attribute->getArguments()['version'] ?? null;
+                }
+            }
+
+            if (is_null($version)) {
+                $namespace = $methodReflectionClass->getNamespaceName();
+                preg_match('/V[0-9]+$/', $namespace, $matches);
+                if (empty($matches)) {
+                    throw new RuntimeException(
+                        sprintf(
+                            'Version for API endpoint %s is not defined. Either use the version parameter in the 
+                            JsonRPCAPI attribute explicitly, or specify the API version number in the namespace, 
+                            for example App\\RPC\\V1',
+                            $namespace . '\\' . $className,
+                        )
+                    );
+                }
+
+                $version = (int)preg_replace('/[A-Za-z]+/', '', $matches[0]);
+
+                if (empty($version) || $version == 0) {
+                    throw new RuntimeException(
+                        sprintf(
+                            'Version for API endpoint %s is not defined or zero. Either use the version parameter in the 
+                            JsonRPCAPI attribute explicitly, or specify the API version number in the namespace, 
+                            for example App\\RPC\\V1',
+                            $namespace . '\\' . $className,
+                        )
+                    );
                 }
             }
 
@@ -95,20 +125,30 @@ final class CompilerPass implements CompilerPassInterface
             $validators              = [];
             $methodRequestReflection = null;
             $callParameters          = $methodReflectionClass->getMethod('call')->getParameters();
-            foreach ($callParameters as $callParameter) {
-                if ($callParameter->getName() === 'request') { //TODO тут получается так, что на входе можно использовать только переменную request
-                    $methodRequestReflection = new ReflectionClass($callParameter->getType()->getName());
-                    $validators              = $this->getValidatorsForRequest($methodRequestReflection);
-                    $allParameters           = $this->getProperties($methodRequestReflection->getProperties() ?? []);
-                    $requiredParameters      = $this->getProperties($methodRequestReflection->getConstructor()?->getParameters() ?? []);
-                    $requestMethods          = $methodRequestReflection->getMethods();
 
-                    foreach ($requestMethods as $requestSingleMethod) {
-                        if (str_starts_with($requestSingleMethod->getName(), 'set')) {
-                            $name = $requestSingleMethod->getParameters()[0]?->getName() ?? null;
-                            if (!is_null($name)) {
-                                $requestSetters[$name] = $requestSingleMethod->getName();
-                            }
+            if (count($callParameters) > 1) {
+                throw new RuntimeException(
+                    sprintf(
+                        'Method %s::%s should have one or zero incoming parameters',
+                        $className,
+                        self::CALL_METHOD
+                    )
+                );
+            }
+
+            if (!empty($callParameters[0])) {
+                $callParameter = $callParameters[0];
+                $methodRequestReflection = new ReflectionClass($callParameter->getType()->getName());
+                $validators              = $this->getValidatorsForRequest($methodRequestReflection);
+                $allParameters           = $this->getProperties($methodRequestReflection->getProperties() ?? []);
+                $requiredParameters      = $this->getProperties($methodRequestReflection->getConstructor()?->getParameters() ?? []);
+                $requestMethods          = $methodRequestReflection->getMethods();
+
+                foreach ($requestMethods as $requestSingleMethod) {
+                    if (str_starts_with($requestSingleMethod->getName(), 'set')) {
+                        $name = $requestSingleMethod->getParameters()[0]?->getName() ?? null;
+                        if (!is_null($name)) {
+                            $requestSetters[$name] = $requestSingleMethod->getName();
                         }
                     }
                 }
@@ -135,7 +175,7 @@ final class CompilerPass implements CompilerPassInterface
                 $callbacksExists = $parentClass->implementsInterface(CallbacksInterface::class);
             }
 
-            $methodAlias            = $this->getMethodAlias($methodName, $tags[0]['namespace'] ?? '');
+            $methodAlias            = $this->getMethodAlias($methodName, $methodReflectionClass->getNamespaceName() . '\\' ?? '');
             $methodSpecDefinitionId = uniqid('OV_JSON_RPC_API_' . $methodAlias, true);
             $methodSpec             = $container->register($methodSpecDefinitionId, MethodSpec::class);
 
@@ -160,7 +200,7 @@ final class CompilerPass implements CompilerPassInterface
             $methodSpecCollectionDefinition->addMethodCall(
                 'addMethodSpec',
                 [
-                    '$version' => $tags[0]['version'] ?? 1,
+                    '$version' => $version,
                     '$methodName' => $methodName,
                     '$methodSpec' => new Reference($methodSpecDefinitionId),
                 ]

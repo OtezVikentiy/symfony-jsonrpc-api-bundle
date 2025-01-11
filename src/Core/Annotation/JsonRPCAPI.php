@@ -18,6 +18,7 @@ final readonly class JsonRPCAPI
     public function __construct(
         private string $methodName,
         private string $type,
+        private ?int $version = null,
         private string $summary = '',
         private ?array $tags = null,
         private string $description = '',
@@ -35,6 +36,12 @@ final readonly class JsonRPCAPI
     public function getType(): string
     {
         return $this->type;
+    }
+
+    /** @noinspection PhpUnused */
+    public function getVersion(): ?int
+    {
+        return $this->version;
     }
 
     /** @noinspection PhpUnused */
