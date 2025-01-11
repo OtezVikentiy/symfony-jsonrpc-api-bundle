@@ -1,99 +1,42 @@
 # OtezVikentiy Symfony Json RPC API Bundle
 
-The bundle allows you to quickly and conveniently deploy JSON RPC API applications based on the Symfony 6 framework.
-
-## Features
-- easy api versioning
-- easy bundle installation
-- compatible with attributes
-- compatible with POST, GET, PUT, PATCH, DELETE requests
-- fully compatible with https://www.jsonrpc.org/specification
-- swagger openapi out of the box
-- callbacks
-
-github: https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle
-
-Instructions: https://otezvikentiy.tech/articles/symfony-json-rpc-api-bundle-prostoe-api-so-vsem-neobhodimym
-
-# Bundle installation
-
-1) Require the bundle as a dependency.
-
-```bash
-$ composer require otezvikentiy/json-rpc-api
-```
-
-2) Enable it in your application Kernel. ( not required if using flex )
-
-```php
-<?php
-// config/bundles.php
-return [
-    //...
-    OV\JsonRPCAPIBundle\OVJsonRPCAPIBundle::class => ['all' => true],
-];
-```
-
-3) Create / update these config files
-```yaml
-# config/routes/ov_json_rpc_api.yaml
-ov_json_rpc_api:
-   resource: '@OVJsonRPCAPIBundle/config/routes/routes.yaml'
-```
-
-```yaml
-# config/services.yaml
-services:
-    App\RPC\V1\:
-        resource: '../src/RPC/V1/{*Method.php}'
-        tags:
-            - { name: ov.rpc.method, namespace: App\RPC\V1\, version: 1 }
-```
-
-```yaml
-# config/packages/ov_json_rpc_api.yaml
-ov_json_rpc_api:
-    access_control_allow_origin_list:
-        - localhost
-        - api.localhost
-        - *
-    swagger:
-        api_v1:
-            api_version: '1'
-            base_path: '%env(string:OV_JSON_RPC_API_BASE_URL)%'
-            auth_token_name: 'X-AUTH-TOKEN'
-            auth_token_test_value: '%env(string:OV_JSON_RPC_API_AUTH_TOKEN)%' #set blank for prod environment
-            info:
-                title: 'Some awesome api title here'
-                description: 'Some description about your api here would be appreciated if you like'
-                terms_of_service_url: 'https://terms_of_service_url.test/url'
-                contact:
-                    name: 'John Doe'
-                    url: 'https://john-doe.test'
-                    email: 'john.doe@john-doe.test'
-                license: 'MIT license'
-                licenseUrl: 'https://john-doe.test/mit-license'
-```
-
-```dotenv
-# .env
-###> otezvikentiy/json-rpc-api ###
-OV_JSON_RPC_API_SWAGGER_PATH=public/openapi/
-OV_JSON_RPC_API_BASE_URL=http://localhost
-OV_JSON_RPC_API_AUTH_TOKEN=2f1f6aee7d994528fde6e47a493cc097
-###< otezvikentiy/json-rpc-api ###
-```
+The bundle allows you to quickly and conveniently create JSON RPC API applications based on the Symfony framework.
 
 ---
 
-# Test-Drive
+## Features
 
-## Create directories and files
+
+- [x] easy api versioning
+- [x] easy bundle installation
+- [x] compatible with attributes
+- [x] compatible with POST, GET, PUT, PATCH, DELETE requests
+- [x] fully compatible with https://www.jsonrpc.org/specification
+- [x] swagger openapi out of the box
+- [x] callbacks
+
+github: https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle
+
+---
+
+## Bundle installation
+
+
+[see](./docs/installation.md) how to easily install bundle.
+
+---
+
+## Examples
 
 During the installation process, we defined the `src/RPC/V1/{*Method.php}` directory in the services and marked with
 tags in it all the classes ending in `*Method.php` - these will be our API endpoints.
 
-See examples in directory `examples`.
+|                        link                        |                                                                      description                                                                      |                                files list                                | curl  |
+|:--------------------------------------------------:|:-----------------------------------------------------------------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------:|:-----:|
+|       [see example](./docs/examples/base.md)       |                                                                 Base easiest example.                                                                 |             Request.php, Response.php, GetProductsMethod.php             |``curl --header "Content-Type: application/json" --request POST --data '{"jsonrpc": "2.0","method": "getProducts","params": {"title": "AZAZAZA"},"id": 1}' http://localhost/api/v1``|
+|     [see example](./docs/examples/callback.md)     |                                                                Example with callbacks.                                                                |   Request.php, Response.php, GetProductsMethod.php, AbstractMethod.php   |``curl --header "Content-Type: application/json" --request POST --data '{"jsonrpc": "2.0","method": "getProducts","params": {"title": "AZAZAZA"},"id": 1}' http://localhost/api/v1``|
+| [see example](./docs/examples/array_of_objects.md) |                                 Example when you need to give in response not single object, but a number of objects.                                 |      Request.php, Response.php, GetProductsMethod.php, Product.php       |``curl --header "Content-Type: application/json" --request POST --data '{"jsonrpc": "2.0","method": "getProducts","params": {"title": "AZAZAZA"},"id": 1}' http://localhost/api/v1``|
+| [see example](./docs/examples/simple_response.md)  | Sometimes you may need to return from API not only a json response, but a picture or a document for example. In such a case you can use this example. | Request.php, ErrorResponse.php, PlainResponse.php, GetProductsMethod.php |``curl --header "Content-Type: application/json" --request POST --data '{"jsonrpc": "2.0","method": "getProducts","params": {"title": "AZAZAZA"},"id": 1}' http://localhost/api/v1``|
 
 ---
 
@@ -105,190 +48,27 @@ If you wish to generate openapi swagger yaml file - then run this command:
 bin/console ov:swagger:generate
 ```
 
-It would generate a swagger file ( example public/openapi/api_v1.yaml ) which you can use in your swagger instance
+It would generate a swagger file ``public/openapi/api_v1.yaml`` which you can use in your swagger instance.
+
+[see](./docs/swagger/tags.md) example of how to combine multiple endpoints with tags
+
+[see](./docs/swagger/scalar.md) example how to define default, format and example for scalar properties of response
+
+[see](./docs/swagger/array.md) example how to describe array properties of response
 
 ---
 
 ## Security
 
-You can also add token authorization like this:
+Initially, two implementation options are provided and tested, described below, but you are free to 
+connect any other software solutions to your taste and color.
 
-1) create src/Entity/ApiToken.php
+[Auth via lexik jwt token bundle](./docs/security/jwt_bundle.md)
 
-```php
-<?php
+[Auth via self-written system](./docs/security/self_made_token.md)
 
-namespace App\Entity;
+You may need to add a role model to restrict user access.
+You always have the option to implement your own version, but there is also a
+built-in implementation based on the simplest [Symfony Security](https://symfony.com/doc/current/security.html) version.
 
-use DateTime;
-use DateTimeInterface;
-use Doctrine\DBAL\Types\Types;
-use Doctrine\ORM\Mapping as ORM;
-
-#[ORM\Entity]
-class ApiToken
-{
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private int $id;
-
-    #[ORM\Column(type: 'string', length: 500, nullable: false)]
-    private string $token;
-
-    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: false)]
-    private DateTimeInterface $expiresAt;
-
-    #[ORM\ManyToOne(inversedBy: 'apiTokens')]
-    #[ORM\JoinColumn(nullable: false)]
-    private User $user;
-
-    public function getId(): int
-    {
-        return $this->id;
-    }
-
-    public function setId(int $id): ApiToken
-    {
-        $this->id = $id;
-
-        return $this;
-    }
-
-    public function getToken(): string
-    {
-        return $this->token;
-    }
-
-    public function setToken(string $token): ApiToken
-    {
-        $this->token = $token;
-
-        return $this;
-    }
-
-    public function getExpiresAt(): DateTimeInterface
-    {
-        return $this->expiresAt;
-    }
-
-    public function setExpiresAt(DateTimeInterface $expiresAt): ApiToken
-    {
-        $this->expiresAt = $expiresAt;
-
-        return $this;
-    }
-
-    public function getUser(): User
-    {
-        return $this->user;
-    }
-
-    public function setUser(User $user): ApiToken
-    {
-        $this->user = $user;
-
-        return $this;
-    }
-
-    public function isValid(): bool
-    {
-        return (new DateTime())->getTimestamp() > $this->expiresAt->getTimestamp();
-    }
-}
-```
-
-2) create src/Security/ApiKeyAuthenticator.php
-
-```php
-<?php
-
-namespace App\Security;
-
-use App\Entity\ApiToken;
-use App\Entity\User;
-use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
-use Symfony\Component\Security\Core\Exception\AuthenticationException;
-use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
-use Symfony\Component\Security\Http\Authenticator\AbstractAuthenticator;
-use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
-use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
-use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
-
-class ApiKeyAuthenticator extends AbstractAuthenticator
-{
-    public function __construct(
-        private readonly EntityManagerInterface $em
-    ){
-    }
-
-    public function supports(Request $request): bool
-    {
-        return str_contains($request->getRequestUri(), '/api/v');
-    }
-
-    public function authenticate(Request $request): Passport
-    {
-        $apiToken = $request->headers->get('X-AUTH-TOKEN');
-        if (null === $apiToken) {
-            throw new CustomUserMessageAuthenticationException('No API token provided');
-        }
-
-        $apiTokenEntity = $this->em->getRepository(ApiToken::class)->findOneBy(['token' => $apiToken]);
-        if (is_null($apiTokenEntity)) {
-            throw new CustomUserMessageAuthenticationException('No API token provided');
-        }
-
-        return new SelfValidatingPassport(new UserBadge(
-            $apiTokenEntity->getUser()->getId(),
-            function () use ($apiTokenEntity) {
-                return $this->em->getRepository(User::class)->find($apiTokenEntity->getUser()->getId());
-            }
-        ));
-    }
-
-    public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
-    {
-        return null;
-    }
-
-    public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response
-    {
-        $data = [
-            'message' => strtr($exception->getMessageKey(), $exception->getMessageData())
-        ];
-
-        return new JsonResponse($data, Response::HTTP_UNAUTHORIZED);
-    }
-}
-```
-
-3) add new firewall to security section security.firewalls.api...
-
-```yaml
-security:
-    # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
-    password_hashers:
-        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
-    # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
-    providers:
-        # used to reload user from session & other features (e.g. switch_user)
-        app_user_provider:
-            entity:
-                class: App\Entity\User
-                property: email
-    firewalls:
-        api:
-            pattern: ^/api
-            provider: app_user_provider
-            custom_authenticators:
-                - App\Security\ApiKeyAuthenticator
-```
-
-4) run migration to create a table and add a token for a user - that's it! It is a standard way to create token authentication in symfony: https://symfony.com/doc/current/security/custom_authenticator.html
-
-5) Now you are able to add X-AUTH-TOKEN to headers of your requests and authorize requests this way
+[Built-in roles usage example](./docs/security/roles.md)
