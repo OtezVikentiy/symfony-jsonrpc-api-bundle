@@ -195,7 +195,7 @@ final class CompilerPass implements CompilerPassInterface
                 $apiTags,
                 $plainResponse,
                 $callbacksExists,
-            ])->setPublic(true)->setAutowired(true)->setAutoconfigured(true);
+            ])->setPublic(true)->setAutowired(true)->setAutoconfigured(true)->setLazy(true);
 
             $methodSpecCollectionDefinition->addMethodCall(
                 'addMethodSpec',
