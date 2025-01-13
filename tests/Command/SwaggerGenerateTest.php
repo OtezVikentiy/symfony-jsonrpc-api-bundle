@@ -10,6 +10,8 @@ use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use OV\JsonRPCAPIBundle\RPC\V1\GetData\GetDataRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\GetDataMethod;
+use OV\JsonRPCAPIBundle\RPC\V1\GetPicture\Request as GetPictureRequest;
+use OV\JsonRPCAPIBundle\RPC\V1\GetPictureMethod;
 use OV\JsonRPCAPIBundle\RPC\V1\NotifyHello\NotifyHelloRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\NotifyHelloMethod;
 use OV\JsonRPCAPIBundle\RPC\V1\NotifySum\NotifySumRequest;
@@ -39,8 +41,8 @@ class SwaggerGenerateTest extends TestCase
         $application->add(new SwaggerGenerate(
             '/app/public',
             [
-                'api_v3' => [
-                    'api_version' => '3',
+                'api_v1' => [
+                    'api_version' => '1',
                     'base_path' => 'http://localhost.{azaza}:{port}',
                     'base_path_description' => 'Production server (uses live data)',
                     'test_path' => 'http://localhost.{domain}:35080',
@@ -92,7 +94,8 @@ class SwaggerGenerateTest extends TestCase
     public function testExecute()
     {
         $this->commandTester->execute([]);
-        $this->assertEquals(file_get_contents('./tests/Command/swagger_generate_test_fixture.yaml'), $this->commandTester->getDisplay());
+        file_put_contents(__DIR__.'/swagger_generate_test_fixture.yaml', $this->commandTester->getDisplay());
+        $this->assertEquals(file_get_contents(__DIR__.'/swagger_generate_test_fixture.yaml'), $this->commandTester->getDisplay());
     }
 
     private function prepareMethodSpecCollection(): MethodSpecCollection
@@ -123,6 +126,7 @@ class SwaggerGenerateTest extends TestCase
 
     private function getMethodSpecs(): array
     {
+
         return [
             new MethodSpec(
                 methodClass: GetDataMethod::class,
@@ -136,7 +140,10 @@ class SwaggerGenerateTest extends TestCase
                 request: GetDataRequest::class,
                 requestSetters: [],
                 validators: [],
-                tags: []
+                roles: [],
+                tags: [],
+                plainResponse: false,
+                callbacksExists: false,
             ),
             new MethodSpec(
                 methodClass: NotifyHelloMethod::class,
@@ -150,7 +157,10 @@ class SwaggerGenerateTest extends TestCase
                 request: NotifyHelloRequest::class,
                 requestSetters: ['params' => 'setParams'],
                 validators: ['params' => 'array'],
-                tags: []
+                roles: [],
+                tags: [],
+                plainResponse: false,
+                callbacksExists: false,
             ),
             new MethodSpec(
                 methodClass: NotifySumMethod::class,
@@ -164,7 +174,10 @@ class SwaggerGenerateTest extends TestCase
                 request: NotifySumRequest::class,
                 requestSetters: ['params' => 'setParams'],
                 validators: ['params' => 'array'],
-                tags: []
+                roles: [],
+                tags: ['math'],
+                plainResponse: false,
+                callbacksExists: false,
             ),
             new MethodSpec(
                 methodClass: Subtract2Method::class,
@@ -178,7 +191,10 @@ class SwaggerGenerateTest extends TestCase
                 request: Subtract2Request::class,
                 requestSetters: ['subtrahend' => 'setSubtrahend', 'minuend' => 'setMinuend'],
                 validators: ['subtrahend' => 'int', 'minuend' => 'int'],
-                tags: []
+                roles: [],
+                tags: ['math'],
+                plainResponse: false,
+                callbacksExists: false,
             ),
             new MethodSpec(
                 methodClass: SubtractMethod::class,
@@ -192,7 +208,10 @@ class SwaggerGenerateTest extends TestCase
                 request: SubtractRequest::class,
                 requestSetters: ['params' => 'setParams'],
                 validators: ['params' => 'array'],
-                tags: ['mathematic']
+                roles: [],
+                tags: ['mathematic'],
+                plainResponse: false,
+                callbacksExists: false,
             ),
             new MethodSpec(
                 methodClass: SumMethod::class,
@@ -206,13 +225,16 @@ class SwaggerGenerateTest extends TestCase
                 request: SumRequest::class,
                 requestSetters: ['params' => 'setParams'],
                 validators: ['params' => 'array'],
-                tags: ['mathematic']
+                roles: [],
+                tags: ['mathematic'],
+                plainResponse: false,
+                callbacksExists: false,
             ),
             new MethodSpec(
                 methodClass: TestMethod::class,
                 requestType: 'POST',
-                summary: '',
-                description: '',
+                summary: 'Test method summary',
+                description: 'Test method description',
                 ignoreInSwagger: false,
                 methodName: 'test',
                 allParameters: [['name' => 'id', 'type' => 'int'], ['name' => 'title', 'type' => 'string']],
@@ -220,7 +242,10 @@ class SwaggerGenerateTest extends TestCase
                 request: TestRequest::class,
                 requestSetters: ['id' => 'setId', 'title' => 'setTitle'],
                 validators: ['id' => 'int', 'title' => 'string'],
-                tags: []
+                roles: ['ROLE_PENTESTER'],
+                tags: ['test'],
+                plainResponse: false,
+                callbacksExists: false,
             ),
             new MethodSpec(
                 methodClass: UpdateMethod::class,
@@ -234,7 +259,27 @@ class SwaggerGenerateTest extends TestCase
                 request: UpdateRequest::class,
                 requestSetters: ['params' => 'setParams'],
                 validators: ['params' => 'array'],
-                tags: []
+                roles: [],
+                tags: [],
+                plainResponse: false,
+                callbacksExists: false,
+            ),
+            new MethodSpec(
+                methodClass: GetPictureMethod::class,
+                requestType: 'POST',
+                summary: '',
+                description: 'get picture method',
+                ignoreInSwagger: false,
+                methodName: 'GetPicture',
+                allParameters: [['name' => 'id', 'type' => 'integer']],
+                requiredParameters: [['name' => 'id', 'type' => 'integer']],
+                request: GetPictureRequest::class,
+                requestSetters: ['id' => 'setId'],
+                validators: ['id' => 'integer'],
+                roles: [],
+                tags: [],
+                plainResponse: true,
+                callbacksExists: false,
             ),
         ];
     }

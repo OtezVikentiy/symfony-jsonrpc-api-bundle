@@ -304,7 +304,7 @@ final class SwaggerGenerate extends Command
                     if ($required) $schema->addRequired($schemaProperty);
                     return;
                 } else {
-                    $this->processObjectProperty($attributeType, $schemaProperty, $schema, $required);
+                    $this->processObjectProperty($attributeType, $schemaProperty, $schema, $required, true);
                     return;
                 }
             }
@@ -319,7 +319,8 @@ final class SwaggerGenerate extends Command
         string $name,
         SchemaProperty $schemaProperty,
         Schema $schema,
-        bool $required
+        bool $required,
+        bool $schemaItem = false
     ): void {
         $innerSchema = new Schema(str_replace('\\', '_', $name));
         $reflection = new ReflectionClass($name);
@@ -332,11 +333,19 @@ final class SwaggerGenerate extends Command
             );
         }
         $this->components[] = $innerSchema;
-        $schemaProperty
-            ->setType('object')
-            ->setRef(str_replace('\\', '_', $name));
-        $schema->addProperty($schemaProperty);
-        if ($required) $schema->addRequired($schemaProperty);
+        if ($schemaItem) {
+            $schemaProperty
+                ->setType('array')
+                ->setItems(new SchemaItem(type: 'object', ref: str_replace('\\', '_', $name)));
+            $schema->addProperty($schemaProperty);
+            if ($required) $schema->addRequired($schemaProperty);
+        } else {
+            $schemaProperty
+                ->setType('object')
+                ->setRef(str_replace('\\', '_', $name));
+            $schema->addProperty($schemaProperty);
+            if ($required) $schema->addRequired($schemaProperty);
+        }
     }
 
     private function getRequiredPropertiesList(ReflectionClass $reflection): array

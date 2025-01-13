@@ -16,7 +16,16 @@ use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 use OV\JsonRPCAPIBundle\RPC\V1\Test\TestRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\Test\TestResponse;
 
-#[JsonRPCAPI(methodName: 'test', type: 'POST', ignoreInSwagger: true)]
+#[JsonRPCAPI(
+    methodName: 'test',
+    type: 'POST',
+    version: 1,
+    summary: 'Test method summary',
+    tags: ['test'],
+    description: 'Test method description',
+    ignoreInSwagger: true,
+    roles: ['ROLE_PENTESTER']
+)]
 final class TestMethod
 {
     public function call(TestRequest $request): TestResponse

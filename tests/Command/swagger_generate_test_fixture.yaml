@@ -3,7 +3,7 @@ info:
     title: title
     description: description
     termsOfService: terms_of_service_url
-    version: '3'
+    version: '1'
     contact:
         name: name
         url: url
@@ -13,13 +13,626 @@ info:
         url: licenseUrl
 servers:
     -
-        url: 'http://localhost.ololo:35080/api/v3'
+        url: 'http://localhost.ololo:35080/api/v1'
         description: 'Production server (uses live data)'
     -
-        url: 'http://localhost.testoviy:35080/api/v3'
+        url: 'http://localhost.testoviy:35080/api/v1'
         description: 'Sandbox server (uses test data)'
-tags: {  }
-paths: {  }
+tags:
+    -
+        name: math
+    -
+        name: mathematic
+    -
+        name: test
+paths:
+    /get_data:
+        post:
+            parameters:
+                -
+                    in: header
+                    name: X-AUTH-TOKEN
+                    schema:
+                        type: string
+                    example: 2f1f6aee7d994528fde6e47a493cc097
+            summary: ''
+            description: ''
+            requestBody:
+                description: ''
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/get_dataMainRequest'
+            responses:
+                200:
+                    description: ''
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_GetData_GetDataResponseResponse'
+    /notify_hello:
+        post:
+            parameters:
+                -
+                    in: header
+                    name: X-AUTH-TOKEN
+                    schema:
+                        type: string
+                    example: 2f1f6aee7d994528fde6e47a493cc097
+            summary: ''
+            description: ''
+            requestBody:
+                description: ''
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/notify_helloMainRequest'
+            responses:
+                200:
+                    description: ''
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_NotifyHello_NotifyHelloResponseResponse'
+    /notify_sum:
+        post:
+            parameters:
+                -
+                    in: header
+                    name: X-AUTH-TOKEN
+                    schema:
+                        type: string
+                    example: 2f1f6aee7d994528fde6e47a493cc097
+            summary: ''
+            description: ''
+            requestBody:
+                description: ''
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/notify_sumMainRequest'
+            responses:
+                200:
+                    description: ''
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_NotifySum_NotifySumResponseResponse'
+            tags:
+                - math
+    /subtract_2:
+        post:
+            parameters:
+                -
+                    in: header
+                    name: X-AUTH-TOKEN
+                    schema:
+                        type: string
+                    example: 2f1f6aee7d994528fde6e47a493cc097
+            summary: ''
+            description: ''
+            requestBody:
+                description: ''
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/subtract2MainRequest'
+            responses:
+                200:
+                    description: ''
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_Subtract2_Subtract2ResponseResponse'
+            tags:
+                - math
+    /subtract:
+        post:
+            parameters:
+                -
+                    in: header
+                    name: X-AUTH-TOKEN
+                    schema:
+                        type: string
+                    example: 2f1f6aee7d994528fde6e47a493cc097
+            summary: ''
+            description: ''
+            requestBody:
+                description: ''
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/subtractMainRequest'
+            responses:
+                200:
+                    description: ''
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_Subtract_SubtractResponseResponse'
+            tags:
+                - mathematic
+    /sum:
+        post:
+            parameters:
+                -
+                    in: header
+                    name: X-AUTH-TOKEN
+                    schema:
+                        type: string
+                    example: 2f1f6aee7d994528fde6e47a493cc097
+            summary: ''
+            description: ''
+            requestBody:
+                description: ''
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/sumMainRequest'
+            responses:
+                200:
+                    description: ''
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_Sum_SumResponseResponse'
+            tags:
+                - mathematic
+    /test:
+        post:
+            parameters:
+                -
+                    in: header
+                    name: X-AUTH-TOKEN
+                    schema:
+                        type: string
+                    example: 2f1f6aee7d994528fde6e47a493cc097
+            summary: 'Test method summary'
+            description: 'Test method description'
+            requestBody:
+                description: ''
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/testMainRequest'
+            responses:
+                200:
+                    description: ''
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_Test_TestResponseResponse'
+            tags:
+                - test
+    /update:
+        put:
+            parameters:
+                -
+                    in: header
+                    name: X-AUTH-TOKEN
+                    schema:
+                        type: string
+                    example: 2f1f6aee7d994528fde6e47a493cc097
+            summary: ''
+            description: ''
+            requestBody:
+                description: ''
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/updateMainRequest'
+            responses:
+                200:
+                    description: ''
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_Update_UpdateResponseResponse'
+    /get_picture:
+        post:
+            parameters:
+                -
+                    in: header
+                    name: X-AUTH-TOKEN
+                    schema:
+                        type: string
+                    example: 2f1f6aee7d994528fde6e47a493cc097
+            summary: ''
+            description: 'get picture method'
+            requestBody:
+                description: ''
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/GetPictureMainRequest'
+            responses:
+                200:
+                    description: ''
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_GetPicture_PlainResponseResponse'
 components:
-    schemas: {  }
+    schemas:
+        get_dataRequest:
+            type: object
+            properties: {  }
+        get_dataMainRequest:
+            type: object
+            properties:
+                jsonrpc:
+                    type: string
+                    example: '2.0'
+                    default: '2.0'
+                method:
+                    type: string
+                    example: get_data
+                    default: get_data
+                params:
+                    $ref: '#/components/schemas/get_dataRequest'
+            required:
+                - jsonrpc
+                - method
+                - params
+        OV_JsonRPCAPIBundle_RPC_V1_GetData_GetDataResponseResponse:
+            type: object
+            properties:
+                jsonrpc:
+                    type: string
+                    example: '2.0'
+                    default: '2.0'
+                result:
+                    type: array
+            required:
+                - jsonrpc
+                - result
+        notify_helloRequest:
+            type: object
+            properties:
+                params:
+                    type: array
+        notify_helloMainRequest:
+            type: object
+            properties:
+                jsonrpc:
+                    type: string
+                    example: '2.0'
+                    default: '2.0'
+                method:
+                    type: string
+                    example: notify_hello
+                    default: notify_hello
+                params:
+                    $ref: '#/components/schemas/notify_helloRequest'
+            required:
+                - jsonrpc
+                - method
+                - params
+        OV_JsonRPCAPIBundle_RPC_V1_NotifyHello_NotifyHelloResponseResponse:
+            type: object
+            properties:
+                jsonrpc:
+                    type: string
+                    example: '2.0'
+                    default: '2.0'
+            required:
+                - jsonrpc
+        notify_sumRequest:
+            type: object
+            properties:
+                params:
+                    type: array
+        notify_sumMainRequest:
+            type: object
+            properties:
+                jsonrpc:
+                    type: string
+                    example: '2.0'
+                    default: '2.0'
+                method:
+                    type: string
+                    example: notify_sum
+                    default: notify_sum
+                params:
+                    $ref: '#/components/schemas/notify_sumRequest'
+            required:
+                - jsonrpc
+                - method
+                - params
+        OV_JsonRPCAPIBundle_RPC_V1_NotifySum_NotifySumResponseResponse:
+            type: object
+            properties:
+                jsonrpc:
+                    type: string
+                    example: '2.0'
+                    default: '2.0'
+            required:
+                - jsonrpc
+        subtract2Request:
+            type: object
+            properties:
+                subtrahend:
+                    type: integer
+                minuend:
+                    type: integer
+        subtract2MainRequest:
+            type: object
+            properties:
+                jsonrpc:
+                    type: string
+                    example: '2.0'
+                    default: '2.0'
+                method:
+                    type: string
+                    example: subtract2
+                    default: subtract2
+                params:
+                    $ref: '#/components/schemas/subtract2Request'
+            required:
+                - jsonrpc
+                - method
+                - params
+        OV_JsonRPCAPIBundle_RPC_V1_Subtract2_Subtract2ResponseResponse:
+            type: object
+            properties:
+                jsonrpc:
+                    type: string
+                    example: '2.0'
+                    default: '2.0'
+                result:
+                    type: integer
+            required:
+                - jsonrpc
+                - result
+        subtractRequest:
+            type: object
+            properties:
+                params:
+                    type: array
+        subtractMainRequest:
+            type: object
+            properties:
+                jsonrpc:
+                    type: string
+                    example: '2.0'
+                    default: '2.0'
+                method:
+                    type: string
+                    example: subtract
+                    default: subtract
+                params:
+                    $ref: '#/components/schemas/subtractRequest'
+            required:
+                - jsonrpc
+                - method
+                - params
+        OV_JsonRPCAPIBundle_RPC_V1_Subtract_SubtractResponseResponse:
+            type: object
+            properties:
+                jsonrpc:
+                    type: string
+                    example: '2.0'
+                    default: '2.0'
+                result:
+                    type: integer
+            required:
+                - jsonrpc
+                - result
+        sumRequest:
+            type: object
+            properties:
+                params:
+                    type: array
+        sumMainRequest:
+            type: object
+            properties:
+                jsonrpc:
+                    type: string
+                    example: '2.0'
+                    default: '2.0'
+                method:
+                    type: string
+                    example: sum
+                    default: sum
+                params:
+                    $ref: '#/components/schemas/sumRequest'
+            required:
+                - jsonrpc
+                - method
+                - params
+        OV_JsonRPCAPIBundle_RPC_V1_Sum_SumResponseResponse:
+            type: object
+            properties:
+                jsonrpc:
+                    type: string
+                    example: '2.0'
+                    default: '2.0'
+                result:
+                    type: integer
+            required:
+                - jsonrpc
+                - result
+        testRequest:
+            type: object
+            properties:
+                id:
+                    type: integer
+                title:
+                    type: string
+            required:
+                - id
+        testMainRequest:
+            type: object
+            properties:
+                jsonrpc:
+                    type: string
+                    example: '2.0'
+                    default: '2.0'
+                method:
+                    type: string
+                    example: test
+                    default: test
+                params:
+                    $ref: '#/components/schemas/testRequest'
+                id:
+                    type: integer
+                    example: '0'
+                    default: '0'
+            required:
+                - jsonrpc
+                - method
+                - params
+                - id
+        OV_JsonRPCAPIBundle_RPC_V1_Test_TestRequest:
+            type: object
+            properties:
+                id:
+                    type: integer
+                title:
+                    type: string
+            required:
+                - id
+        OV_JsonRPCAPIBundle_RPC_V1_Test_Test:
+            type: object
+            properties:
+                name:
+                    type: string
+            required:
+                - name
+        OV_JsonRPCAPIBundle_RPC_V1_Test_TestResponseResponse:
+            type: object
+            properties:
+                jsonrpc:
+                    type: string
+                    example: '2.0'
+                    default: '2.0'
+                success:
+                    type: boolean
+                    example: '1'
+                    default: '1'
+                title:
+                    type: string
+                    example: 'iphone 12'
+                    default: ''
+                    format: '/[A-Za-z0-9]+/]/'
+                request:
+                    $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_Test_TestRequest'
+                tests:
+                    type: array
+                    items:
+                        type: object
+                        $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_Test_Test'
+                errors:
+                    type: array
+                    items:
+                        type: string
+                id:
+                    type: integer
+                    example: '0'
+                    default: '0'
+            required:
+                - jsonrpc
+                - title
+                - id
+        updateRequest:
+            type: object
+            properties:
+                params:
+                    type: array
+        updateMainRequest:
+            type: object
+            properties:
+                jsonrpc:
+                    type: string
+                    example: '2.0'
+                    default: '2.0'
+                method:
+                    type: string
+                    example: update
+                    default: update
+                params:
+                    $ref: '#/components/schemas/updateRequest'
+            required:
+                - jsonrpc
+                - method
+                - params
+        OV_JsonRPCAPIBundle_RPC_V1_Update_UpdateResponseResponse:
+            type: object
+            properties:
+                jsonrpc:
+                    type: string
+                    example: '2.0'
+                    default: '2.0'
+            required:
+                - jsonrpc
+        GetPictureRequest:
+            type: object
+            properties:
+                id:
+                    type: integer
+            required:
+                - id
+        GetPictureMainRequest:
+            type: object
+            properties:
+                jsonrpc:
+                    type: string
+                    example: '2.0'
+                    default: '2.0'
+                method:
+                    type: string
+                    example: GetPicture
+                    default: GetPicture
+                params:
+                    $ref: '#/components/schemas/GetPictureRequest'
+                id:
+                    type: integer
+                    example: '0'
+                    default: '0'
+            required:
+                - jsonrpc
+                - method
+                - params
+                - id
+        Symfony_Component_HttpFoundation_ResponseHeaderBag:
+            type: object
+            properties:
+                computedCacheControl:
+                    type: array
+                cookies:
+                    type: array
+                headerNames:
+                    type: array
+                headers:
+                    type: array
+                cacheControl:
+                    type: array
+        OV_JsonRPCAPIBundle_RPC_V1_GetPicture_PlainResponseResponse:
+            type: object
+            properties:
+                jsonrpc:
+                    type: string
+                    example: '2.0'
+                    default: '2.0'
+                headers:
+                    $ref: '#/components/schemas/Symfony_Component_HttpFoundation_ResponseHeaderBag'
+                content:
+                    type: string
+                version:
+                    type: string
+                statusCode:
+                    type: integer
+                statusText:
+                    type: string
+                charset:
+                    type: string
+                statusTexts:
+                    type: array
+                id:
+                    type: integer
+                    example: '0'
+                    default: '0'
+            required:
+                - jsonrpc
+                - id
 
