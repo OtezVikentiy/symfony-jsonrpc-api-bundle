@@ -39,6 +39,9 @@ final class BaseSimpleControllerTest extends AbstractTest
             'result' => [
                 'title' => 'AZAZAZA',
                 'success' => true,
+                'request' => null,
+                'tests' => [],
+                'errors' => [],
             ],
             'id' => '1',
         ];
