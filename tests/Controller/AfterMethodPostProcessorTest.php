@@ -3,17 +3,17 @@
 namespace OV\JsonRPCAPIBundle\Tests\Controller;
 
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
-use OV\JsonRPCAPIBundle\RPC\V1\TestPreProcessor\Request;
-use OV\JsonRPCAPIBundle\RPC\V1\TestPreProcessorMethod;
+use OV\JsonRPCAPIBundle\RPC\V1\TestPostProcessorMethod;
+use OV\JsonRPCAPIBundle\RPC\V1\TestPostProcessor\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class BeforeMethodPreProcessorTest extends AbstractTest
+final class AfterMethodPostProcessorTest extends AbstractTest
 {
     public function testController()
     {
         $data = [
             'jsonrpc' => '2.0',
-            'method' => 'testPreProcessor',
+            'method' => 'testPostProcessor',
             'params' => [
                 'title' => 'AZAZAZA',
             ],
@@ -21,12 +21,12 @@ final class BeforeMethodPreProcessorTest extends AbstractTest
         ];
 
         $methodSpec = new MethodSpec(
-            methodClass: TestPreProcessorMethod::class,
+            methodClass: TestPostProcessorMethod::class,
             requestType: 'POST',
             summary: '',
             description: '',
             ignoreInSwagger: false,
-            methodName: 'testPreProcessor',
+            methodName: 'testPostProcessor',
             allParameters: [['name' => 'id', 'type' => 'int'], ['name' => 'title', 'type' => 'string']],
             requiredParameters: [['name' => 'id', 'type' => 'int']],
             request: Request::class,
@@ -34,7 +34,8 @@ final class BeforeMethodPreProcessorTest extends AbstractTest
             validators: ['id' => ['allowsNull' => false, 'type' => 'int'], 'title' => ['allowsNull' => false, 'type' => 'string']],
             roles: [],
             plainResponse: false,
-            preProcessorExists: true
+            preProcessorExists: false,
+            postProcessorExists: true,
         );
 
         $responseData = [
@@ -51,12 +52,12 @@ final class BeforeMethodPreProcessorTest extends AbstractTest
 
         $this->assertInstanceOf(JsonResponse::class, $result);
         $this->assertEquals(200, $result->getStatusCode());
-        $this->assertStringEqualsFile('./tests/_tmp/AfterMethodPreProcessorsTest.log', 'AfterMethodPreProcessorsTest: AZAZAZA');
+        $this->assertStringEqualsFile('./tests/_tmp/AfterMethodPostProcessorsTest.log', 'AfterMethodPostProcessorsTest: AZAZAZA');
         $this->assertEquals(json_encode($responseData), $result->getContent());
     }
 
     protected function after(): void
     {
-        file_put_contents('./tests/_tmp/AfterMethodPreProcessorsTest.log', '');
+        file_put_contents('./tests/_tmp/AfterMethodPostProcessorsTest.log', '');
     }
 }

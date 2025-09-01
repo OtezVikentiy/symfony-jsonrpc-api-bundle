@@ -85,36 +85,34 @@ class Response
 }
 ```
 
-Below is an abstract method from which all other
-methods will be inherited (conditionally). It determines, depending on the method, which processors are used in a particular
-case.
-This approach will be useful in cases where you want, for example, to log calls to your endpoints
-or, perhaps, send something to email for each call to some methods.
+Below is a trait that contains preprocessor functions.
+This approach would be useful, for example, if you want to log endpoint calls
+or perhaps send something to an email every time some methods are called. You just need to create a trait and use it in
+all API methods where it is required.
 
 ```php
 <?php
-// src/RPC/V1/AbstractMethod.php
+// src/RPC/RpcPreProcessorTrait.php
 
-namespace App\RPC\V1;
+namespace App\RPC;
 
-use OV\JsonRPCAPIBundle\Core\PreProcessorInterface;
 use Psr\Log\LoggerInterface;
 
-abstract class AbstractMethod implements PreProcessorInterface
+trait RpcPreProcessorTrait
 {
     public function __construct(
         private readonly LoggerInterface $logger,
     ){
     }
 
-    public function getProcessors(): array
+    public function getPreProcessors(): array
     {
         return [
-            GetProductsMethod::class => ['log'],
+            static::class => ['log'],
         ];
     }
 
-    public function log($request) {
+    public function log(string $processorClass, ?object $requestInstance = null) {
         $this->logger->emergency('TEST TEST TEST ');
     }
 }
@@ -126,12 +124,16 @@ abstract class AbstractMethod implements PreProcessorInterface
 namespace App\RPC\V1;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+use OV\JsonRPCAPIBundle\Core\PreProcessorInterface;
 use App\RPC\V1\GetProduct\Request;
 use App\RPC\V1\GetProduct\Response;
+use App\RPC\RpcPreProcessorTrait;
 
 #[JsonRPCAPI(methodName: 'getProduct', type: 'POST')]
-class GetProductMethod extends AbstractMethod
+class GetProductMethod implements PreProcessorInterface
 {
+    use RpcPreProcessorTrait;
+    
     /**
      * @param Request $request // !!!ATTENTION!!! Do not rename this param - just change type, but not the name of variable
      * @return Response
@@ -142,6 +144,35 @@ class GetProductMethod extends AbstractMethod
         $response->setTitle('Iphone 15');
         $response->setPrice(2000);
         return new Response();
+    }
+}
+```
+The trait for creating post-processors works in a similar way. The only difference is that it is called after the main 
+logic and an additional response from the called API method is passed to it. Example of a trait:
+```php
+<?php
+// src/RPC/RpcPostProcessorTrait.php
+
+namespace App\RPC;
+
+use Psr\Log\LoggerInterface;
+
+trait RpcPostProcessorTrait
+{
+    public function __construct(
+        private readonly LoggerInterface $logger,
+    ){
+    }
+
+    public function getPostProcessors(): array
+    {
+        return [
+            static::class => ['log'],
+        ];
+    }
+
+    public function log(string $processorClass, ?object $requestInstance = null, ?OvResponseInterface $response = null) {
+        $this->logger->emergency('TEST TEST TEST ');
     }
 }
 ```

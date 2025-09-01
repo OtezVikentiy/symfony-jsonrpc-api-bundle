@@ -2,6 +2,7 @@
 
 namespace OV\JsonRPCAPIBundle\Core\Services;
 
+use OV\JsonRPCAPIBundle\Core\PostProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\PreProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\Request\BaseRequest;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
@@ -71,17 +72,18 @@ final readonly class RequestHandler
                 $this->runPreProcessors($processor, $processorClass, $requestInstance);
             }
 
-            /** @var mixed|Response $result */
-            $result = $processor->call($requestInstance);
+            /** @var mixed|Response $response */
+            $response = $processor->call($requestInstance);
 
-            if ($methodSpec->isPlainResponse() && $result instanceof PlainResponseInterface) {
-                $result->headers->add($this->headersPreparer->prepareHeaders());
+            if ($methodSpec->isPlainResponse() && $response instanceof PlainResponseInterface) {
+                $response->headers->add($this->headersPreparer->prepareHeaders());
 
-                return $result;
+                return $response;
             }
 
-            if (!is_null($baseRequest->getId()) || !empty((array)$result)) {
-                return $this->responseService->prepareJsonResponse(new BaseResponse($result, $baseRequest->getId() ?? null));
+            if (!is_null($baseRequest->getId()) || !empty((array)$response)) {
+                $response = $this->responseService->prepareJsonResponse(new BaseResponse($response, $baseRequest->getId() ?? null));
+                return $response;
             }
             unset($baseRequest);
         } catch (JRPCException|Throwable $e) {
@@ -91,7 +93,18 @@ final readonly class RequestHandler
                 default => $id = null,
             };
 
-            return $this->responseService->prepareJsonResponse(new ErrorResponse(error: $e, id: $id));
+            $response = $this->responseService->prepareJsonResponse(new ErrorResponse(error: $e, id: $id));
+            return $response;
+        } finally {
+            if (
+                isset($methodSpec)
+                && isset($processor)
+                && isset($processorClass)
+                && $methodSpec->isPostProcessorExists()
+                && $processor instanceof PostProcessorInterface
+            ) {
+                $this->runPostProcessors($processor, $processorClass, $requestInstance ?? null, $response ?? null);
+            }
         }
 
         return null;
@@ -112,6 +125,27 @@ final readonly class RequestHandler
 
                 foreach ($preProcessorsArr as $func) {
                     $processor->$func($processorClass, $requestInstance);
+                }
+            }
+        }
+    }
+
+    private function runPostProcessors(
+        PostProcessorInterface $processor,
+        string $processorClass,
+        ?object $requestInstance = null,
+        ?OvResponseInterface $response = null,
+    ): void {
+        $preProcessors = $processor->getPostProcessors();
+
+        if (!empty($preProcessors)) {
+            foreach ($preProcessors as $processorClassName => $preProcessorsArr) {
+                if ($processorClassName !== $processorClass) {
+                    continue;
+                }
+
+                foreach ($preProcessorsArr as $func) {
+                    $processor->$func($processorClass, $requestInstance, $response);
                 }
             }
         }

@@ -12,6 +12,7 @@ namespace OV\JsonRPCAPIBundle\DependencyInjection;
 
 use Exception;
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+use OV\JsonRPCAPIBundle\Core\PostProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\PreProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\Response\PlainResponseInterface;
 use ReflectionClass;
@@ -169,12 +170,18 @@ final class CompilerPass implements CompilerPassInterface
                 }
             }
 
-            $preprocessorExists = false;
+            $preProcessorExists = false;
+            $postProcessorExists = false;
             $parentClass = $methodReflectionClass->getParentClass();
             if ($parentClass) {
-                $preprocessorExists = $parentClass->implementsInterface(PreProcessorInterface::class);
-            } elseif ($methodReflectionClass->implementsInterface(PreProcessorInterface::class)) {
-                $preprocessorExists = true;
+                $preProcessorExists = $parentClass->implementsInterface(PreProcessorInterface::class);
+                $postProcessorExists = $parentClass->implementsInterface(PreProcessorInterface::class);
+            }
+            if ($methodReflectionClass->implementsInterface(PreProcessorInterface::class)) {
+                $preProcessorExists = true;
+            }
+            if ($methodReflectionClass->implementsInterface(PostProcessorInterface::class)) {
+                $postProcessorExists = true;
             }
 
             $methodAlias            = $this->getMethodAlias($methodName, $methodReflectionClass->getNamespaceName() . '\\' ?? '');
@@ -196,7 +203,8 @@ final class CompilerPass implements CompilerPassInterface
                 $roles,
                 $apiTags,
                 $plainResponse,
-                $preprocessorExists,
+                $preProcessorExists,
+                $postProcessorExists,
             ])->setPublic(true)->setAutowired(true)->setAutoconfigured(true)->setLazy(true);
 
             $methodSpecCollectionDefinition->addMethodCall(

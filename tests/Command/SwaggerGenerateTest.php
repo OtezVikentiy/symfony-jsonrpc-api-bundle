@@ -144,6 +144,7 @@ class SwaggerGenerateTest extends TestCase
                 tags: [],
                 plainResponse: false,
                 preProcessorExists: false,
+                postProcessorExists: false,
             ),
             new MethodSpec(
                 methodClass: NotifyHelloMethod::class,
@@ -161,6 +162,7 @@ class SwaggerGenerateTest extends TestCase
                 tags: [],
                 plainResponse: false,
                 preProcessorExists: false,
+                postProcessorExists: false,
             ),
             new MethodSpec(
                 methodClass: NotifySumMethod::class,
@@ -178,6 +180,7 @@ class SwaggerGenerateTest extends TestCase
                 tags: ['math'],
                 plainResponse: false,
                 preProcessorExists: false,
+                postProcessorExists: false,
             ),
             new MethodSpec(
                 methodClass: Subtract2Method::class,
@@ -195,6 +198,7 @@ class SwaggerGenerateTest extends TestCase
                 tags: ['math'],
                 plainResponse: false,
                 preProcessorExists: false,
+                postProcessorExists: false,
             ),
             new MethodSpec(
                 methodClass: SubtractMethod::class,
@@ -212,6 +216,7 @@ class SwaggerGenerateTest extends TestCase
                 tags: ['mathematic'],
                 plainResponse: false,
                 preProcessorExists: false,
+                postProcessorExists: false,
             ),
             new MethodSpec(
                 methodClass: SumMethod::class,
@@ -229,6 +234,7 @@ class SwaggerGenerateTest extends TestCase
                 tags: ['mathematic'],
                 plainResponse: false,
                 preProcessorExists: false,
+                postProcessorExists: false,
             ),
             new MethodSpec(
                 methodClass: TestMethod::class,
@@ -246,6 +252,7 @@ class SwaggerGenerateTest extends TestCase
                 tags: ['test'],
                 plainResponse: false,
                 preProcessorExists: false,
+                postProcessorExists: false,
             ),
             new MethodSpec(
                 methodClass: UpdateMethod::class,
@@ -263,6 +270,7 @@ class SwaggerGenerateTest extends TestCase
                 tags: [],
                 plainResponse: false,
                 preProcessorExists: false,
+                postProcessorExists: false,
             ),
             new MethodSpec(
                 methodClass: GetPictureMethod::class,
@@ -280,6 +288,7 @@ class SwaggerGenerateTest extends TestCase
                 tags: [],
                 plainResponse: true,
                 preProcessorExists: false,
+                postProcessorExists: false,
             ),
         ];
     }

@@ -28,6 +28,7 @@ readonly class MethodSpec
         private ?array $tags = null,
         private bool $plainResponse = false,
         private bool $preProcessorExists = false,
+        private bool $postProcessorExists = false,
     ) {
     }
 
@@ -104,6 +105,11 @@ readonly class MethodSpec
     public function isPreProcessorExists(): bool
     {
         return $this->preProcessorExists;
+    }
+
+    public function isPostProcessorExists(): bool
+    {
+        return $this->postProcessorExists;
     }
 
     public function getRoles(): array
