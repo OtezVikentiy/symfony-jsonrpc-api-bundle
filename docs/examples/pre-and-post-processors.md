@@ -85,10 +85,12 @@ class Response
 }
 ```
 
-Below is a trait that contains preprocessor functions.
-This approach would be useful, for example, if you want to log endpoint calls
-or perhaps send something to an email every time some methods are called. You just need to create a trait and use it in
-all API methods where it is required.
+Below are traits that contain preprocessor and postprocessor functions.
+This approach is useful, for example, if you want to log endpoint calls
+or, for example, send something to an email every time some methods are called. You just need to create traits and use interfaces in
+all API methods where they are required. Examples are shown below.
+
+Note that traits can use separate setter injections via functions, so that you do not have to copy-paste injection code from one API method to another.
 
 ```php
 <?php
@@ -96,8 +98,18 @@ all API methods where it is required.
 
 namespace App\RPC;
 
+use Psr\Log\LoggerInterface;
+
 trait RpcPreProcessorTrait
 {
+    private LoggerInterface $logger;
+
+    #[Required]
+    public function setLogger(LoggerInterface $logger): void
+    {
+        $this->logger = $logger;
+    }
+    
     public function getPreProcessors(): array
     {
         return [
@@ -106,7 +118,37 @@ trait RpcPreProcessorTrait
     }
 
     public function log(string $processorClass, ?object $requestInstance = null) {
-        file_put_contents('/var/log/dev.log', 'TEST TEST TEST ', FILE_APPEND);
+        $this->logger->warning('TEST TEST TEST');
+    }
+}
+```
+```php
+<?php
+// src/RPC/RpcPostProcessorTrait.php
+
+namespace App\RPC;
+
+use Psr\Log\LoggerInterface;
+
+trait RpcPostProcessorTrait
+{
+    private LoggerInterface $logger;
+
+    #[Required]
+    public function setAnotherLogger(LoggerInterface $logger): void
+    {
+        $this->logger = $logger;
+    }
+    
+    public function getPostProcessors(): array
+    {
+        return [
+            static::class => ['log'],
+        ];
+    }
+
+    public function log(string $processorClass, ?object $requestInstance = null, ?OvResponseInterface $response = null) {
+        $this->logger->warning('TEST TEST TEST');
     }
 }
 ```
@@ -123,9 +165,10 @@ use App\RPC\V1\GetProduct\Response;
 use App\RPC\RpcPreProcessorTrait;
 
 #[JsonRPCAPI(methodName: 'getProduct', type: 'POST')]
-class GetProductMethod implements PreProcessorInterface
+class GetProductMethod implements PreProcessorInterface, PostProcessorInterface
 {
     use RpcPreProcessorTrait;
+    use RpcPostProcessorTrait;
     
     /**
      * @param Request $request // !!!ATTENTION!!! Do not rename this param - just change type, but not the name of variable
@@ -137,28 +180,6 @@ class GetProductMethod implements PreProcessorInterface
         $response->setTitle('Iphone 15');
         $response->setPrice(2000);
         return new Response();
-    }
-}
-```
-The trait for creating post-processors works in a similar way. The only difference is that it is called after the main 
-logic and an additional response from the called API method is passed to it. Example of a trait:
-```php
-<?php
-// src/RPC/RpcPostProcessorTrait.php
-
-namespace App\RPC;
-
-trait RpcPostProcessorTrait
-{
-    public function getPostProcessors(): array
-    {
-        return [
-            static::class => ['log'],
-        ];
-    }
-
-    public function log(string $processorClass, ?object $requestInstance = null, ?OvResponseInterface $response = null) {
-        file_put_contents('/var/log/dev.log', 'TEST TEST TEST ', FILE_APPEND);
     }
 }
 ```
