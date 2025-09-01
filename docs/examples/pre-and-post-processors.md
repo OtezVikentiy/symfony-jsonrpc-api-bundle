@@ -1,12 +1,12 @@
-# Callbacks example
+# PreProcessor example
 
 ---
 
 ## Description
 
-Every API endpoint can have multiple callbacks.
-Every callback is called AFTER the main logic of method is processed.
-For example, method getProduct has a callback for logging some data about request.
+Every API endpoint can have multiple preprocessors.
+Every preprocessor is called BEFORE the main logic of method is processed.
+For example, method getProduct has a preprocessor for logging some data about request.
 
 ---
 
@@ -86,27 +86,28 @@ class Response
 ```
 
 Below is an abstract method from which all other
-methods will be inherited (conditionally). It determines, depending on the method, which callbacks are used in a particular
+methods will be inherited (conditionally). It determines, depending on the method, which processors are used in a particular
 case.
 This approach will be useful in cases where you want, for example, to log calls to your endpoints
 or, perhaps, send something to email for each call to some methods.
+
 ```php
 <?php
 // src/RPC/V1/AbstractMethod.php
 
 namespace App\RPC\V1;
 
-use OV\JsonRPCAPIBundle\Core\CallbacksInterface;
+use OV\JsonRPCAPIBundle\Core\PreProcessorInterface;
 use Psr\Log\LoggerInterface;
 
-abstract class AbstractMethod implements CallbacksInterface
+abstract class AbstractMethod implements PreProcessorInterface
 {
     public function __construct(
         private readonly LoggerInterface $logger,
     ){
     }
 
-    public function getCallbacks(): array
+    public function getProcessors(): array
     {
         return [
             GetProductsMethod::class => ['log'],

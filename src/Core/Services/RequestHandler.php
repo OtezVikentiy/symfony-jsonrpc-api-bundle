@@ -2,7 +2,7 @@
 
 namespace OV\JsonRPCAPIBundle\Core\Services;
 
-use OV\JsonRPCAPIBundle\Core\CallbacksInterface;
+use OV\JsonRPCAPIBundle\Core\PreProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\Request\BaseRequest;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
 use OV\JsonRPCAPIBundle\Core\Response\BaseResponse;
@@ -67,8 +67,8 @@ final readonly class RequestHandler
             $processorClass = $methodSpec->getMethodClass();
             $processor = $this->container->get($processorClass);
 
-            if ($methodSpec->isCallbacksExists() && $processor instanceof CallbacksInterface) {
-                $this->processCallbacks($processor, $processorClass, $requestInstance);
+            if ($methodSpec->isPreProcessorExists() && $processor instanceof PreProcessorInterface) {
+                $this->runPreProcessors($processor, $processorClass, $requestInstance);
             }
 
             /** @var mixed|Response $result */
@@ -97,20 +97,20 @@ final readonly class RequestHandler
         return null;
     }
 
-    private function processCallbacks(
-        CallbacksInterface $processor,
+    private function runPreProcessors(
+        PreProcessorInterface $processor,
         string $processorClass,
         ?object $requestInstance = null
     ): void {
-        $callbacks = $processor->getCallbacks();
+        $preProcessors = $processor->getPreProcessors();
 
-        if (!empty($callbacks)) {
-            foreach ($callbacks as $processorClassName => $callbackArr) {
+        if (!empty($preProcessors)) {
+            foreach ($preProcessors as $processorClassName => $preProcessorsArr) {
                 if ($processorClassName !== $processorClass) {
                     continue;
                 }
 
-                foreach ($callbackArr as $func) {
+                foreach ($preProcessorsArr as $func) {
                     $processor->$func($processorClass, $requestInstance);
                 }
             }

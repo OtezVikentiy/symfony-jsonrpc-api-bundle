@@ -27,7 +27,7 @@ readonly class MethodSpec
         private array $roles = [],
         private ?array $tags = null,
         private bool $plainResponse = false,
-        private bool $callbacksExists = false,
+        private bool $preProcessorExists = false,
     ) {
     }
 
@@ -101,9 +101,9 @@ readonly class MethodSpec
         return $this->plainResponse;
     }
 
-    public function isCallbacksExists(): bool
+    public function isPreProcessorExists(): bool
     {
-        return $this->callbacksExists;
+        return $this->preProcessorExists;
     }
 
     public function getRoles(): array

@@ -31,7 +31,7 @@ final class PlainResponseTest extends AbstractTest
             validators: ['id' => ['allowsNull' => false, 'type' => 'int']],
             roles: [],
             plainResponse: true,
-            callbacksExists: false
+            preProcessorExists: false
         );
 
         $result = $this->executeControllerTest($data, $methodSpec);

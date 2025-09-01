@@ -143,7 +143,7 @@ class SwaggerGenerateTest extends TestCase
                 roles: [],
                 tags: [],
                 plainResponse: false,
-                callbacksExists: false,
+                preProcessorExists: false,
             ),
             new MethodSpec(
                 methodClass: NotifyHelloMethod::class,
@@ -160,7 +160,7 @@ class SwaggerGenerateTest extends TestCase
                 roles: [],
                 tags: [],
                 plainResponse: false,
-                callbacksExists: false,
+                preProcessorExists: false,
             ),
             new MethodSpec(
                 methodClass: NotifySumMethod::class,
@@ -177,7 +177,7 @@ class SwaggerGenerateTest extends TestCase
                 roles: [],
                 tags: ['math'],
                 plainResponse: false,
-                callbacksExists: false,
+                preProcessorExists: false,
             ),
             new MethodSpec(
                 methodClass: Subtract2Method::class,
@@ -194,7 +194,7 @@ class SwaggerGenerateTest extends TestCase
                 roles: [],
                 tags: ['math'],
                 plainResponse: false,
-                callbacksExists: false,
+                preProcessorExists: false,
             ),
             new MethodSpec(
                 methodClass: SubtractMethod::class,
@@ -211,7 +211,7 @@ class SwaggerGenerateTest extends TestCase
                 roles: [],
                 tags: ['mathematic'],
                 plainResponse: false,
-                callbacksExists: false,
+                preProcessorExists: false,
             ),
             new MethodSpec(
                 methodClass: SumMethod::class,
@@ -228,7 +228,7 @@ class SwaggerGenerateTest extends TestCase
                 roles: [],
                 tags: ['mathematic'],
                 plainResponse: false,
-                callbacksExists: false,
+                preProcessorExists: false,
             ),
             new MethodSpec(
                 methodClass: TestMethod::class,
@@ -245,7 +245,7 @@ class SwaggerGenerateTest extends TestCase
                 roles: ['ROLE_PENTESTER'],
                 tags: ['test'],
                 plainResponse: false,
-                callbacksExists: false,
+                preProcessorExists: false,
             ),
             new MethodSpec(
                 methodClass: UpdateMethod::class,
@@ -262,7 +262,7 @@ class SwaggerGenerateTest extends TestCase
                 roles: [],
                 tags: [],
                 plainResponse: false,
-                callbacksExists: false,
+                preProcessorExists: false,
             ),
             new MethodSpec(
                 methodClass: GetPictureMethod::class,
@@ -279,7 +279,7 @@ class SwaggerGenerateTest extends TestCase
                 roles: [],
                 tags: [],
                 plainResponse: true,
-                callbacksExists: false,
+                preProcessorExists: false,
             ),
         ];
     }

@@ -140,7 +140,7 @@ abstract class AbstractTest extends TestCase
         $methodSpecCollection = new MethodSpecCollection();
 
         $container = $this->createMock(Container::class);
-        $callbacks = [];
+        $preProcessors = [];
         foreach ($methodSpecs as $methodSpec) {
             $class = $methodSpec->getMethodClass();
             $methodReflectionClass = new \ReflectionClass(new $class());
@@ -161,7 +161,7 @@ abstract class AbstractTest extends TestCase
                 throw new \Exception('Could not define method name');
             }
             $methodSpecCollection->addMethodSpec(1, $methodName, $methodSpec);
-            $callbacks[] = [$class, 1, new $class()];
+            $preProcessors[] = [$class, 1, new $class()];
         }
 
         $serializer = $this->serviceLocator->get('serializer');
@@ -170,11 +170,11 @@ abstract class AbstractTest extends TestCase
             ->method('has')
             ->with($this->identicalTo('serializer'))
             ->willReturn(true);
-        $callbacks[] = ['serializer', 1, $serializer];
+        $preProcessors[] = ['serializer', 1, $serializer];
         $container
             ->expects($this->any())
             ->method('get')
-            ->willReturnMap($callbacks);
+            ->willReturnMap($preProcessors);
 
         $this->methodSpecCollection = $methodSpecCollection;
         $this->container = $container;

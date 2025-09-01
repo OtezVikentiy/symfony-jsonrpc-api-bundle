@@ -3,14 +3,14 @@
 
 namespace OV\JsonRPCAPIBundle\RPC\V1;
 
-use OV\JsonRPCAPIBundle\Core\CallbacksInterface;
+use OV\JsonRPCAPIBundle\Core\PreProcessorInterface;
 
-abstract class AbstractMethod implements CallbacksInterface
+abstract class AbstractMethod implements PreProcessorInterface
 {
-    public function getCallbacks(): array
+    public function getPreProcessors(): array
     {
         return [
-            TestCallbackMethod::class => ['log'],
+            TestPreProcessorMethod::class => ['log'],
             TestMethod::class => ['log'],
         ];
     }
@@ -18,6 +18,6 @@ abstract class AbstractMethod implements CallbacksInterface
     /** @noinspection PhpUnusedParameterInspection */
     public function log(string $processorClass, $request): void
     {
-        file_put_contents('./tests/_tmp/AfterMethodCallbackTest.log', sprintf('AfterMethodCallbackTest: %s', $request->getTitle()));
+        file_put_contents('./tests/_tmp/AfterMethodPreProcessorsTest.log', sprintf('AfterMethodPreProcessorsTest: %s', $request->getTitle()));
     }
 }

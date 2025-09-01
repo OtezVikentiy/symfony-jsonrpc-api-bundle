@@ -14,7 +14,7 @@
  * file that was distributed with this source code.
  */
 
-namespace OV\JsonRPCAPIBundle\RPC\V1\TestCallback;
+namespace OV\JsonRPCAPIBundle\RPC\V1\TestPreProcessor;
 
 final class Request
 {

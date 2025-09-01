@@ -11,11 +11,11 @@
 namespace OV\JsonRPCAPIBundle\RPC\V1;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
-use OV\JsonRPCAPIBundle\RPC\V1\TestCallback\Request;
-use OV\JsonRPCAPIBundle\RPC\V1\TestCallback\Response;
+use OV\JsonRPCAPIBundle\RPC\V1\TestPreProcessor\Request;
+use OV\JsonRPCAPIBundle\RPC\V1\TestPreProcessor\Response;
 
-#[JsonRPCAPI(methodName: 'testCallback', type: 'POST', ignoreInSwagger: true)]
-final class TestCallbackMethod extends AbstractMethod
+#[JsonRPCAPI(methodName: 'testPreProcessor', type: 'POST', ignoreInSwagger: true)]
+final class TestPreProcessorMethod extends AbstractMethod
 {
     public function call(Request $request): Response
     {
