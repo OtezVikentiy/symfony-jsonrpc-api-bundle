@@ -96,15 +96,8 @@ all API methods where it is required.
 
 namespace App\RPC;
 
-use Psr\Log\LoggerInterface;
-
 trait RpcPreProcessorTrait
 {
-    public function __construct(
-        private readonly LoggerInterface $logger,
-    ){
-    }
-
     public function getPreProcessors(): array
     {
         return [
@@ -113,7 +106,7 @@ trait RpcPreProcessorTrait
     }
 
     public function log(string $processorClass, ?object $requestInstance = null) {
-        $this->logger->emergency('TEST TEST TEST ');
+        file_put_contents('/var/log/dev.log', 'TEST TEST TEST ', FILE_APPEND);
     }
 }
 ```
@@ -155,15 +148,8 @@ logic and an additional response from the called API method is passed to it. Exa
 
 namespace App\RPC;
 
-use Psr\Log\LoggerInterface;
-
 trait RpcPostProcessorTrait
 {
-    public function __construct(
-        private readonly LoggerInterface $logger,
-    ){
-    }
-
     public function getPostProcessors(): array
     {
         return [
@@ -172,7 +158,7 @@ trait RpcPostProcessorTrait
     }
 
     public function log(string $processorClass, ?object $requestInstance = null, ?OvResponseInterface $response = null) {
-        $this->logger->emergency('TEST TEST TEST ');
+        file_put_contents('/var/log/dev.log', 'TEST TEST TEST ', FILE_APPEND);
     }
 }
 ```
