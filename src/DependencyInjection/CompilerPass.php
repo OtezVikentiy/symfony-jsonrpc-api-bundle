@@ -254,8 +254,12 @@ final class CompilerPass implements CompilerPassInterface
         }
 
         foreach ($propertiesIdx as $name => $typeData) {
-            $getter                         = $methodsIdx['get' . ucfirst($name)];
-            $setter                         = $methodsIdx['set' . ucfirst($name)];
+            if ($typeData['type'] === 'bool' || $typeData['type'] === 'boolean') {
+                $getter = $methodsIdx['is' . ucfirst($name)];
+            } else {
+                $getter = $methodsIdx['get' . ucfirst($name)];
+            }
+            $setter = $methodsIdx['set' . ucfirst($name)];
             $setterAndPropertyTypesAreEqual = $setter->getParameters()[0]->getType()->getName() !== $typeData['type'];
             if ($setterAndPropertyTypesAreEqual) {
                 throw new Exception(
