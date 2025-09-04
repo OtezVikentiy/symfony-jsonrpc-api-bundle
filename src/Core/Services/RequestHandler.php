@@ -205,6 +205,11 @@ final readonly class RequestHandler
 
         foreach ($values as $name => $value) {
             $setterName = 'set' . ucfirst($name);
+
+            if (!isset($methodsIdx[$setterName])) {
+                throw new JRPCException('Invalid params.', JRPCException::INVALID_PARAMS, sprintf('Parameters %s is not expected in request.', $name));
+            }
+
             $setter = $methodsIdx[$setterName];
             $setterArgumentType = $setter->getParameters()[0]->getType()->getName();
             if (class_exists($setterArgumentType)) {
