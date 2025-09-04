@@ -227,8 +227,13 @@ final readonly class RequestHandler
     private function processValidatorsForRequestInstance(MethodSpec $methodSpec, BaseRequest $baseRequest): void
     {
         $validators = [];
+        $excludeFromValidation = [];
         foreach ($methodSpec->getValidators() as $field => $validatorItem) {
             if ($validatorItem['allowsNull'] === false) {
+                if (class_exists($validatorItem['type'])) {
+                    $excludeFromValidation[] = $field;
+                    continue;
+                }
                 $validators[$field] = new Assert\Type($validatorItem['type']);
             } else {
                 $validators[$field] = new Assert\Optional([
@@ -245,6 +250,9 @@ final readonly class RequestHandler
         if (!is_null($baseRequest->getId())) {
             $requestData = $requestData + ['id' => $baseRequest->getId()];
         }
+
+        $excludeFromValidation = array_fill_keys($excludeFromValidation, null);
+        $requestData = array_diff_key($requestData, $excludeFromValidation);
 
         $violations = $this->validator->validate(
             $requestData,
