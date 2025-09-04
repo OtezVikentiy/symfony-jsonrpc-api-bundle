@@ -168,6 +168,11 @@ final readonly class RequestHandler
             $requestSetter = $methodSpec->getRequestSetters()[$allParameter['name']] ?? null;
             if (!is_null($requestSetter)) {
                 $value = $baseRequest->getParams()[$allParameter['name']] ?? null;
+
+                if (class_exists($allParameter['type'])) {
+                    $value = $this->prepareParametersFromClass($allParameter['type'], $value);
+                }
+
                 if ($allParameter['name'] === 'id') {
                     $value = $baseRequest->getParams()[$allParameter['name']] ?? $baseRequest->getId() ?? null;
                 }
@@ -181,6 +186,34 @@ final readonly class RequestHandler
         }
 
         return $requestInstance;
+    }
+
+    private function prepareParametersFromClass(string $class, array|string $values): object
+    {
+        if (is_string($values)) {
+            return new $class($values);
+        }
+
+        $parametersClass = new $class();
+
+        $classReflection = new \ReflectionClass($class);
+        $methods = $classReflection->getMethods();
+        $methodsIdx = [];
+        foreach ($methods as $method) {
+            $methodsIdx[$method->getName()] = $method;
+        }
+
+        foreach ($values as $name => $value) {
+            $setterName = 'set' . ucfirst($name);
+            $setter = $methodsIdx[$setterName];
+            $setterArgumentType = $setter->getParameters()[0]->getType()->getName();
+            if (class_exists($setterArgumentType)) {
+                $value = $this->prepareParametersFromClass($setterArgumentType, $value);
+            }
+            $parametersClass->$setterName($value);
+        }
+
+        return $parametersClass;
     }
 
     /**
