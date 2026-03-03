@@ -38,6 +38,7 @@ final class BatchRequestWithEmptyResponseTest extends AbstractTest
                 requiredParameters: [],
                 request: NotifySumRequest::class,
                 requestSetters: ['params' => 'setParams'],
+                requestAdders: [],
                 validators: ['params' => ['allowsNull' => false, 'type' => 'array']]
             ),
             new MethodSpec(
@@ -51,6 +52,7 @@ final class BatchRequestWithEmptyResponseTest extends AbstractTest
                 requiredParameters: [],
                 request: NotifyHelloRequest::class,
                 requestSetters: ['params' => 'setParams'],
+                requestAdders: [],
                 validators: ['params' => ['allowsNull' => false, 'type' => 'array']]
             ),
         ];

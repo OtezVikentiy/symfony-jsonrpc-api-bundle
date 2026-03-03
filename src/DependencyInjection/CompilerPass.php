@@ -26,7 +26,7 @@ use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
 
 final class CompilerPass implements CompilerPassInterface
 {
-    private const string CALL_METHOD = 'call';
+    private const CALL_METHOD = 'call';
 
     public function __construct(
         private readonly NameConverterInterface $nameConverter,
@@ -123,6 +123,7 @@ final class CompilerPass implements CompilerPassInterface
             $allParameters           = [];
             $requiredParameters      = [];
             $requestSetters          = [];
+            $requestAdders           = [];
             $validators              = [];
             $methodRequestReflection = null;
             $callParameters          = $methodReflectionClass->getMethod('call')->getParameters();
@@ -146,10 +147,24 @@ final class CompilerPass implements CompilerPassInterface
                 $requestMethods          = $methodRequestReflection->getMethods();
 
                 foreach ($requestMethods as $requestSingleMethod) {
-                    if (str_starts_with($requestSingleMethod->getName(), 'set')) {
+                    $name = $requestSingleMethod->getName();
+                    if (str_starts_with($name, 'set')) {
                         $name = $requestSingleMethod->getParameters()[0]?->getName() ?? null;
                         if (!is_null($name)) {
                             $requestSetters[$name] = $requestSingleMethod->getName();
+                        }
+                    } elseif (str_starts_with($name, 'add')) {
+                        $name = $requestSingleMethod->getParameters()[0]?->getName() ?? null;
+                        if (!is_null($name)) {
+                            $requestAdders[$name] = $requestSingleMethod->getName();
+
+                            unset($requestSetters[$name]);
+
+                            foreach ($allParameters as $k => $allParameter) {
+                                if (str_contains($allParameter['name'], $name)) {
+                                    $allParameters[$k]['type'] = $requestSingleMethod->getParameters()[0]?->getType()?->getName();
+                                }
+                            }
                         }
                     }
                 }
@@ -199,6 +214,7 @@ final class CompilerPass implements CompilerPassInterface
                 $requiredParameters,
                 $methodRequestReflection?->getName() ?? null,
                 $requestSetters,
+                $requestAdders,
                 $validators,
                 $roles,
                 $apiTags,

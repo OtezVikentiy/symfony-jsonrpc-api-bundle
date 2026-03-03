@@ -28,6 +28,7 @@ final class NonExistentMethodTest extends AbstractTest
             requiredParameters: [],
             request: UpdateRequest::class,
             requestSetters: ['params' => 'setParams'],
+            requestAdders: [],
             validators: ['params' => ['allowsNull' => false, 'type' => 'array']]
         );
 

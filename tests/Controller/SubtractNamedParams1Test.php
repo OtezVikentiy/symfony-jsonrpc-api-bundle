@@ -32,6 +32,7 @@ final class SubtractNamedParams1Test extends AbstractTest
             requiredParameters: [],
             request: Subtract2Request::class,
             requestSetters: ['subtrahend' => 'setSubtrahend', 'minuend' => 'setMinuend'],
+            requestAdders: [],
             validators: ['subtrahend' => ['allowsNull' => false, 'type' => 'int'], 'minuend' => ['allowsNull' => false, 'type' => 'int']]
         );
 

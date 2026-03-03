@@ -24,6 +24,7 @@ final class EmptyArrayRequestTest extends AbstractTest
             requiredParameters: [],
             request: UpdateRequest::class,
             requestSetters: ['params' => 'setParams'],
+            requestAdders: [],
             validators: ['params' => ['allowsNull' => false, 'type' => 'array']]
         );
 

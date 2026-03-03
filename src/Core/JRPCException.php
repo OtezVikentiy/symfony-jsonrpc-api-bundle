@@ -15,7 +15,7 @@ use Throwable;
 
 final class JRPCException extends Exception
 {
-    public const int
+    public const
         PARSE_ERROR = -32700,
         INVALID_REQUEST = -32600,
         METHOD_NOT_FOUND = -32601,

@@ -31,6 +31,7 @@ final class BeforeMethodPreProcessorTest extends AbstractTest
             requiredParameters: [['name' => 'id', 'type' => 'int']],
             request: Request::class,
             requestSetters: ['id' => 'setId', 'title' => 'setTitle'],
+            requestAdders: [],
             validators: ['id' => ['allowsNull' => false, 'type' => 'int'], 'title' => ['allowsNull' => false, 'type' => 'string']],
             roles: [],
             plainResponse: false,

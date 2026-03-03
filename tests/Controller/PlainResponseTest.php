@@ -28,6 +28,7 @@ final class PlainResponseTest extends AbstractTest
             requiredParameters: [['name' => 'id', 'type' => 'int']],
             request: Request::class,
             requestSetters: ['id' => 'setId'],
+            requestAdders: [],
             validators: ['id' => ['allowsNull' => false, 'type' => 'int']],
             roles: [],
             plainResponse: true,

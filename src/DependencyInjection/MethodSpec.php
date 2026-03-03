@@ -23,6 +23,7 @@ readonly class MethodSpec
         private array $requiredParameters,
         private ?string $request,
         private array $requestSetters,
+        private array $requestAdders,
         private array $validators,
         private array $roles = [],
         private ?array $tags = null,
@@ -75,6 +76,11 @@ readonly class MethodSpec
     public function getRequestSetters(): array
     {
         return $this->requestSetters;
+    }
+
+    public function getRequestAdders(): array
+    {
+        return $this->requestAdders;
     }
 
     public function getRequest(): ?string

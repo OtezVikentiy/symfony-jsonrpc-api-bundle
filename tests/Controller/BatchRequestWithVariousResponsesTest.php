@@ -63,6 +63,7 @@ final class BatchRequestWithVariousResponsesTest extends AbstractTest
                 requiredParameters: [],
                 request: SumRequest::class,
                 requestSetters: ['params' => 'setParams'],
+                requestAdders: [],
                 validators: ['params' => ['allowsNull' => false, 'type' => 'array']]
             ),
             new MethodSpec(
@@ -76,6 +77,7 @@ final class BatchRequestWithVariousResponsesTest extends AbstractTest
                 requiredParameters: [],
                 request: NotifyHelloRequest::class,
                 requestSetters: ['params' => 'setParams'],
+                requestAdders: [],
                 validators: ['params' => ['allowsNull' => false, 'type' => 'array']]
             ),
             new MethodSpec(
@@ -89,6 +91,7 @@ final class BatchRequestWithVariousResponsesTest extends AbstractTest
                 requiredParameters: [],
                 request: SubtractRequest::class,
                 requestSetters: ['params' => 'setParams'],
+                requestAdders: [],
                 validators: ['params' => ['allowsNull' => false, 'type' => 'array']]
             ),
             new MethodSpec(
@@ -102,6 +105,7 @@ final class BatchRequestWithVariousResponsesTest extends AbstractTest
                 requiredParameters: [],
                 request: GetDataRequest::class,
                 requestSetters: [],
+                requestAdders: [],
                 validators: []
             ),
         ];

@@ -165,19 +165,35 @@ final readonly class RequestHandler
         $requestInstance = new $requestClass(...$constructorParams);
 
         foreach ($methodSpec->getAllParameters() as $allParameter) {
-            $requestSetter = $methodSpec->getRequestSetters()[$allParameter['name']] ?? null;
+            $name = $allParameter['name'];
+            $requestAdder = $methodSpec->getRequestAdders()[substr($name, 0, -1)] ?? null;
+            if (!is_null($requestAdder)) {
+                $value = $baseRequest->getParams()[$name] ?? null;
+
+                if (class_exists($allParameter['type'])) {
+                    foreach ($value as $elem) {
+                        $elemVal = $this->prepareParametersFromClass($allParameter['type'], $elem);
+
+                        $requestInstance->$requestAdder($elemVal);
+                    }
+                }
+
+                continue;
+            }
+
+            $requestSetter = $methodSpec->getRequestSetters()[$name] ?? null;
             if (!is_null($requestSetter)) {
-                $value = $baseRequest->getParams()[$allParameter['name']] ?? null;
+                $value = $baseRequest->getParams()[$name] ?? null;
 
                 if (class_exists($allParameter['type'])) {
                     $value = $this->prepareParametersFromClass($allParameter['type'], $value);
                 }
 
-                if ($allParameter['name'] === 'id') {
-                    $value = $baseRequest->getParams()[$allParameter['name']] ?? $baseRequest->getId() ?? null;
+                if ($name === 'id') {
+                    $value = $baseRequest->getParams()[$name] ?? $baseRequest->getId() ?? null;
                 }
 
-                if (is_null($value) && $allParameter['name'] === 'params') {
+                if (is_null($value) && $name === 'params') {
                     $value = $baseRequest->getParams();
                 }
 

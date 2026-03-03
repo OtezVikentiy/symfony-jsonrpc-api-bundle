@@ -31,6 +31,7 @@ final class BaseSimpleControllerTest extends AbstractTest
             requiredParameters: [['name' => 'id', 'type' => 'int']],
             request: TestRequest::class,
             requestSetters: ['id' => 'setId', 'title' => 'setTitle'],
+            requestAdders: [],
             validators: ['id' => ['allowsNull' => false, 'type' => 'int'], 'title' => ['allowsNull' => false, 'type' => 'string']]
         );
 
