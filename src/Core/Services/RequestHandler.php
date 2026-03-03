@@ -166,15 +166,19 @@ final readonly class RequestHandler
 
         foreach ($methodSpec->getAllParameters() as $allParameter) {
             $name = $allParameter['name'];
-            $requestAdder = $methodSpec->getRequestAdders()[substr($name, 0, -1)] ?? null;
-            if (!is_null($requestAdder)) {
-                $value = $baseRequest->getParams()[$name] ?? null;
+            $value = $baseRequest->getParams()[$name] ?? null;
 
+            $requestAdder = $methodSpec->getRequestAdders()[substr($name, 0, -1)] ?? null;
+            if (!is_null($requestAdder) && !empty($value)) {
                 if (class_exists($allParameter['type'])) {
                     foreach ($value as $elem) {
                         $elemVal = $this->prepareParametersFromClass($allParameter['type'], $elem);
 
                         $requestInstance->$requestAdder($elemVal);
+                    }
+                } else {
+                    foreach ($value as $elem) {
+                        $requestInstance->$requestAdder($elem);
                     }
                 }
 
@@ -183,8 +187,6 @@ final readonly class RequestHandler
 
             $requestSetter = $methodSpec->getRequestSetters()[$name] ?? null;
             if (!is_null($requestSetter)) {
-                $value = $baseRequest->getParams()[$name] ?? null;
-
                 if (class_exists($allParameter['type'])) {
                     $value = $this->prepareParametersFromClass($allParameter['type'], $value);
                 }
