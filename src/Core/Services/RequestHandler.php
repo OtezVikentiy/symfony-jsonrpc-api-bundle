@@ -159,14 +159,19 @@ final readonly class RequestHandler
                 $constructorParams[] = $baseRequest->getId();
                 continue;
             }
-            $constructorParams[] = $baseRequest->getParams()[$requiredParameter['name']] ?? null;
+            $constructorParams[] = $baseRequest->getParams()[$requiredParameter['name']] ?? $requiredParameter['defaultValue'];
         }
 
         $requestInstance = new $requestClass(...$constructorParams);
 
         foreach ($methodSpec->getAllParameters() as $allParameter) {
             $name = $allParameter['name'];
-            $value = $baseRequest->getParams()[$name] ?? null;
+
+            if (!array_key_exists($name, $baseRequest->getParams()) && $allParameter['type'] !== 'array') {
+                continue;
+            }
+
+            $value = $baseRequest->getParams()[$name];
 
             $requestAdder = $methodSpec->getRequestAdders()[substr($name, 0, -1)] ?? null;
             if (!is_null($requestAdder) && !empty($value)) {

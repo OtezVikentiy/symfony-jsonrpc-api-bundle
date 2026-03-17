@@ -15,7 +15,11 @@ abstract class JsonRpcRequest
         $return = [];
         foreach ($properties as $property) {
             $getterName = $this->createGetter($property->getName(), $property->getType()->getName());
-            $return[$property->getName()] = $this->$getterName();
+            if ($property->isInitialized($this)) {
+                $return[$property->getName()] = $this->$getterName();
+            } elseif ($property->getType()->allowsNull()) {
+                $return[$property->getName()] = null;
+            }
         }
 
         return $return;

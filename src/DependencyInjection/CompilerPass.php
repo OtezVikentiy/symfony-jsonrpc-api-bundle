@@ -42,7 +42,7 @@ final class CompilerPass implements CompilerPassInterface
     {
         $methodSpecCollectionDefinition = $container->autowire(
             MethodSpecCollection::class,
-            MethodSpecCollection::class
+            MethodSpecCollection::class,
         );
 
         $methods = $container->findTaggedServiceIds('ov.rpc.method');
@@ -88,7 +88,7 @@ final class CompilerPass implements CompilerPassInterface
                             JsonRPCAPI attribute explicitly, or specify the API version number in the namespace, 
                             for example App\\RPC\\V1',
                             $namespace . '\\' . $className,
-                        )
+                        ),
                     );
                 }
 
@@ -101,7 +101,7 @@ final class CompilerPass implements CompilerPassInterface
                             JsonRPCAPI attribute explicitly, or specify the API version number in the namespace, 
                             for example App\\RPC\\V1',
                             $namespace . '\\' . $className,
-                        )
+                        ),
                     );
                 }
             }
@@ -115,8 +115,8 @@ final class CompilerPass implements CompilerPassInterface
                     sprintf(
                         'Method %s::%s is not defined',
                         $className,
-                        self::CALL_METHOD
-                    )
+                        self::CALL_METHOD,
+                    ),
                 );
             }
 
@@ -133,8 +133,8 @@ final class CompilerPass implements CompilerPassInterface
                     sprintf(
                         'Method %s::%s should have one or zero incoming parameters',
                         $className,
-                        self::CALL_METHOD
-                    )
+                        self::CALL_METHOD,
+                    ),
                 );
             }
 
@@ -229,7 +229,7 @@ final class CompilerPass implements CompilerPassInterface
                     '$version' => $version,
                     '$methodName' => $methodName,
                     '$methodSpec' => new Reference($methodSpecDefinitionId),
-                ]
+                ],
             );
         }
     }
@@ -237,11 +237,24 @@ final class CompilerPass implements CompilerPassInterface
     private function getProperties(array $properties = []): array
     {
         $return = [];
+
         foreach ($properties as $property) {
-            $return[] = [
+            $propData = [
                 'name' => $property->getName(),
                 'type' => $property->getType()->getName(),
             ];
+
+            if ($property instanceof  \ReflectionProperty) {
+                $method = 'hasDefaultValue';
+            } elseif ($property instanceof \ReflectionParameter) {
+                $method = 'isDefaultValueAvailable';
+            }
+
+            if ($property->$method()) {
+                $propData['defaultValue'] = $property->getDefaultValue();
+            }
+
+            $return[] = $propData;
         }
         return $return;
     }
@@ -260,7 +273,7 @@ final class CompilerPass implements CompilerPassInterface
         foreach ($properties as $property) {
             $propertiesIdx[$property->getName()] = [
                 'type' => $property->getType()->getName(),
-                'allowsNull' => $property->getType()->allowsNull(),
+                'allowsNull' => $property->getType()->allowsNull() || $property->hasDefaultValue(),
             ];
         }
 
@@ -283,8 +296,8 @@ final class CompilerPass implements CompilerPassInterface
                         'Property %s of method %s has invalid data type in setter %s',
                         $name,
                         $requestReflection->getName(),
-                        $setter->getName()
-                    )
+                        $setter->getName(),
+                    ),
                 );
             }
             $getterAndPropertyTypesAreEqual = $getter->getReturnType()->getName() !== $typeData['type'];
@@ -294,8 +307,8 @@ final class CompilerPass implements CompilerPassInterface
                         'Property %s of method %s has invalid data type in getter %s',
                         $name,
                         $requestReflection->getName(),
-                        $getter->getName()
-                    )
+                        $getter->getName(),
+                    ),
                 );
             }
 
