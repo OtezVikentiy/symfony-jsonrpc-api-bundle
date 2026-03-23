@@ -122,6 +122,7 @@ final class CompilerPass implements CompilerPassInterface
 
             $allParameters           = [];
             $requiredParameters      = [];
+            $requestGetters          = [];
             $requestSetters          = [];
             $requestAdders           = [];
             $validators              = [];
@@ -164,6 +165,12 @@ final class CompilerPass implements CompilerPassInterface
                                 if (str_contains($allParameter['name'], $name)) {
                                     $allParameters[$k]['type'] = $requestSingleMethod->getParameters()[0]?->getType()?->getName();
                                 }
+                            }
+                        }
+                    } elseif (str_starts_with($name, 'get') || str_starts_with($name, 'is')) {
+                        foreach ($allParameters as $k => $allParameter) {
+                            if (str_contains(mb_strtolower($name), mb_strtolower($allParameter['name']))) {
+                                $requestGetters[$allParameter['name']] = $name;
                             }
                         }
                     }
@@ -213,6 +220,7 @@ final class CompilerPass implements CompilerPassInterface
                 $allParameters,
                 $requiredParameters,
                 $methodRequestReflection?->getName() ?? null,
+                $requestGetters,
                 $requestSetters,
                 $requestAdders,
                 $validators,

@@ -63,7 +63,7 @@ final readonly class RequestHandler
                 $requestInstance = $this->processRequestClass($methodSpec, $baseRequest, $requestClass);
             }
 
-            $this->processValidatorsForRequestInstance($methodSpec, $baseRequest);
+            $this->processValidatorsForRequestInstance($methodSpec, $baseRequest, $requestInstance);
 
             $processorClass = $methodSpec->getMethodClass();
             $processor = $this->container->get($processorClass);
@@ -167,11 +167,17 @@ final readonly class RequestHandler
         foreach ($methodSpec->getAllParameters() as $allParameter) {
             $name = $allParameter['name'];
 
-            if (!array_key_exists($name, $baseRequest->getParams()) && $allParameter['type'] !== 'array') {
+            if (!array_key_exists($name, $baseRequest->getParams())) {
                 continue;
             }
 
-            $value = $baseRequest->getParams()[$name];
+            if (array_key_exists($name, $baseRequest->getParams())) {
+                $value = $baseRequest->getParams()[$name];
+            } elseif (array_key_exists('defaultValue', $allParameter)) {
+                $value = $allParameter['defaultValue'];
+            } else {
+                continue;
+            }
 
             $requestAdder = $methodSpec->getRequestAdders()[substr($name, 0, -1)] ?? null;
             if (!is_null($requestAdder) && !empty($value)) {
@@ -226,6 +232,7 @@ final readonly class RequestHandler
             $methodsIdx[$method->getName()] = $method;
         }
 
+        $invalidTypeErrors = [];
         foreach ($values as $name => $value) {
             $setterName = 'set' . ucfirst($name);
 
@@ -238,7 +245,16 @@ final readonly class RequestHandler
             if (class_exists($setterArgumentType)) {
                 $value = $this->prepareParametersFromClass($setterArgumentType, $value);
             }
-            $parametersClass->$setterName($value);
+            
+            try {
+                $parametersClass->$setterName($value);
+            } catch (\InvalidArgumentException|\TypeError $e) {
+                $invalidTypeErrors[] = sprintf('[%s] - This value should be of type %s', $name, $setterArgumentType);
+            }
+        }
+        
+        if (!empty($invalidTypeErrors)) {
+            throw new JRPCException('Invalid params.', JRPCException::INVALID_PARAMS, implode(PHP_EOL, $invalidTypeErrors));
         }
 
         return $parametersClass;
@@ -247,16 +263,21 @@ final readonly class RequestHandler
     /**
      * @throws JRPCException
      */
-    private function processValidatorsForRequestInstance(MethodSpec $methodSpec, BaseRequest $baseRequest): void
+    private function processValidatorsForRequestInstance(MethodSpec $methodSpec, BaseRequest $baseRequest, mixed $requestInstance): void
     {
+        $requestData = $baseRequest->getParams();
+        if (!is_null($baseRequest->getId())) {
+            $requestData = $requestData + ['id' => $baseRequest->getId()];
+        }
+
         $validators = [];
-        $excludeFromValidation = [];
         foreach ($methodSpec->getValidators() as $field => $validatorItem) {
+            if (class_exists($validatorItem['type'])) {
+                $getter = $methodSpec->getRequestGetters()[$field];
+                $requestData[$field] = $requestInstance->$getter();
+            }
+            
             if ($validatorItem['allowsNull'] === false) {
-                if (class_exists($validatorItem['type'])) {
-                    $excludeFromValidation[] = $field;
-                    continue;
-                }
                 $validators[$field] = new Assert\Type($validatorItem['type']);
             } else {
                 $validators[$field] = new Assert\Optional([
@@ -268,14 +289,6 @@ final readonly class RequestHandler
                 ]);
             }
         }
-
-        $requestData = $baseRequest->getParams();
-        if (!is_null($baseRequest->getId())) {
-            $requestData = $requestData + ['id' => $baseRequest->getId()];
-        }
-
-        $excludeFromValidation = array_fill_keys($excludeFromValidation, null);
-        $requestData = array_diff_key($requestData, $excludeFromValidation);
 
         $violations = $this->validator->validate(
             $requestData,

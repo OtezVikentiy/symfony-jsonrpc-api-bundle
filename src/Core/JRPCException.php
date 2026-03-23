@@ -40,6 +40,8 @@ final class JRPCException extends Exception
             throw new Exception(sprintf('Undefined code %s for JsonRPCAPIException.', $code));
         }
 
-        parent::__construct($message . sprintf(' Additional info: %s', $this->additionalInfo), $code, $previous);
+        $message = empty($this->additionalInfo) ? $message : $message . sprintf(' Additional info: %s', $this->additionalInfo);
+        
+        parent::__construct($message, $code, $previous);
     }
 }
