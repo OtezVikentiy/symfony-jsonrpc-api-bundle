@@ -197,7 +197,9 @@ final readonly class RequestHandler
             $requestSetter = $methodSpec->getRequestSetters()[$name] ?? null;
             if (!is_null($requestSetter)) {
                 if (class_exists($allParameter['type'])) {
-                    $value = $this->prepareParametersFromClass($allParameter['type'], $value);
+                    if ($value !== null) {
+                        $value = $this->prepareParametersFromClass($allParameter['type'], $value);
+                    }
                 }
 
                 if ($name === 'id') {
