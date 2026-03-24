@@ -31,6 +31,7 @@ final class SubtractNamedParams2Test extends AbstractTest
             allParameters: [['name' => 'subtrahend', 'type' => 'int'], ['name' => 'minuend', 'type' => 'int']],
             requiredParameters: [],
             request: Subtract2Request::class,
+            requestGetters: ['subtrahend' => 'getSubtrahend', 'minuend' => 'getMinuend'],
             requestSetters: ['subtrahend' => 'setSubtrahend', 'minuend' => 'setMinuend'],
             requestAdders: [],
             validators: ['subtrahend' => ['allowsNull' => false, 'type' => 'int'], 'minuend' => ['allowsNull' => false, 'type' => 'int']]

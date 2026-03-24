@@ -167,14 +167,12 @@ final readonly class RequestHandler
         foreach ($methodSpec->getAllParameters() as $allParameter) {
             $name = $allParameter['name'];
 
-            if (!array_key_exists($name, $baseRequest->getParams())) {
-                continue;
-            }
-
             if (array_key_exists($name, $baseRequest->getParams())) {
                 $value = $baseRequest->getParams()[$name];
             } elseif (array_key_exists('defaultValue', $allParameter)) {
                 $value = $allParameter['defaultValue'];
+            } elseif ($name === 'params') {
+                $value = $baseRequest->getParams();
             } else {
                 continue;
             }

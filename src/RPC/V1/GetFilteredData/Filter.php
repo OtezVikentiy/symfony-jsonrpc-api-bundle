@@ -1,6 +1,6 @@
 <?php
 
-namespace OV\JsonRPCAPIBundle\RPC\V1\GetFilteredDataMethod;
+namespace OV\JsonRPCAPIBundle\RPC\V1\GetFilteredData;
 
 class Filter
 {

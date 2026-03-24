@@ -28,6 +28,7 @@ final class Subtract1Test extends AbstractTest
             allParameters: [['name' => 'params', 'type' => 'array']],
             requiredParameters: [],
             request: SubtractRequest::class,
+            requestGetters: ['params' => 'getParams'],
             requestSetters: ['params' => 'setParams'],
             requestAdders: [],
             validators: ['params' => ['allowsNull' => false, 'type' => 'array']]

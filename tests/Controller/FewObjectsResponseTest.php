@@ -29,6 +29,7 @@ final class FewObjectsResponseTest extends AbstractTest
             allParameters: [['name' => 'ids', 'type' => 'array']],
             requiredParameters: [['name' => 'ids', 'type' => 'array']],
             request: GetProductsRequest::class,
+            requestGetters: ['ids' => 'getIds'],
             requestSetters: ['ids' => 'setIds'],
             requestAdders: [],
             validators: ['ids' => ['allowsNull' => false, 'type' => 'array']]

@@ -23,6 +23,7 @@ final class InvalidJsonRequestTest extends AbstractTest
             allParameters: [['name' => 'params', 'type' => 'array']],
             requiredParameters: [],
             request: UpdateRequest::class,
+            requestGetters: ['params' => 'getParams'],
             requestSetters: ['params' => 'setParams'],
             requestAdders: [],
             validators: ['params' => ['allowsNull' => false, 'type' => 'array']]
@@ -32,7 +33,7 @@ final class InvalidJsonRequestTest extends AbstractTest
             'jsonrpc' => '2.0',
             'error' => [
                 'code' => -32700,
-                'message' => 'Parse error. Additional info: '
+                'message' => 'Parse error.'
             ],
             //'id' => null //todo тот параметр сейчас не пробрасывается из-за настроек нормалайзера - он все null значения чистит
         ];

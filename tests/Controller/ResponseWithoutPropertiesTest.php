@@ -27,6 +27,7 @@ final class ResponseWithoutPropertiesTest extends AbstractTest
             allParameters: [['name' => 'params', 'type' => 'array']],
             requiredParameters: [],
             request: UpdateRequest::class,
+            requestGetters: ['params' => 'getParams'],
             requestSetters: ['params' => 'setParams'],
             requestAdders: [],
             validators: ['params' => ['allowsNull' => false, 'type' => 'array']]

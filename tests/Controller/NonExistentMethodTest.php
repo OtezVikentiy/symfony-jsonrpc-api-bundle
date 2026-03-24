@@ -27,6 +27,7 @@ final class NonExistentMethodTest extends AbstractTest
             allParameters: [['name' => 'params', 'type' => 'array']],
             requiredParameters: [],
             request: UpdateRequest::class,
+            requestGetters: ['params' => 'getParams'],
             requestSetters: ['params' => 'setParams'],
             requestAdders: [],
             validators: ['params' => ['allowsNull' => false, 'type' => 'array']]
@@ -36,7 +37,7 @@ final class NonExistentMethodTest extends AbstractTest
             'jsonrpc' => '2.0',
             'error' => [
                 'code' => -32601,
-                'message' => 'Method not found. Additional info: '
+                'message' => 'Method not found.'
             ],
             'id' => '1'
         ];

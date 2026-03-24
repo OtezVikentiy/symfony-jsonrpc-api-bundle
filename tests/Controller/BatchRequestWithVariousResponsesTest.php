@@ -62,6 +62,7 @@ final class BatchRequestWithVariousResponsesTest extends AbstractTest
                 allParameters: [['name' => 'params', 'type' => 'array']],
                 requiredParameters: [],
                 request: SumRequest::class,
+                requestGetters: ['params' => 'getParams'],
                 requestSetters: ['params' => 'setParams'],
                 requestAdders: [],
                 validators: ['params' => ['allowsNull' => false, 'type' => 'array']]
@@ -76,6 +77,7 @@ final class BatchRequestWithVariousResponsesTest extends AbstractTest
                 allParameters: [['name' => 'params', 'type' => 'array']],
                 requiredParameters: [],
                 request: NotifyHelloRequest::class,
+                requestGetters: ['params' => 'getParams'],
                 requestSetters: ['params' => 'setParams'],
                 requestAdders: [],
                 validators: ['params' => ['allowsNull' => false, 'type' => 'array']]
@@ -90,6 +92,7 @@ final class BatchRequestWithVariousResponsesTest extends AbstractTest
                 allParameters: [['name' => 'params', 'type' => 'array']],
                 requiredParameters: [],
                 request: SubtractRequest::class,
+                requestGetters: ['params' => 'getParams'],
                 requestSetters: ['params' => 'setParams'],
                 requestAdders: [],
                 validators: ['params' => ['allowsNull' => false, 'type' => 'array']]
@@ -104,6 +107,7 @@ final class BatchRequestWithVariousResponsesTest extends AbstractTest
                 allParameters: [],
                 requiredParameters: [],
                 request: GetDataRequest::class,
+                requestGetters: [],
                 requestSetters: [],
                 requestAdders: [],
                 validators: []
@@ -124,14 +128,14 @@ final class BatchRequestWithVariousResponsesTest extends AbstractTest
                 'jsonrpc' => '2.0',
                 'error' => [
                     'code' => -32600,
-                    'message' => 'Invalid Request. Additional info: '
+                    'message' => 'Invalid Request.'
                 ],
             ],
             [
                 'jsonrpc' => '2.0',
                 'error' => [
                     'code' => -32601,
-                    'message' => 'Method not found. Additional info: '
+                    'message' => 'Method not found.'
                 ],
                 'id' => '5'
             ],

@@ -3,8 +3,8 @@
 namespace OV\JsonRPCAPIBundle\Tests\Controller;
 
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
-use OV\JsonRPCAPIBundle\RPC\V1\GetFilteredDataMethod;
-use OV\JsonRPCAPIBundle\RPC\V1\GetFilteredDataMethod\Request;
+use OV\JsonRPCAPIBundle\RPC\V1\GetFilteredData;
+use OV\JsonRPCAPIBundle\RPC\V1\GetFilteredData\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 final class GetFilteredDataTest extends AbstractTest
@@ -14,7 +14,7 @@ final class GetFilteredDataTest extends AbstractTest
         $data = [
             [
                 'jsonrpc' => '2.0',
-                'method' => 'GetFilteredDataMethod',
+                'method' => 'GetFilteredData',
                 'params' => [
                     'filter' => [
                         'id' => 1,
@@ -30,25 +30,30 @@ final class GetFilteredDataTest extends AbstractTest
 
         $methodSpecs = [
             new MethodSpec(
-                methodClass: GetFilteredDataMethod::class,
+                methodClass: GetFilteredData::class,
                 requestType: 'POST',
                 summary: '',
                 description: '',
                 ignoreInSwagger: true,
-                methodName: 'GetFilteredDataMethod',
-                allParameters: [],
+                methodName: 'GetFilteredData',
+                allParameters: [['name' => 'filter', 'type' => GetFilteredData\Filter::class],['name' => 'limit', 'type' => 'integer'],['name' => 'offset', 'type' => 'integer']],
                 requiredParameters: [],
                 request: Request::class,
-                requestSetters: [],
+                requestGetters: ['filter' => 'getFilter' ,'limit' => 'getLimit', 'offset' => 'getOffset'],
+                requestSetters: ['filter' => 'setFilter' ,'limit' => 'setLimit', 'offset' => 'setOffset'],
                 requestAdders: [],
-                validators: []
+                validators: ['filter' => ['allowsNull' => false, 'type' => GetFilteredData\Filter::class], 'limit' => ['allowsNull' => false, 'type' => 'integer'], 'offset' => ['allowsNull' => false, 'type' => 'integer']]
             ),
         ];
         $responseData = [
             [
                 'jsonrpc' => '2.0',
-                'result' => ['hello', 5],
-                'id' => '9',
+                'result' => [
+                    1,
+                    'azaza',
+                    true,
+                ],
+                'id' => '5',
             ],
         ];
 

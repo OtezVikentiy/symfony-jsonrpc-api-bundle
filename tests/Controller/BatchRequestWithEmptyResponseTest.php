@@ -37,6 +37,7 @@ final class BatchRequestWithEmptyResponseTest extends AbstractTest
                 allParameters: [['name' => 'params', 'type' => 'array']],
                 requiredParameters: [],
                 request: NotifySumRequest::class,
+                requestGetters: ['params' => 'getParams'],
                 requestSetters: ['params' => 'setParams'],
                 requestAdders: [],
                 validators: ['params' => ['allowsNull' => false, 'type' => 'array']]
@@ -51,6 +52,7 @@ final class BatchRequestWithEmptyResponseTest extends AbstractTest
                 allParameters: [['name' => 'params', 'type' => 'array']],
                 requiredParameters: [],
                 request: NotifyHelloRequest::class,
+                requestGetters: ['params' => 'getParams'],
                 requestSetters: ['params' => 'setParams'],
                 requestAdders: [],
                 validators: ['params' => ['allowsNull' => false, 'type' => 'array']]

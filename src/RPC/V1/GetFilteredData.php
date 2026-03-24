@@ -1,5 +1,4 @@
 <?php
-/** @noinspection PhpUnused */
 
 /*
  * This file is part of the OtezVikentiy Json RPC API package.
@@ -13,13 +12,12 @@
 namespace OV\JsonRPCAPIBundle\RPC\V1;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
-use OV\JsonRPCAPIBundle\RPC\V1\GetFilteredDataMethod\Request;
-use OV\JsonRPCAPIBundle\RPC\V1\GetFilteredDataMethod\Response;
+use OV\JsonRPCAPIBundle\RPC\V1\GetFilteredData\Request;
+use OV\JsonRPCAPIBundle\RPC\V1\GetFilteredData\Response;
 
-#[JsonRPCAPI(methodName: 'GetFilteredDataMethod', type: 'POST', ignoreInSwagger: true)]
-final class GetFilteredDataMethod
+#[JsonRPCAPI(methodName: 'GetFilteredData', type: 'POST', ignoreInSwagger: true)]
+final class GetFilteredData
 {
-    /** @noinspection PhpUnusedParameterInspection */
     public function call(Request $request): Response
     {
         return new Response([

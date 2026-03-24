@@ -23,6 +23,7 @@ final class InvalidBatchRequest1Test extends AbstractTest
             allParameters: [['name' => 'params', 'type' => 'array']],
             requiredParameters: [],
             request: UpdateRequest::class,
+            requestGetters: ['params' => 'getParams'],
             requestSetters: ['params' => 'setParams'],
             requestAdders: [],
             validators: ['params' => ['allowsNull' => false, 'type' => 'array']]
@@ -32,7 +33,7 @@ final class InvalidBatchRequest1Test extends AbstractTest
             'jsonrpc' => '2.0',
             'error' => [
                 'code' => -32600,
-                'message' => 'Invalid Request. Additional info: '
+                'message' => 'Invalid Request.'
             ],
             //'id' => null //todo тот параметр сейчас не пробрасывается из-за настроек нормалайзера - он все null значения чистит
         ];

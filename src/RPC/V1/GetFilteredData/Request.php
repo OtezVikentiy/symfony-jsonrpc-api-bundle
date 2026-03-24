@@ -8,7 +8,7 @@
  * file that was distributed with this source code.
  */
 
-namespace OV\JsonRPCAPIBundle\RPC\V1\GetFilteredDataMethod;
+namespace OV\JsonRPCAPIBundle\RPC\V1\GetFilteredData;
 
 final class Request
 {

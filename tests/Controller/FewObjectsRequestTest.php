@@ -46,6 +46,7 @@ final class FewObjectsRequestTest extends AbstractTest
             allParameters: [['name' => 'tokens', 'type' => Token::class]],
             requiredParameters: [],
             request: Request::class,
+            requestGetters: ['tokens' => 'getTokens'],
             requestSetters: ['tokens' => 'setTokens'],
             requestAdders: ['token' => 'addToken'],
             validators: []
