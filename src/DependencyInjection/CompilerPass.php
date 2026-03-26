@@ -229,7 +229,11 @@ final class CompilerPass implements CompilerPassInterface
                 $plainResponse,
                 $preProcessorExists,
                 $postProcessorExists,
-            ])->setPublic(true)->setAutowired(true)->setAutoconfigured(true)->setLazy(true);
+            ])->setPublic(true)->setAutowired(true)->setAutoconfigured(true);
+
+            if (PHP_VERSION_ID >= 80300) {
+                $methodSpec->setLazy(true);
+            }
 
             $methodSpecCollectionDefinition->addMethodCall(
                 'addMethodSpec',

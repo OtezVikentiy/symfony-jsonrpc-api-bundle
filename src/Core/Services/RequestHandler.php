@@ -245,14 +245,14 @@ final readonly class RequestHandler
             if (class_exists($setterArgumentType)) {
                 $value = $this->prepareParametersFromClass($setterArgumentType, $value);
             }
-            
+
             try {
                 $parametersClass->$setterName($value);
             } catch (\InvalidArgumentException|\TypeError $e) {
                 $invalidTypeErrors[] = sprintf('[%s] - This value should be of type %s', $name, $setterArgumentType);
             }
         }
-        
+
         if (!empty($invalidTypeErrors)) {
             throw new JRPCException('Invalid params.', JRPCException::INVALID_PARAMS, implode(PHP_EOL, $invalidTypeErrors));
         }
@@ -276,7 +276,7 @@ final readonly class RequestHandler
                 $getter = $methodSpec->getRequestGetters()[$field];
                 $requestData[$field] = $requestInstance->$getter();
             }
-            
+
             if ($validatorItem['allowsNull'] === false) {
                 $validators[$field] = new Assert\Type($validatorItem['type']);
             } else {
