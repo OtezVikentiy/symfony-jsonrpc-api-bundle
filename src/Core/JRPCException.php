@@ -33,9 +33,8 @@ final class JRPCException extends Exception
         ?Throwable $previous = null
     ) {
         if (
-            $code < -32000
-            && $code > 32099
-            && !in_array($code, [-32700, -32600, -32601, -32602, -32603])
+            !in_array($code, [self::PARSE_ERROR, self::INVALID_REQUEST, self::METHOD_NOT_FOUND, self::INVALID_PARAMS, self::INTERNAL_ERROR])
+            && ($code > self::SERVER_ERROR || $code < -32099)
         ) {
             throw new Exception(sprintf('Undefined code %s for JsonRPCAPIException.', $code));
         }

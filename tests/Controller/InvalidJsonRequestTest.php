@@ -35,7 +35,7 @@ final class InvalidJsonRequestTest extends AbstractTest
                 'code' => -32700,
                 'message' => 'Parse error.'
             ],
-            //'id' => null //todo тот параметр сейчас не пробрасывается из-за настроек нормалайзера - он все null значения чистит
+            'id' => null,
         ];
 
         $this->setValidateMethodExpectation('never');

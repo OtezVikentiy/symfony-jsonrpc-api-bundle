@@ -23,6 +23,7 @@ final class Configuration implements ConfigurationInterface
 
         $rootNode
             ->children()
+                ->booleanNode('strict_notifications')->defaultFalse()->end()
                 ->arrayNode('access_control_allow_origin_list')
                     ->prototype('scalar')->end()
                 ->end()

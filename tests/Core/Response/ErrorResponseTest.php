@@ -80,4 +80,35 @@ final class ErrorResponseTest extends TestCase
         $this->assertArrayHasKey('message', $error);
         $this->assertCount(2, $error);
     }
+
+    public function testIdWithIntegerValue(): void
+    {
+        $exception = new JRPCException('Error', JRPCException::INTERNAL_ERROR);
+        $response = new ErrorResponse(error: $exception, id: 42);
+
+        $this->assertEquals(42, $response->getId());
+        $this->assertIsInt($response->getId());
+    }
+
+    public function testIdWithNullValue(): void
+    {
+        $exception = new JRPCException('Error', JRPCException::INTERNAL_ERROR);
+        $response = new ErrorResponse(error: $exception, id: null);
+
+        $this->assertNull($response->getId());
+    }
+
+    public function testIdAcceptsMixedTypes(): void
+    {
+        $exception = new JRPCException('Error', JRPCException::INTERNAL_ERROR);
+
+        $responseNull = new ErrorResponse(error: $exception, id: null);
+        $this->assertNull($responseNull->getId());
+
+        $responseStr = new ErrorResponse(error: $exception, id: '1');
+        $this->assertSame('1', $responseStr->getId());
+
+        $responseInt = new ErrorResponse(error: $exception, id: 99);
+        $this->assertSame(99, $responseInt->getId());
+    }
 }

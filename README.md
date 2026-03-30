@@ -3,7 +3,7 @@
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.2-8892BF.svg)](https://php.net/)
 [![Symfony Version](https://img.shields.io/badge/symfony-%3E%3D6.4-000000.svg)](https://symfony.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-2.18-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
+[![Version](https://img.shields.io/badge/version-3.0-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
 
 Symfony-бандл для быстрого и удобного создания JSON-RPC 2.0 API приложений.
 
@@ -428,6 +428,7 @@ class DeleteUserMethod
 | Параметр | Описание |
 |----------|----------|
 | `access_control_allow_origin_list` | Список разрешённых CORS-доменов |
+| `strict_notifications` | Строгое следование спецификации JSON-RPC 2.0 для Notification-запросов (без `id`). При `true` — сервер не возвращает ответ. При `false` (по умолчанию) — ответ возвращается, если результат непустой |
 | `swagger` | Конфигурация Swagger по версиям API |
 | `swagger.*.api_version` | Номер версии API |
 | `swagger.*.base_path` | URL production-сервера |

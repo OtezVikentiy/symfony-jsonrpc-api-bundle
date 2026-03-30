@@ -16,11 +16,14 @@ final class MultiBatchStrategy implements HandleBatchInterface
             if (is_null($response)) {
                 continue;
             }
-            $responsesContent[] = json_decode($response->getContent(), true);
+            $decoded = json_decode($response->getContent(), true);
+            if ($decoded !== null || json_last_error() === JSON_ERROR_NONE) {
+                $responsesContent[] = $decoded;
+            }
         }
 
         if (empty($responsesContent)) {
-            return new JsonResponse();
+            return new JsonResponse(data: '', json: true);
         }
 
         return new JsonResponse(data: $responsesContent);

@@ -24,11 +24,13 @@ final class BaseRequest
      */
     public function __construct(array $data)
     {
-        if (
-            empty($data['jsonrpc'])
-            || empty($data['method'])
-            || (!empty($data['params']) && !is_array($data['params']))
-        ) {
+        if (!isset($data['jsonrpc']) || $data['jsonrpc'] !== '2.0') {
+            throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
+        }
+        if (!isset($data['method']) || !is_string($data['method']) || $data['method'] === '') {
+            throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
+        }
+        if (isset($data['params']) && !is_array($data['params'])) {
             throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
         }
 

@@ -1,6 +1,7 @@
 parameters:
     ovJsonRpcApiSwaggerPath: '%env(string:OV_JSON_RPC_API_SWAGGER_PATH)%'
     accessControlAllowOriginList: '%ov_json_rpc_api.access_control_allow_origin_list%'
+    strictNotifications: '%ov_json_rpc_api.strict_notifications%'
 
 services:
     _defaults:
@@ -9,6 +10,7 @@ services:
         autoconfigure: true
         bind:
             $accessControlAllowOriginList: '%accessControlAllowOriginList%'
+            $strictNotifications: '%strictNotifications%'
 
     OV\JsonRPCAPIBundle\:
         resource: '../src/'

@@ -17,7 +17,7 @@ final readonly class BaseResponse implements OvResponseInterface, BaseJsonRespon
 {
     public function __construct(
         private mixed $result,
-        private ?string $id = null,
+        private readonly mixed $id = null,
         private string $jsonrpc = '2.0'
     ) {
     }
@@ -35,7 +35,7 @@ final readonly class BaseResponse implements OvResponseInterface, BaseJsonRespon
     }
 
     /** @noinspection PhpUnused */
-    public function getId(): ?string
+    public function getId(): mixed
     {
         return $this->id;
     }

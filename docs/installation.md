@@ -47,6 +47,7 @@ ov_json_rpc_api:
         - localhost
         - api.localhost
         - '*'
+    strict_notifications: false # true — строго по JSON-RPC 2.0 (Notification без ответа)
     swagger:
         api_v1:
             api_version: '1'
@@ -79,6 +80,7 @@ ov_json_rpc_api:
 | Параметр | Описание |
 |----------|----------|
 | `access_control_allow_origin_list` | Список разрешённых CORS-доменов. Используйте `'*'` для разрешения всех |
+| `strict_notifications` | При `true` — Notification (запрос без `id`) не получает ответ (строго по JSON-RPC 2.0). При `false` (по умолчанию) — ответ возвращается, если результат непустой |
 | `swagger.*.api_version` | Номер версии API для генерации Swagger |
 | `swagger.*.base_path` | URL production-сервера |
 | `swagger.*.base_path_description` | Описание production-сервера в Swagger |

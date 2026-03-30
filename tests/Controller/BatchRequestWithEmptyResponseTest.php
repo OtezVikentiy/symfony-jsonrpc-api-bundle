@@ -59,7 +59,7 @@ final class BatchRequestWithEmptyResponseTest extends AbstractTest
             ),
         ];
 
-        $responseData = '{}';
+        $responseData = '';
 
         $result = $this->executeControllerTest(data: $data, methodSpecs: $methodSpecs);
 

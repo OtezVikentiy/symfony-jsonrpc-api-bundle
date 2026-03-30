@@ -130,6 +130,7 @@ final class BatchRequestWithVariousResponsesTest extends AbstractTest
                     'code' => -32600,
                     'message' => 'Invalid Request.'
                 ],
+                'id' => null,
             ],
             [
                 'jsonrpc' => '2.0',

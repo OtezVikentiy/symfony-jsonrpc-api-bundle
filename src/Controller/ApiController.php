@@ -49,7 +49,7 @@ final class ApiController extends AbstractController
                 throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
             }
         } catch (JRPCException|Throwable $e) {
-            return $responseService->prepareJsonResponse(data: new ErrorResponse(error: $e, id: $data['id'] ?? null));
+            return $responseService->prepareJsonResponse(data: new ErrorResponse(error: $e, id: isset($data) ? ($data['id'] ?? null) : null));
         }
 
         return $requestHandler->applyStrategy(

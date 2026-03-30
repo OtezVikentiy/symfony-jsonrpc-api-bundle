@@ -35,7 +35,7 @@ final class InvalidBatchRequest2Test extends AbstractTest
                 'code' => -32600,
                 'message' => 'Invalid Request.'
             ],
-            //'id' => null //todo тот параметр сейчас не пробрасывается из-за настроек нормалайзера - он все null значения чистит
+            'id' => null,
         ];
 
         $this->setValidateMethodExpectation('never');

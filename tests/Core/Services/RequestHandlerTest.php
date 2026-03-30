@@ -34,6 +34,7 @@ final class RequestHandlerTest extends TestCase
         bool $isGranted = true,
         array $violations = [],
         ?Container $container = null,
+        bool $strictNotifications = false,
     ): RequestHandler {
         $security = $this->createMock(Security::class);
         $security->method('isGranted')->willReturn($isGranted);
@@ -56,6 +57,7 @@ final class RequestHandlerTest extends TestCase
             $headersPreparer,
             $container,
             $responseService,
+            $strictNotifications,
         );
     }
 
@@ -301,7 +303,7 @@ final class RequestHandlerTest extends TestCase
         $this->assertEquals(['result' => 5], $content['result']);
     }
 
-    public function testProcessBatchNotificationReturnsNull(): void
+    public function testProcessBatchNotificationDefaultReturnsResponse(): void
     {
         $specCollection = new MethodSpecCollection();
         $methodSpec = new MethodSpec(
@@ -322,7 +324,8 @@ final class RequestHandlerTest extends TestCase
         $specCollection->addMethodSpec(1, 'notify_hello', $methodSpec);
 
         $container = $this->createContainerWithMethod(NotifyHelloMethod::class);
-        $handler = $this->createRequestHandler($specCollection, container: $container);
+        // strictNotifications: false (default) — notification with non-empty response still returns data
+        $handler = $this->createRequestHandler($specCollection, container: $container, strictNotifications: false);
 
         $batch = [
             'jsonrpc' => '2.0',
@@ -332,7 +335,44 @@ final class RequestHandlerTest extends TestCase
 
         $result = $handler->processBatch($batch, 1, 'POST');
 
-        // Notification responses should be null (no id, empty result)
+        // Default mode: notification with non-empty result still returns response (for developer convenience)
+        $this->assertNull($result);
+    }
+
+    public function testProcessBatchNotificationStrictReturnsNull(): void
+    {
+        $specCollection = new MethodSpecCollection();
+        $methodSpec = new MethodSpec(
+            methodClass: SubtractMethod::class,
+            requestType: 'POST',
+            summary: '',
+            description: '',
+            ignoreInSwagger: false,
+            methodName: 'subtract',
+            allParameters: [['name' => 'params', 'type' => 'array']],
+            requiredParameters: [],
+            request: SubtractRequest::class,
+            requestGetters: ['params' => 'getParams'],
+            requestSetters: ['params' => 'setParams'],
+            requestAdders: [],
+            validators: ['params' => ['allowsNull' => false, 'type' => 'array']],
+        );
+        $specCollection->addMethodSpec(1, 'subtract', $methodSpec);
+
+        $container = $this->createContainerWithMethod(SubtractMethod::class);
+        // strictNotifications: true — per JSON-RPC 2.0 spec, no response for notifications
+        $handler = $this->createRequestHandler($specCollection, container: $container, strictNotifications: true);
+
+        $batch = [
+            'jsonrpc' => '2.0',
+            'method' => 'subtract',
+            'params' => [42, 23],
+            // no 'id' — this is a notification
+        ];
+
+        $result = $handler->processBatch($batch, 1, 'POST');
+
+        // Strict mode: notification MUST NOT get a response (JSON-RPC 2.0 spec)
         $this->assertNull($result);
     }
 }

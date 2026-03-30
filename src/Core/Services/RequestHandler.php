@@ -30,6 +30,7 @@ final readonly class RequestHandler
         private HeadersPreparer $headersPreparer,
         private Container $container,
         private ResponseService $responseService,
+        private bool $strictNotifications = false,
     ) {
     }
 
@@ -81,14 +82,13 @@ final readonly class RequestHandler
                 return $response;
             }
 
-            if (!is_null($baseRequest->getId()) || !empty((array)$response)) {
-                $response = $this->responseService->prepareJsonResponse(new BaseResponse($response, $baseRequest->getId() ?? null));
+            if (!is_null($baseRequest->getId()) || (!$this->strictNotifications && !empty((array)$response))) {
+                $response = $this->responseService->prepareJsonResponse(new BaseResponse($response, $baseRequest->getId()));
                 return $response;
             }
-            unset($baseRequest);
         } catch (JRPCException|Throwable $e) {
             match (true) {
-                isset($baseRequest) => $id = $baseRequest->getId(),
+                isset($baseRequest) && $baseRequest->getId() !== null => $id = $baseRequest->getId(),
                 isset($batch['id']) => $id = $batch['id'],
                 default => $id = null,
             };
@@ -124,7 +124,9 @@ final readonly class RequestHandler
                 }
 
                 foreach ($preProcessorsArr as $func) {
-                    $processor->$func($processorClass, $requestInstance);
+                    if (method_exists($processor, $func)) {
+                        $processor->$func($processorClass, $requestInstance);
+                    }
                 }
             }
         }
@@ -145,7 +147,9 @@ final readonly class RequestHandler
                 }
 
                 foreach ($preProcessorsArr as $func) {
-                    $processor->$func($processorClass, $requestInstance, $response);
+                    if (method_exists($processor, $func)) {
+                        $processor->$func($processorClass, $requestInstance, $response);
+                    }
                 }
             }
         }
@@ -159,7 +163,7 @@ final readonly class RequestHandler
                 $constructorParams[] = $baseRequest->getId();
                 continue;
             }
-            $constructorParams[] = $baseRequest->getParams()[$requiredParameter['name']] ?? $requiredParameter['defaultValue'];
+            $constructorParams[] = $baseRequest->getParams()[$requiredParameter['name']] ?? ($requiredParameter['defaultValue'] ?? null);
         }
 
         $requestInstance = new $requestClass(...$constructorParams);
@@ -241,8 +245,9 @@ final readonly class RequestHandler
             }
 
             $setter = $methodsIdx[$setterName];
-            $setterArgumentType = $setter->getParameters()[0]->getType()->getName();
-            if (class_exists($setterArgumentType)) {
+            $setterParamType = $setter->getParameters()[0]->getType();
+            $setterArgumentType = $setterParamType?->getName() ?? 'mixed';
+            if ($setterParamType !== null && class_exists($setterArgumentType)) {
                 $value = $this->prepareParametersFromClass($setterArgumentType, $value);
             }
 

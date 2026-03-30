@@ -117,4 +117,27 @@ final class ConfigurationTest extends TestCase
         $this->assertEquals('title', $v1['info']['title']);
         $this->assertEquals('description', $v1['info']['description']);
     }
+
+    public function testStrictNotificationsDefaultFalse(): void
+    {
+        $configuration = new Configuration();
+        $processor = new Processor();
+
+        $config = $processor->processConfiguration($configuration, []);
+
+        $this->assertArrayHasKey('strict_notifications', $config);
+        $this->assertFalse($config['strict_notifications']);
+    }
+
+    public function testStrictNotificationsCanBeSetToTrue(): void
+    {
+        $configuration = new Configuration();
+        $processor = new Processor();
+
+        $config = $processor->processConfiguration($configuration, [
+            ['strict_notifications' => true],
+        ]);
+
+        $this->assertTrue($config['strict_notifications']);
+    }
 }

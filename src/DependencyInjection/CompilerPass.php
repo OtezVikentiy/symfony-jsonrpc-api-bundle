@@ -80,8 +80,7 @@ final class CompilerPass implements CompilerPassInterface
 
             if (is_null($version)) {
                 $namespace = $methodReflectionClass->getNamespaceName();
-                preg_match('/V[0-9]+$/', $namespace, $matches);
-                if (empty($matches)) {
+                if (preg_match('/V[0-9]+$/', $namespace, $matches) === 0) {
                     throw new RuntimeException(
                         sprintf(
                             'Version for API endpoint %s is not defined. Either use the version parameter in the 
@@ -260,6 +259,9 @@ final class CompilerPass implements CompilerPassInterface
                 $method = 'hasDefaultValue';
             } elseif ($property instanceof \ReflectionParameter) {
                 $method = 'isDefaultValueAvailable';
+            } else {
+                $return[] = $propData;
+                continue;
             }
 
             if ($property->$method()) {
@@ -301,7 +303,11 @@ final class CompilerPass implements CompilerPassInterface
                 $getter = $methodsIdx['get' . ucfirst($name)];
             }
             $setter = $methodsIdx['set' . ucfirst($name)];
-            $setterAndPropertyTypesAreEqual = $setter->getParameters()[0]->getType()->getName() !== $typeData['type'];
+            $setterParamType = $setter->getParameters()[0]->getType();
+            if ($setterParamType === null) {
+                continue;
+            }
+            $setterAndPropertyTypesAreEqual = $setterParamType->getName() !== $typeData['type'];
             if ($setterAndPropertyTypesAreEqual) {
                 throw new Exception(
                     sprintf(

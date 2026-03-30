@@ -156,4 +156,48 @@ final class BaseRequestTest extends TestCase
 
         new BaseRequest([]);
     }
+
+    public function testWrongJsonrpcVersionThrowsException(): void
+    {
+        $this->expectException(JRPCException::class);
+        $this->expectExceptionCode(JRPCException::INVALID_REQUEST);
+
+        new BaseRequest([
+            'jsonrpc' => '1.0',
+            'method' => 'test',
+        ]);
+    }
+
+    public function testJsonrpcAsIntegerThrowsException(): void
+    {
+        $this->expectException(JRPCException::class);
+        $this->expectExceptionCode(JRPCException::INVALID_REQUEST);
+
+        new BaseRequest([
+            'jsonrpc' => 2,
+            'method' => 'test',
+        ]);
+    }
+
+    public function testMethodAsIntegerThrowsException(): void
+    {
+        $this->expectException(JRPCException::class);
+        $this->expectExceptionCode(JRPCException::INVALID_REQUEST);
+
+        new BaseRequest([
+            'jsonrpc' => '2.0',
+            'method' => 123,
+        ]);
+    }
+
+    public function testJsonrpcVersion30ThrowsException(): void
+    {
+        $this->expectException(JRPCException::class);
+        $this->expectExceptionCode(JRPCException::INVALID_REQUEST);
+
+        new BaseRequest([
+            'jsonrpc' => '3.0',
+            'method' => 'test',
+        ]);
+    }
 }

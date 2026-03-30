@@ -17,7 +17,7 @@ final readonly class ErrorResponse implements OvResponseInterface, BaseJsonRespo
 {
     public function __construct(
         private JRPCException|Throwable $error,
-        private ?string $id = null,
+        private readonly mixed $id = null,
         private string $jsonrpc = '2.0',
     ) {
     }
@@ -38,7 +38,7 @@ final readonly class ErrorResponse implements OvResponseInterface, BaseJsonRespo
     }
 
     /** @noinspection PhpUnused */
-    public function getId(): string
+    public function getId(): mixed
     {
         return $this->id;
     }

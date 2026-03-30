@@ -79,4 +79,55 @@ final class JRPCExceptionTest extends TestCase
         $this->assertEquals(-32603, JRPCException::INTERNAL_ERROR);
         $this->assertEquals(-32000, JRPCException::SERVER_ERROR);
     }
+
+    public function testInvalidCodeThrowsException(): void
+    {
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Undefined code');
+
+        new JRPCException('Bad code.', 999);
+    }
+
+    public function testInvalidNegativeCodeThrowsException(): void
+    {
+        $this->expectException(Exception::class);
+
+        new JRPCException('Bad code.', -99999);
+    }
+
+    public function testInvalidCodeZeroThrowsException(): void
+    {
+        $this->expectException(Exception::class);
+
+        new JRPCException('Bad code.', 0);
+    }
+
+    public function testServerErrorRangeValidCodes(): void
+    {
+        // Codes in range -32000 to -32099 are valid server error codes
+        $e1 = new JRPCException('Server error.', -32000);
+        $this->assertEquals(-32000, $e1->getCode());
+
+        $e2 = new JRPCException('Server error.', -32050);
+        $this->assertEquals(-32050, $e2->getCode());
+
+        $e3 = new JRPCException('Server error.', -32099);
+        $this->assertEquals(-32099, $e3->getCode());
+    }
+
+    public function testCodeOutsideServerErrorRangeThrows(): void
+    {
+        $this->expectException(Exception::class);
+
+        // -32100 is outside valid range
+        new JRPCException('Bad.', -32100);
+    }
+
+    public function testCodeAboveServerErrorRangeThrows(): void
+    {
+        $this->expectException(Exception::class);
+
+        // 1 is outside all valid ranges
+        new JRPCException('Bad.', 1);
+    }
 }
