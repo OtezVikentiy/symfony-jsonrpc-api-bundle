@@ -1,18 +1,49 @@
-# Security - JWT Token authentication
+# JWT-аутентификация
 
 ---
 
-## Description
+## Описание
 
-In case you need a full-fledged more complex implementation of token-based authorization,
-you can use lexik/jwt-authentication-bundle. It has been tested in combination with this 
-bundle and has proven itself to be quite good.
-
-[Link to bundle](https://symfony.com/bundles/LexikJWTAuthenticationBundle/current/index.html)
-
-[Link to bundle on github](https://github.com/lexik/LexikJWTAuthenticationBundle)
+Для полноценной JWT-аутентификации рекомендуется использовать бандл `lexik/jwt-authentication-bundle`. Он протестирован в связке с данным бандлом и работает без дополнительных настроек.
 
 ---
 
-Installation and configuration is done according to the instructions for the bundle ``lexik/jwt-authentication-bundle``
-no special manipulations are required, everything should work out of the box.
+## Ссылки
+
+- [Документация Symfony](https://symfony.com/bundles/LexikJWTAuthenticationBundle/current/index.html)
+- [GitHub репозиторий](https://github.com/lexik/LexikJWTAuthenticationBundle)
+
+## Установка
+
+```bash
+composer require lexik/jwt-authentication-bundle
+```
+
+Установка и настройка выполняется по инструкции бандла `lexik/jwt-authentication-bundle`.
+Специальных настроек для совместной работы с `otezvikentiy/json-rpc-api` не требуется — всё работает из коробки.
+
+## Пример конфигурации
+
+```yaml
+# config/packages/lexik_jwt_authentication.yaml
+lexik_jwt_authentication:
+    secret_key: '%env(resolve:JWT_SECRET_KEY)%'
+    public_key: '%env(resolve:JWT_PUBLIC_KEY)%'
+    pass_phrase: '%env(JWT_PASSPHRASE)%'
+    token_ttl: 3600
+```
+
+```yaml
+# config/packages/security.yaml
+security:
+    firewalls:
+        api:
+            pattern: ^/api
+            stateless: true
+            jwt: ~
+    access_control:
+        - {path: ^/api/login, roles: PUBLIC_ACCESS}
+        - {path: ^/api, roles: IS_AUTHENTICATED_FULLY}
+```
+
+После настройки JWT-токен передаётся в заголовке `Authorization: Bearer <token>`.

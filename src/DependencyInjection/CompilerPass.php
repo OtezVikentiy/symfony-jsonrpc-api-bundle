@@ -197,7 +197,7 @@ final class CompilerPass implements CompilerPassInterface
             $parentClass = $methodReflectionClass->getParentClass();
             if ($parentClass) {
                 $preProcessorExists = $parentClass->implementsInterface(PreProcessorInterface::class);
-                $postProcessorExists = $parentClass->implementsInterface(PreProcessorInterface::class);
+                $postProcessorExists = $parentClass->implementsInterface(PostProcessorInterface::class);
             }
             if ($methodReflectionClass->implementsInterface(PreProcessorInterface::class)) {
                 $preProcessorExists = true;

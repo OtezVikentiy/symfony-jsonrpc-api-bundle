@@ -39,7 +39,7 @@ final class SubtractNamedParams1Test extends AbstractTest
 
         $responseData = [
             'jsonrpc' => '2.0',
-            'result' => 19,
+            'result' => ['result' => 19],
             'id' => '4',
         ];
 

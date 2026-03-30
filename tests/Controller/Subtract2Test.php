@@ -36,7 +36,7 @@ final class Subtract2Test extends AbstractTest
 
         $responseData = [
             'jsonrpc' => '2.0',
-            'result' => -19,
+            'result' => ['result' => -19],
             'id' => '3',
         ];
 

@@ -28,23 +28,9 @@ final readonly class BaseResponse implements OvResponseInterface, BaseJsonRespon
         return $this->jsonrpc;
     }
 
-    /**
-     * @throws ReflectionException
-     * @noinspection PhpUnused
-     */
+    /** @noinspection PhpUnused */
     public function getResult(): mixed
     {
-        $ref = new ReflectionClass($this->result::class);
-        $props = $ref->getProperties();
-        if (count($props) === 1) {
-            $methods = $ref->getMethods();
-            foreach ($methods as $method) {
-                if (str_contains($method->name, 'get')) {
-                    return $this->result->{$method->name}();
-                }
-            }
-        }
-
         return $this->result;
     }
 

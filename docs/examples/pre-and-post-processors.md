@@ -1,14 +1,19 @@
-# PreProcessor example
+# Pre- и Post-процессоры
 
 ---
 
-## Description
+## Описание
 
-Every API endpoint can have multiple preprocessors.
-Every preprocessor is called BEFORE the main logic of method is processed.
-For example, method getProduct has a preprocessor for logging some data about request.
+Каждый API-метод может иметь произвольное количество пре- и пост-процессоров.
+
+- **PreProcessor** — вызывается **до** выполнения метода `call()`. Полезен для логирования запросов, проверки предусловий, подготовки данных.
+- **PostProcessor** — вызывается **после** выполнения метода `call()`. Полезен для логирования ответов, отправки уведомлений, сбора метрик.
+
+Процессоры подключаются через реализацию интерфейсов `PreProcessorInterface` и `PostProcessorInterface`.
 
 ---
+
+## Request и Response
 
 ```php
 <?php
@@ -36,6 +41,7 @@ class Request
     }
 }
 ```
+
 ```php
 <?php
 // src/RPC/V1/GetProduct/Response.php
@@ -53,44 +59,26 @@ class Response
         $this->success = $success;
     }
 
-    public function isSuccess(): bool
-    {
-        return $this->success;
-    }
-
-    public function setSuccess(bool $success): void
-    {
-        $this->success = $success;
-    }
-
-    public function getTitle(): string
-    {
-        return $this->title;
-    }
-
-    public function setTitle(string $title): void
-    {
-        $this->title = $title;
-    }
-
-    public function getPrice(): int
-    {
-        return $this->price;
-    }
-
-    public function setPrice(int $price): void
-    {
-        $this->price = $price;
-    }
+    public function isSuccess(): bool { return $this->success; }
+    public function setSuccess(bool $success): void { $this->success = $success; }
+    public function getTitle(): string { return $this->title; }
+    public function setTitle(string $title): void { $this->title = $title; }
+    public function getPrice(): int { return $this->price; }
+    public function setPrice(int $price): void { $this->price = $price; }
 }
 ```
 
-Below are traits that contain preprocessor and postprocessor functions.
-This approach is useful, for example, if you want to log endpoint calls
-or, for example, send something to an email every time some methods are called. You just need to create traits and use interfaces in
-all API methods where they are required. Examples are shown below.
+## Трейты процессоров
 
-Note that traits can use separate setter injections via functions, so that you do not have to copy-paste injection code from one API method to another.
+Рекомендуемый подход — выносить логику процессоров в трейты. Это позволяет переиспользовать их в разных API-методах без дублирования кода.
+
+Трейты могут использовать setter-инъекцию зависимостей через атрибут `#[Required]`.
+
+### PreProcessor
+
+Метод `getPreProcessors()` возвращает массив, где ключ — имя класса, а значение — массив имён методов-обработчиков.
+
+Сигнатура обработчика: `function(string $processorClass, ?object $requestInstance = null): void`
 
 ```php
 <?php
@@ -99,6 +87,7 @@ Note that traits can use separate setter injections via functions, so that you d
 namespace App\RPC;
 
 use Psr\Log\LoggerInterface;
+use Symfony\Contracts\Service\Attribute\Required;
 
 trait RpcPreProcessorTrait
 {
@@ -109,77 +98,103 @@ trait RpcPreProcessorTrait
     {
         $this->logger = $logger;
     }
-    
+
     public function getPreProcessors(): array
     {
         return [
-            static::class => ['log'],
+            static::class => ['logBeforeCall'],
         ];
     }
 
-    public function log(string $processorClass, ?object $requestInstance = null) {
-        $this->logger->warning('TEST TEST TEST');
+    public function logBeforeCall(string $processorClass, ?object $requestInstance = null): void
+    {
+        $this->logger->info(sprintf('PreProcessor: вызван метод %s', $processorClass));
     }
 }
 ```
+
+### PostProcessor
+
+Сигнатура обработчика: `function(string $processorClass, ?object $requestInstance = null, ?OvResponseInterface $response = null): void`
+
+PostProcessor дополнительно получает объект ответа `$response`.
+
 ```php
 <?php
 // src/RPC/RpcPostProcessorTrait.php
 
 namespace App\RPC;
 
+use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Contracts\Service\Attribute\Required;
 
 trait RpcPostProcessorTrait
 {
-    private LoggerInterface $logger;
+    private LoggerInterface $postLogger;
 
     #[Required]
-    public function setAnotherLogger(LoggerInterface $logger): void
+    public function setPostLogger(LoggerInterface $postLogger): void
     {
-        $this->logger = $logger;
+        $this->postLogger = $postLogger;
     }
-    
+
     public function getPostProcessors(): array
     {
         return [
-            static::class => ['log'],
+            static::class => ['logAfterCall'],
         ];
     }
 
-    public function log(string $processorClass, ?object $requestInstance = null, ?OvResponseInterface $response = null) {
-        $this->logger->warning('TEST TEST TEST');
+    public function logAfterCall(string $processorClass, ?object $requestInstance = null, ?OvResponseInterface $response = null): void
+    {
+        $this->postLogger->info(sprintf('PostProcessor: метод %s выполнен', $processorClass));
     }
 }
 ```
+
+## Метод API с процессорами
+
+Класс метода должен реализовать интерфейсы `PreProcessorInterface` и/или `PostProcessorInterface`.
+
 ```php
 <?php
-// src/RPC/V1/GetProduct.php
+// src/RPC/V1/GetProductMethod.php
 
 namespace App\RPC\V1;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 use OV\JsonRPCAPIBundle\Core\PreProcessorInterface;
+use OV\JsonRPCAPIBundle\Core\PostProcessorInterface;
 use App\RPC\V1\GetProduct\Request;
 use App\RPC\V1\GetProduct\Response;
 use App\RPC\RpcPreProcessorTrait;
+use App\RPC\RpcPostProcessorTrait;
 
 #[JsonRPCAPI(methodName: 'getProduct', type: 'POST')]
 class GetProductMethod implements PreProcessorInterface, PostProcessorInterface
 {
     use RpcPreProcessorTrait;
     use RpcPostProcessorTrait;
-    
-    /**
-     * @param Request $request // !!!ATTENTION!!! Do not rename this param - just change type, but not the name of variable
-     * @return Response
-     */
+
     public function call(Request $request): Response
     {
         $response = new Response();
         $response->setTitle('Iphone 15');
         $response->setPrice(2000);
-        return new Response();
+        return $response;
     }
 }
 ```
+
+## Порядок выполнения
+
+```
+PreProcessor::logBeforeCall()     <-- ДО вызова метода
+    |
+GetProductMethod::call()          <-- Основная логика
+    |
+PostProcessor::logAfterCall()     <-- ПОСЛЕ вызова метода
+```
+
+> **Важно:** PostProcessor выполняется в блоке `finally`, поэтому он будет вызван даже если метод `call()` выбросит исключение.

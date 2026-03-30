@@ -1,19 +1,21 @@
-# Security - Self-written token Auth
+# Кастомная токенная аутентификация
 
 ---
 
-## Description
+## Описание
 
-If you do not need any complex and sophisticated mechanics with updated tokens, then
-the simplest and easiest implementation option will be described in this example. Feel
-free to modify it at your own discretion and desire.
+Простейший вариант аутентификации через API-токен в HTTP-заголовке.
+Подходит для случаев, когда не нужна сложная механика обновления токенов (refresh tokens).
+
+Реализация основана на стандартном Symfony Custom Authenticator.
 
 ---
 
-1) create ``src/Entity/ApiToken.php``
+## 1. Создайте Entity для токена
 
 ```php
 <?php
+// src/Entity/ApiToken.php
 
 namespace App\Entity;
 
@@ -40,58 +42,29 @@ class ApiToken
     #[ORM\JoinColumn(nullable: false)]
     private User $user;
 
-    public function getId(): int
-    {
-        return $this->id;
-    }
+    public function getId(): int { return $this->id; }
 
-    public function getToken(): string
-    {
-        return $this->token;
-    }
+    public function getToken(): string { return $this->token; }
+    public function setToken(string $token): ApiToken { $this->token = $token; return $this; }
 
-    public function setToken(string $token): ApiToken
-    {
-        $this->token = $token;
+    public function getExpiresAt(): DateTimeInterface { return $this->expiresAt; }
+    public function setExpiresAt(DateTimeInterface $expiresAt): ApiToken { $this->expiresAt = $expiresAt; return $this; }
 
-        return $this;
-    }
-
-    public function getExpiresAt(): DateTimeInterface
-    {
-        return $this->expiresAt;
-    }
-
-    public function setExpiresAt(DateTimeInterface $expiresAt): ApiToken
-    {
-        $this->expiresAt = $expiresAt;
-
-        return $this;
-    }
-
-    public function getUser(): User
-    {
-        return $this->user;
-    }
-
-    public function setUser(User $user): ApiToken
-    {
-        $this->user = $user;
-
-        return $this;
-    }
+    public function getUser(): User { return $this->user; }
+    public function setUser(User $user): ApiToken { $this->user = $user; return $this; }
 
     public function isValid(): bool
     {
-        return (new DateTime())->getTimestamp() > $this->expiresAt->getTimestamp();
+        return (new DateTime())->getTimestamp() < $this->expiresAt->getTimestamp();
     }
 }
 ```
 
-2) create ``src/Security/ApiKeyAuthenticator.php``
+## 2. Создайте Authenticator
 
 ```php
 <?php
+// src/Security/ApiKeyAuthenticator.php
 
 namespace App\Security;
 
@@ -129,7 +102,11 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
 
         $apiTokenEntity = $this->em->getRepository(ApiToken::class)->findOneBy(['token' => $apiToken]);
         if (is_null($apiTokenEntity)) {
-            throw new CustomUserMessageAuthenticationException('No API token provided');
+            throw new CustomUserMessageAuthenticationException('Invalid API token');
+        }
+
+        if (!$apiTokenEntity->isValid()) {
+            throw new CustomUserMessageAuthenticationException('API token expired');
         }
 
         return new SelfValidatingPassport(new UserBadge(
@@ -147,25 +124,22 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response
     {
-        $data = [
-            'message' => strtr($exception->getMessageKey(), $exception->getMessageData())
-        ];
-
-        return new JsonResponse($data, Response::HTTP_UNAUTHORIZED);
+        return new JsonResponse(
+            ['message' => strtr($exception->getMessageKey(), $exception->getMessageData())],
+            Response::HTTP_UNAUTHORIZED
+        );
     }
 }
 ```
 
-3) add new firewall to security section security.firewalls.api...
+## 3. Настройте firewall
 
 ```yaml
+# config/packages/security.yaml
 security:
-    # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
-    # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
-        # used to reload user from session & other features (e.g. switch_user)
         app_user_provider:
             entity:
                 class: App\Entity\User
@@ -178,7 +152,23 @@ security:
                 - App\Security\ApiKeyAuthenticator
 ```
 
-4) run migration to create a table and add a token for a user - that's it! It is a standard 
-way to create token authentication in symfony: https://symfony.com/doc/current/security/custom_authenticator.html
+## 4. Примените миграцию и создайте токен
 
-5) Now you are able to add X-AUTH-TOKEN to headers of your requests and authorize requests this way
+```bash
+bin/console doctrine:migrations:diff
+bin/console doctrine:migrations:migrate
+```
+
+После создания записи в таблице `api_token` для нужного пользователя, добавляйте токен в заголовок запросов:
+
+```bash
+curl -X POST http://localhost/api/v1 \
+  -H "Content-Type: application/json" \
+  -H "X-AUTH-TOKEN: your_token_here" \
+  -d '{"jsonrpc": "2.0", "method": "getProduct", "params": {"id": 1}, "id": 1}'
+```
+
+## Дополнительно
+
+- Документация Symfony: [Custom Authenticator](https://symfony.com/doc/current/security/custom_authenticator.html)
+- Для более сложных сценариев (refresh tokens, JWT) см. [JWT-аутентификация](./jwt_bundle.md)

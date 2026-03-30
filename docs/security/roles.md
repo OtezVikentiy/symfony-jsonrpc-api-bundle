@@ -1,20 +1,21 @@
-# Roles based on built-in Symfony Security example
+# Ролевой доступ
 
 ---
 
-## Description
+## Описание
 
-This bundle supports several options for delimiting access to API endpoints. More
-global and more classic via security.yaml and more narrowly targeted for each
-individual API method.
+Бандл поддерживает два уровня контроля доступа:
 
-Let's imagine that we have several APIs intended for different groups of people and consider
-examples of how to separate access to the API for them.
+1. **Глобальный** — через `security.yaml` Symfony (ограничение доступа к URL `/api/v1`, `/api/v2` и т.д.)
+2. **На уровне метода** — через параметр `roles` в атрибуте `#[JsonRPCAPI]` (ограничение доступа к конкретному JSON-RPC методу)
+
+При отсутствии нужной роли бандл возвращает HTTP 403 с телом `"Access not allowed"`.
 
 ---
 
-In the main symfony security file, everything is done in the classic way according to the Symfony documentation.
-Nothing special here.
+## Глобальный контроль через security.yaml
+
+Стандартный подход Symfony для ограничения доступа к URL:
 
 ```yaml
 # config/packages/security.yaml
@@ -23,27 +24,17 @@ security:
     access_control:
         - {path: /api/login, roles: PUBLIC_ACCESS}
         - {path: /api/register, roles: PUBLIC_ACCESS}
-        - {path: /api/v1, roles: ROLE_ADMIN, ROLE_SUPER_ADMIN}
-        - {path: /api/v2, roles: ROLE_OPERATIONIST, ROLE_INSURANCE}
+        - {path: /api/v1, roles: [ROLE_ADMIN, ROLE_SUPER_ADMIN]}
+        - {path: /api/v2, roles: [ROLE_OPERATIONIST, ROLE_INSURANCE]}
         - {path: /api, roles: IS_AUTHENTICATED_FULLY}
 ```
 
-Let's imagine that we have several API endpoints, for example:
+## Контроль на уровне метода
 
-- /api/v1
-  - getUsers
-  - getAdminUsers
-  - createUser
-- /api/v2
-  - getClients
-  - getInsuranceList
-
-Accordingly, there will be several methods of the following type. Note 
-the roles parameter in the JsonRPCAPI attribute.
+Параметр `roles` в атрибуте `#[JsonRPCAPI]` позволяет указать, какие роли имеют доступ к конкретному методу. Если у пользователя есть **хотя бы одна** из указанных ролей, доступ разрешён.
 
 ```php
 <?php
-// src/RPC/V1/GetUsers.php
 
 namespace App\RPC\V1;
 
@@ -52,55 +43,45 @@ use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 #[JsonRPCAPI(
     methodName: 'GetUsers',
     type: 'POST',
-    roles: [User::ROLE_ADMIN]
+    roles: ['ROLE_ADMIN']
 )]
 class GetUsersMethod
 {
-    // ... some logic here ...
+    // Доступ только для ROLE_ADMIN
 }
 ```
 
 ```php
-<?php
-// src/RPC/V1/GetAdminUsers.php
-
-namespace App\RPC\V1;
-
-use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
-
 #[JsonRPCAPI(
     methodName: 'GetAdminUsers',
     type: 'POST',
-    roles: [User::ROLE_SUPER_ADMIN]
+    roles: ['ROLE_SUPER_ADMIN']
 )]
 class GetAdminUsersMethod
 {
-    // ... some logic here ...
+    // Доступ только для ROLE_SUPER_ADMIN
 }
 ```
 
 ```php
-<?php
-// src/RPC/V1/CreateUser.php
-
-namespace App\RPC\V1;
-
-use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
-
 #[JsonRPCAPI(
     methodName: 'CreateUser',
     type: 'POST',
-    roles: [User::ROLE_SUPER_ADMIN, User::ROLE_ADMIN]
+    roles: ['ROLE_SUPER_ADMIN', 'ROLE_ADMIN']
 )]
 class CreateUserMethod
 {
-    // ... some logic here ...
+    // Доступ для ROLE_SUPER_ADMIN ИЛИ ROLE_ADMIN
 }
 ```
 
+## Версионирование и роли
+
+Разные версии API могут обслуживать разные группы пользователей:
+
 ```php
 <?php
-// src/RPC/V2/GetClients.php
+// src/RPC/V2/GetClientsMethod.php
 
 namespace App\RPC\V2;
 
@@ -109,17 +90,17 @@ use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 #[JsonRPCAPI(
     methodName: 'GetClients',
     type: 'POST',
-    roles: [User::ROLE_OPERATIONIST, User::ROLE_INSURANCE]
+    roles: ['ROLE_OPERATIONIST', 'ROLE_INSURANCE']
 )]
-class GetClientsEndpoint
+class GetClientsMethod
 {
-    // ... some logic here ...
+    // Доступ через /api/v2 для операционистов и страховщиков
 }
 ```
 
 ```php
 <?php
-// src/RPC/V2/GetInsuranceList.php
+// src/RPC/V2/GetInsuranceListMethod.php
 
 namespace App\RPC\V2;
 
@@ -128,13 +109,22 @@ use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 #[JsonRPCAPI(
     methodName: 'GetInsuranceList',
     type: 'POST',
-    roles: [User::ROLE_INSURANCE]
+    roles: ['ROLE_INSURANCE']
 )]
-class GetInsuranceListEndpoint
+class GetInsuranceListMethod
 {
-    // ... some logic here ...
+    // Доступ через /api/v2 только для страховщиков
 }
 ```
 
-This way we have the ability to differentiate roles and access to specific API 
-endpoints for specific user roles.
+## Методы без ограничений
+
+Если параметр `roles` не указан или передан пустой массив, доступ к методу не ограничен (на уровне бандла). Ограничения `security.yaml` всё ещё применяются.
+
+```php
+#[JsonRPCAPI(methodName: 'publicMethod', type: 'POST')]
+class PublicMethod
+{
+    // Доступ для всех авторизованных пользователей (в зависимости от security.yaml)
+}
+```

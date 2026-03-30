@@ -48,11 +48,11 @@ final class GetFilteredDataTest extends AbstractTest
         $responseData = [
             [
                 'jsonrpc' => '2.0',
-                'result' => [
+                'result' => ['result' => [
                     1,
                     'azaza',
                     true,
-                ],
+                ]],
                 'id' => '5',
             ],
         ];

@@ -116,12 +116,12 @@ final class BatchRequestWithVariousResponsesTest extends AbstractTest
         $responseData = [
             [
                 'jsonrpc' => '2.0',
-                'result' => 7,
+                'result' => ['result' => 7],
                 'id' => '1',
             ],
             [
                 'jsonrpc' => '2.0',
-                'result' => 19,
+                'result' => ['result' => 19],
                 'id' => '2',
             ],
             [
@@ -141,7 +141,7 @@ final class BatchRequestWithVariousResponsesTest extends AbstractTest
             ],
             [
                 'jsonrpc' => '2.0',
-                'result' => ['hello', 5],
+                'result' => ['result' => ['hello', 5]],
                 'id' => '9',
             ],
         ];

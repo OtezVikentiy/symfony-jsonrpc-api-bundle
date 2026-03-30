@@ -1,14 +1,18 @@
-# Example Array of objects in response
+# Массив объектов в ответе
 
 ---
 
-## Description
+## Описание
 
-This example differs from the basic one only in that it returns not one object in the server response, but a
-list of objects. This is often needed to return lists by filter. For example, products on the
-product page in an online store.
+Этот пример показывает, как возвращать список объектов в ответе API-метода. Такой подход часто нужен для списков с фильтрацией — например, список товаров в интернет-магазине.
 
 ---
+
+## Request
+
+Если вы хотите удобно получать данные запроса в виде массива, наследуйте Request от `JsonRpcRequest` — это даст доступ к методу `toArray()`.
+
+Метод `addCategory()` позволяет принимать массив категорий поэлементно (pattern "adder").
 
 ```php
 <?php
@@ -18,9 +22,6 @@ namespace App\RPC\V1\GetProducts;
 
 use OV\JsonRPCAPIBundle\Core\Request\JsonRpcRequest;
 
-/**
- * If you want to easily get data as an array, you can extend this class
- */
 class Request extends JsonRpcRequest
 {
     private ?string $title = null;
@@ -28,45 +29,17 @@ class Request extends JsonRpcRequest
     private ?int $priceTo = null;
     private ?array $categories = null;
 
-    public function getTitle(): ?string
-    {
-        return $this->title;
-    }
+    public function getTitle(): ?string { return $this->title; }
+    public function setTitle(?string $title): void { $this->title = $title; }
 
-    public function setTitle(?string $title): void
-    {
-        $this->title = $title;
-    }
+    public function getPriceFrom(): ?int { return $this->priceFrom; }
+    public function setPriceFrom(?int $priceFrom): void { $this->priceFrom = $priceFrom; }
 
-    public function getPriceFrom(): ?int
-    {
-        return $this->priceFrom;
-    }
+    public function getPriceTo(): ?int { return $this->priceTo; }
+    public function setPriceTo(?int $priceTo): void { $this->priceTo = $priceTo; }
 
-    public function setPriceFrom(?int $priceFrom): void
-    {
-        $this->priceFrom = $priceFrom;
-    }
-
-    public function getPriceTo(): ?int
-    {
-        return $this->priceTo;
-    }
-
-    public function setPriceTo(?int $priceTo): void
-    {
-        $this->priceTo = $priceTo;
-    }
-
-    public function getCategories(): ?array
-    {
-        return $this->categories;
-    }
-
-    public function setCategories(?array $categories): void
-    {
-        $this->categories = $categories;
-    }
+    public function getCategories(): ?array { return $this->categories; }
+    public function setCategories(?array $categories): void { $this->categories = $categories; }
 
     public function addCategory(int $category): void
     {
@@ -74,6 +47,8 @@ class Request extends JsonRpcRequest
     }
 }
 ```
+
+## DTO объекта (Product)
 
 ```php
 <?php
@@ -86,31 +61,27 @@ class Product
     private string $title;
     private int $price;
 
-    public function getTitle(): string
-    {
-        return $this->title;
-    }
+    public function getTitle(): string { return $this->title; }
 
     public function setTitle(string $title): Product
     {
         $this->title = $title;
-
         return $this;
     }
 
-    public function getPrice(): int
-    {
-        return $this->price;
-    }
+    public function getPrice(): int { return $this->price; }
 
     public function setPrice(int $price): Product
     {
         $this->price = $price;
-
         return $this;
     }
 }
 ```
+
+## Response
+
+Метод `addProduct()` позволяет добавлять объекты по одному. Бандл автоматически распознаёт "adder"-методы (с префиксом `add`) и использует их для заполнения массивов типизированными объектами.
 
 ```php
 <?php
@@ -130,55 +101,25 @@ class Response
         $this->errors = $errors;
     }
 
-    public function isSuccess(): bool
-    {
-        return $this->success;
-    }
+    public function isSuccess(): bool { return $this->success; }
+    public function setSuccess(bool $success): void { $this->success = $success; }
 
-    public function setSuccess(bool $success): void
-    {
-        $this->success = $success;
-    }
+    public function getErrors(): array { return $this->errors; }
+    public function setErrors(array $errors): Response { $this->errors = $errors; return $this; }
+    public function addError(string $error): Response { $this->errors[] = $error; return $this; }
 
-    public function getErrors(): array
-    {
-        return $this->errors;
-    }
-
-    public function setErrors(array $errors): Response
-    {
-        $this->errors = $errors;
-
-        return $this;
-    }
-
-    public function addError(string $error): Response
-    {
-        $this->errors[] = $error;
-
-        return $this;
-    }
-
-    public function getProductss(): array
-    {
-        return $this->products;
-    }
-
-    public function setProducts(array $products): Response
-    {
-        $this->products = $products;
-
-        return $this;
-    }
+    public function getProducts(): array { return $this->products; }
+    public function setProducts(array $products): Response { $this->products = $products; return $this; }
 
     public function addProduct(Product $product): Response
     {
         $this->products[] = $product;
-
         return $this;
     }
 }
 ```
+
+## Метод API
 
 ```php
 <?php
@@ -199,18 +140,15 @@ class GetProductsMethod
         private readonly ProductRepository $productRepository,
     ) {}
 
-    /**
-     * @param Request $request // !!!ATTENTION!!! Do not rename this param - just change type, but not the name of variable
-     * @return Response
-     */
     public function call(Request $request): Response
     {
-        $filter = $request->toArray(); //This is exactly the method you get via JsonRpcRequest
-        
+        // toArray() доступен благодаря наследованию от JsonRpcRequest
+        $filter = $request->toArray();
+
         $products = $this->productRepository->findBy($filter);
-        
+
         $response = new Response();
-        
+
         foreach ($products as $product) {
             $response->addProduct(
                 (new ApiProductDto())
@@ -218,14 +156,42 @@ class GetProductsMethod
                 ->setPrice($product->getPrice())
             );
         }
-        
+
         return $response;
     }
 }
 ```
 
-The logic implemented in this example may seem redundant and strange, but it
-has a completely justified purpose. When the logic of methods becomes complex or
-entities in the DB become large - you may not want to give ALL the data
-or you may want to transform the data format or request additional data by some
-parameters. This approach will help you do all this without any problems.
+## Пример вызова
+
+```bash
+curl -X POST http://localhost/api/v1 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "method": "getProducts", "params": {"title": "iphone", "priceFrom": 100, "priceTo": 5000}, "id": 1}'
+```
+
+Ответ:
+
+```json
+{
+    "jsonrpc": "2.0",
+    "result": {
+        "success": true,
+        "errors": [],
+        "products": [
+            {"title": "Iphone 14", "price": 1500},
+            {"title": "Iphone 15", "price": 2000}
+        ]
+    },
+    "id": "1"
+}
+```
+
+## Зачем нужен отдельный DTO?
+
+Использование отдельного DTO (`Product`) вместо прямой отдачи entity может показаться избыточным, но на практике это оправдано:
+
+- Можно контролировать, какие именно поля отдаются клиенту
+- Можно трансформировать формат данных
+- Можно добавить вычисляемые поля
+- Entity в базе данных могут содержать конфиденциальные поля, которые не нужно отдавать через API
