@@ -18,6 +18,7 @@ final class JsonRPCAPITest extends TestCase
             description: 'Fetches all products',
             ignoreInSwagger: true,
             roles: ['ROLE_USER', 'ROLE_ADMIN'],
+            group: 'products',
         );
 
         $this->assertEquals('getProducts', $api->getMethodName());
@@ -28,6 +29,7 @@ final class JsonRPCAPITest extends TestCase
         $this->assertEquals('Fetches all products', $api->getDescription());
         $this->assertTrue($api->isIgnoreInSwagger());
         $this->assertEquals(['ROLE_USER', 'ROLE_ADMIN'], $api->getRoles());
+        $this->assertEquals('products', $api->getGroup());
     }
 
     public function testDefaultValues(): void
@@ -45,6 +47,7 @@ final class JsonRPCAPITest extends TestCase
         $this->assertEquals('', $api->getDescription());
         $this->assertFalse($api->isIgnoreInSwagger());
         $this->assertEquals([], $api->getRoles());
+        $this->assertNull($api->getGroup());
     }
 
     public function testWithVersionNull(): void
@@ -82,5 +85,19 @@ final class JsonRPCAPITest extends TestCase
         $attributes = $reflection->getAttributes(\Attribute::class);
 
         $this->assertNotEmpty($attributes);
+    }
+
+    public function testGroupParameter(): void
+    {
+        $api = new JsonRPCAPI(methodName: 'getProduct', type: 'POST', group: 'products');
+
+        $this->assertEquals('products', $api->getGroup());
+    }
+
+    public function testGroupDefaultNull(): void
+    {
+        $api = new JsonRPCAPI(methodName: 'test', type: 'POST');
+
+        $this->assertNull($api->getGroup());
     }
 }

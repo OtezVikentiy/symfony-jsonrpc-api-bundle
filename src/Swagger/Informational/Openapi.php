@@ -10,6 +10,8 @@ final readonly class Openapi
         private array $tags,
         private array $paths,
         private array $components,
+        private ?string $securitySchemeName = null,
+        private ?array $securityScheme = null,
     ) {}
 
     public function toArray(): array
@@ -29,15 +31,43 @@ final readonly class Openapi
             $schemas[$component->getName()] = $component->toArray();
         }
 
-        return [
+        $result = [
             'openapi' => '3.1.1',
             'info' => $this->info->toArray(),
-            'servers' => $servers,
-            'tags' => $this->tags,
-            'paths' => $paths,
-            'components' => [
-                'schemas' => $schemas
-            ],
         ];
+
+        if (!empty($servers)) {
+            $result['servers'] = $servers;
+        }
+
+        $filteredTags = array_values(array_filter($this->tags, fn($tag) => !empty($tag)));
+        if (!empty($filteredTags)) {
+            $result['tags'] = $filteredTags;
+        }
+
+        if (!empty($paths)) {
+            $result['paths'] = $paths;
+        }
+
+        $components = [];
+        if (!empty($schemas)) {
+            $components['schemas'] = $schemas;
+        }
+        if ($this->securitySchemeName !== null && $this->securityScheme !== null) {
+            $components['securitySchemes'] = [
+                $this->securitySchemeName => $this->securityScheme,
+            ];
+        }
+        if (!empty($components)) {
+            $result['components'] = $components;
+        }
+
+        if ($this->securitySchemeName !== null) {
+            $result['security'] = [
+                [$this->securitySchemeName => []],
+            ];
+        }
+
+        return $result;
     }
 }

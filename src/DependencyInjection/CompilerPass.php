@@ -65,6 +65,7 @@ final class CompilerPass implements CompilerPassInterface
             $description = '';
             $ignoreInSwagger = false;
             $version = null;
+            $group = null;
             foreach ($attributes as $attribute) {
                 if ($attribute->getName() === JsonRPCAPI::class) {
                     $methodName = $attribute->getArguments()['methodName'] ?? throw new Exception(sprintf('Class %s does not have attribute param methodName', $className));
@@ -75,6 +76,7 @@ final class CompilerPass implements CompilerPassInterface
                     $roles = $attribute->getArguments()['roles'] ?? [];
                     $apiTags = $attribute->getArguments()['tags'] ?? [];
                     $version = $attribute->getArguments()['version'] ?? null;
+                    $group = $attribute->getArguments()['group'] ?? null;
                 }
             }
 
@@ -228,6 +230,7 @@ final class CompilerPass implements CompilerPassInterface
                 $plainResponse,
                 $preProcessorExists,
                 $postProcessorExists,
+                $group,
             ])->setPublic(true)->setAutowired(true)->setAutoconfigured(true);
 
             if (PHP_VERSION_ID >= 80300) {

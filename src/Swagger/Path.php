@@ -12,7 +12,6 @@ final readonly class Path
         private ?RequestBody $requestBody = null,
         private array $tags = [],
         private array $responses = [],
-        private array $parameters = [],
     ) {}
 
     public function getName(): string
@@ -28,11 +27,10 @@ final readonly class Path
         }
 
         $data = [
-            'parameters' => $this->parameters,
             'summary' => $this->summary,
             'description' => $this->description,
             'requestBody' => $this->requestBody->toArray(),
-            'responses' => $responses
+            'responses' => $responses,
         ];
 
         if (!empty($this->tags)) {

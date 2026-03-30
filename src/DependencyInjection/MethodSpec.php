@@ -31,6 +31,7 @@ readonly class MethodSpec
         private bool $plainResponse = false,
         private bool $preProcessorExists = false,
         private bool $postProcessorExists = false,
+        private ?string $group = null,
     ) {
     }
 
@@ -127,5 +128,10 @@ readonly class MethodSpec
     public function getRoles(): array
     {
         return $this->roles;
+    }
+
+    public function getGroup(): ?string
+    {
+        return $this->group;
     }
 }

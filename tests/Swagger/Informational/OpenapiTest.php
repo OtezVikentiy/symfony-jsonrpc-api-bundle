@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
 
 final class OpenapiTest extends TestCase
 {
-    private function createOpenapi(): Openapi
+    private function createOpenapi(?string $securitySchemeName = null, ?array $securityScheme = null): Openapi
     {
         $contact = new Contact(name: 'Support', url: 'https://example.com', email: 'support@example.com');
         $license = new License(name: 'MIT', url: 'https://opensource.org/licenses/MIT');
@@ -57,7 +57,10 @@ final class OpenapiTest extends TestCase
         $schema->addProperty(new SchemaProperty(name: 'jsonrpc', type: 'string'));
         $components = [$schema];
 
-        return new Openapi($info, $servers, $tags, $paths, $components);
+        return new Openapi(
+            $info, $servers, $tags, $paths, $components,
+            $securitySchemeName, $securityScheme
+        );
     }
 
     public function testToArrayStructure(): void
@@ -136,9 +139,48 @@ final class OpenapiTest extends TestCase
         $result = $openapi->toArray();
 
         $this->assertEquals('3.1.1', $result['openapi']);
-        $this->assertEquals([], $result['servers']);
-        $this->assertEquals([], $result['tags']);
-        $this->assertEquals([], $result['paths']);
-        $this->assertEquals(['schemas' => []], $result['components']);
+        $this->assertArrayNotHasKey('servers', $result);
+        $this->assertArrayNotHasKey('tags', $result);
+        $this->assertArrayNotHasKey('paths', $result);
+        $this->assertArrayNotHasKey('components', $result);
+    }
+
+    public function testSecurityScheme(): void
+    {
+        $openapi = $this->createOpenapi(
+            securitySchemeName: 'ApiKeyAuth',
+            securityScheme: ['type' => 'apiKey', 'in' => 'header', 'name' => 'X-AUTH-TOKEN'],
+        );
+        $result = $openapi->toArray();
+
+        $this->assertArrayHasKey('securitySchemes', $result['components']);
+        $this->assertArrayHasKey('ApiKeyAuth', $result['components']['securitySchemes']);
+        $this->assertEquals('apiKey', $result['components']['securitySchemes']['ApiKeyAuth']['type']);
+        $this->assertEquals('header', $result['components']['securitySchemes']['ApiKeyAuth']['in']);
+        $this->assertEquals('X-AUTH-TOKEN', $result['components']['securitySchemes']['ApiKeyAuth']['name']);
+
+        $this->assertArrayHasKey('security', $result);
+        $this->assertEquals([['ApiKeyAuth' => []]], $result['security']);
+    }
+
+    public function testWithoutSecurityScheme(): void
+    {
+        $openapi = $this->createOpenapi();
+        $result = $openapi->toArray();
+
+        $this->assertArrayNotHasKey('securitySchemes', $result['components'] ?? []);
+        $this->assertArrayNotHasKey('security', $result);
+    }
+
+    public function testEmptyTagsFiltered(): void
+    {
+        $info = new Info(title: 'Test');
+        $requestBody = new RequestBody(contentRef: 'Test');
+        $paths = [new Path(name: '/test', methodType: 'POST', requestBody: $requestBody)];
+        $openapi = new Openapi($info, [], [[], ['name' => 'valid'], []], $paths, []);
+        $result = $openapi->toArray();
+
+        $this->assertCount(1, $result['tags']);
+        $this->assertEquals('valid', $result['tags'][0]['name']);
     }
 }

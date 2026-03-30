@@ -27,9 +27,6 @@ final class PathTest extends TestCase
             description: 'Test description',
             requestBody: $requestBody,
             responses: [$response],
-            parameters: [
-                ['in' => 'header', 'name' => 'X-AUTH-TOKEN', 'schema' => ['type' => 'string']],
-            ],
         );
 
         $result = $path->toArray();
@@ -42,7 +39,7 @@ final class PathTest extends TestCase
         $this->assertArrayHasKey('requestBody', $postData);
         $this->assertArrayHasKey('responses', $postData);
         $this->assertArrayHasKey('200', $postData['responses']);
-        $this->assertArrayHasKey('parameters', $postData);
+        $this->assertArrayNotHasKey('parameters', $postData);
     }
 
     public function testToArrayWithTags(): void

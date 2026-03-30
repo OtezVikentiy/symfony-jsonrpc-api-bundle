@@ -47,13 +47,16 @@ final class InfoTest extends TestCase
         $this->assertEquals('', $result['description']);
         $this->assertEquals('', $result['termsOfService']);
         $this->assertEquals('', $result['version']);
-        $this->assertNull($result['contact']['name']);
-        $this->assertNull($result['license']['name']);
+        // No contact/license when null (null-safe)
+        $this->assertArrayNotHasKey('contact', $result);
+        $this->assertArrayNotHasKey('license', $result);
     }
 
     public function testToArrayStructure(): void
     {
-        $info = new Info(title: 'Test');
+        $contact = new Contact(name: 'Test');
+        $license = new License(name: 'MIT');
+        $info = new Info(title: 'Test', contact: $contact, license: $license);
         $result = $info->toArray();
 
         $this->assertArrayHasKey('title', $result);
@@ -62,5 +65,24 @@ final class InfoTest extends TestCase
         $this->assertArrayHasKey('version', $result);
         $this->assertArrayHasKey('contact', $result);
         $this->assertArrayHasKey('license', $result);
+    }
+
+    public function testNullContactAndLicenseOmitted(): void
+    {
+        $info = new Info(title: 'API', contact: null, license: null);
+        $result = $info->toArray();
+
+        $this->assertArrayNotHasKey('contact', $result);
+        $this->assertArrayNotHasKey('license', $result);
+    }
+
+    public function testEmptyContactOmitted(): void
+    {
+        $contact = new Contact();
+        $info = new Info(title: 'API', contact: $contact);
+        $result = $info->toArray();
+
+        // Contact with all empty strings should be omitted
+        $this->assertArrayNotHasKey('contact', $result);
     }
 }

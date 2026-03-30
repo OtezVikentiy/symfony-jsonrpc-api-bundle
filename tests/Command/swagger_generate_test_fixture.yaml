@@ -28,13 +28,6 @@ tags:
 paths:
     /get_data:
         post:
-            parameters:
-                -
-                    in: header
-                    name: X-AUTH-TOKEN
-                    schema:
-                        type: string
-                    example: 2f1f6aee7d994528fde6e47a493cc097
             summary: ''
             description: ''
             requestBody:
@@ -49,16 +42,9 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_GetData_GetDataResponseResponse'
+                                $ref: '#/components/schemas/GetDataResponseResponse'
     /notify_hello:
         post:
-            parameters:
-                -
-                    in: header
-                    name: X-AUTH-TOKEN
-                    schema:
-                        type: string
-                    example: 2f1f6aee7d994528fde6e47a493cc097
             summary: ''
             description: ''
             requestBody:
@@ -73,16 +59,9 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_NotifyHello_NotifyHelloResponseResponse'
+                                $ref: '#/components/schemas/NotifyHelloResponseResponse'
     /notify_sum:
         post:
-            parameters:
-                -
-                    in: header
-                    name: X-AUTH-TOKEN
-                    schema:
-                        type: string
-                    example: 2f1f6aee7d994528fde6e47a493cc097
             summary: ''
             description: ''
             requestBody:
@@ -97,18 +76,11 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_NotifySum_NotifySumResponseResponse'
+                                $ref: '#/components/schemas/NotifySumResponseResponse'
             tags:
                 - math
     /subtract_2:
         post:
-            parameters:
-                -
-                    in: header
-                    name: X-AUTH-TOKEN
-                    schema:
-                        type: string
-                    example: 2f1f6aee7d994528fde6e47a493cc097
             summary: ''
             description: ''
             requestBody:
@@ -123,18 +95,11 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_Subtract2_Subtract2ResponseResponse'
+                                $ref: '#/components/schemas/Subtract2ResponseResponse'
             tags:
                 - math
     /subtract:
         post:
-            parameters:
-                -
-                    in: header
-                    name: X-AUTH-TOKEN
-                    schema:
-                        type: string
-                    example: 2f1f6aee7d994528fde6e47a493cc097
             summary: ''
             description: ''
             requestBody:
@@ -149,18 +114,11 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_Subtract_SubtractResponseResponse'
+                                $ref: '#/components/schemas/SubtractResponseResponse'
             tags:
                 - mathematic
     /sum:
         post:
-            parameters:
-                -
-                    in: header
-                    name: X-AUTH-TOKEN
-                    schema:
-                        type: string
-                    example: 2f1f6aee7d994528fde6e47a493cc097
             summary: ''
             description: ''
             requestBody:
@@ -175,18 +133,11 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_Sum_SumResponseResponse'
+                                $ref: '#/components/schemas/SumResponseResponse'
             tags:
                 - mathematic
     /test:
         post:
-            parameters:
-                -
-                    in: header
-                    name: X-AUTH-TOKEN
-                    schema:
-                        type: string
-                    example: 2f1f6aee7d994528fde6e47a493cc097
             summary: 'Test method summary'
             description: 'Test method description'
             requestBody:
@@ -201,18 +152,11 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_Test_TestResponseResponse'
+                                $ref: '#/components/schemas/TestResponseResponse'
             tags:
                 - test
     /update:
         put:
-            parameters:
-                -
-                    in: header
-                    name: X-AUTH-TOKEN
-                    schema:
-                        type: string
-                    example: 2f1f6aee7d994528fde6e47a493cc097
             summary: ''
             description: ''
             requestBody:
@@ -227,31 +171,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_Update_UpdateResponseResponse'
-    /get_picture:
-        post:
-            parameters:
-                -
-                    in: header
-                    name: X-AUTH-TOKEN
-                    schema:
-                        type: string
-                    example: 2f1f6aee7d994528fde6e47a493cc097
-            summary: ''
-            description: 'get picture method'
-            requestBody:
-                description: ''
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/GetPictureMainRequest'
-            responses:
-                200:
-                    description: ''
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_GetPicture_PlainResponseResponse'
+                                $ref: '#/components/schemas/UpdateResponseResponse'
 components:
     schemas:
         get_dataRequest:
@@ -274,7 +194,7 @@ components:
                 - jsonrpc
                 - method
                 - params
-        OV_JsonRPCAPIBundle_RPC_V1_GetData_GetDataResponseResponse:
+        GetDataResponseResponse:
             type: object
             properties:
                 jsonrpc:
@@ -308,7 +228,7 @@ components:
                 - jsonrpc
                 - method
                 - params
-        OV_JsonRPCAPIBundle_RPC_V1_NotifyHello_NotifyHelloResponseResponse:
+        NotifyHelloResponseResponse:
             type: object
             properties:
                 jsonrpc:
@@ -339,7 +259,7 @@ components:
                 - jsonrpc
                 - method
                 - params
-        OV_JsonRPCAPIBundle_RPC_V1_NotifySum_NotifySumResponseResponse:
+        NotifySumResponseResponse:
             type: object
             properties:
                 jsonrpc:
@@ -372,7 +292,7 @@ components:
                 - jsonrpc
                 - method
                 - params
-        OV_JsonRPCAPIBundle_RPC_V1_Subtract2_Subtract2ResponseResponse:
+        Subtract2ResponseResponse:
             type: object
             properties:
                 jsonrpc:
@@ -406,7 +326,7 @@ components:
                 - jsonrpc
                 - method
                 - params
-        OV_JsonRPCAPIBundle_RPC_V1_Subtract_SubtractResponseResponse:
+        SubtractResponseResponse:
             type: object
             properties:
                 jsonrpc:
@@ -440,7 +360,7 @@ components:
                 - jsonrpc
                 - method
                 - params
-        OV_JsonRPCAPIBundle_RPC_V1_Sum_SumResponseResponse:
+        SumResponseResponse:
             type: object
             properties:
                 jsonrpc:
@@ -483,7 +403,7 @@ components:
                 - method
                 - params
                 - id
-        OV_JsonRPCAPIBundle_RPC_V1_Test_TestRequest:
+        TestRequest:
             type: object
             properties:
                 id:
@@ -492,14 +412,14 @@ components:
                     type: string
             required:
                 - id
-        OV_JsonRPCAPIBundle_RPC_V1_Test_Test:
+        Test:
             type: object
             properties:
                 name:
                     type: string
             required:
                 - name
-        OV_JsonRPCAPIBundle_RPC_V1_Test_TestResponseResponse:
+        TestResponseResponse:
             type: object
             properties:
                 jsonrpc:
@@ -516,12 +436,12 @@ components:
                     default: ''
                     format: '/[A-Za-z0-9]+/]/'
                 request:
-                    $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_Test_TestRequest'
+                    $ref: '#/components/schemas/TestRequest'
                 tests:
                     type: array
                     items:
                         type: object
-                        $ref: '#/components/schemas/OV_JsonRPCAPIBundle_RPC_V1_Test_Test'
+                        $ref: '#/components/schemas/Test'
                 errors:
                     type: array
                     items:
@@ -556,7 +476,7 @@ components:
                 - jsonrpc
                 - method
                 - params
-        OV_JsonRPCAPIBundle_RPC_V1_Update_UpdateResponseResponse:
+        UpdateResponseResponse:
             type: object
             properties:
                 jsonrpc:
@@ -594,45 +514,36 @@ components:
                 - method
                 - params
                 - id
-        Symfony_Component_HttpFoundation_ResponseHeaderBag:
+        JsonRpcError:
             type: object
             properties:
-                computedCacheControl:
-                    type: array
-                cookies:
-                    type: array
-                headerNames:
-                    type: array
-                headers:
-                    type: array
-                cacheControl:
-                    type: array
-        OV_JsonRPCAPIBundle_RPC_V1_GetPicture_PlainResponseResponse:
+                code:
+                    type: integer
+                message:
+                    type: string
+            required:
+                - code
+                - message
+        JsonRpcErrorResponse:
             type: object
             properties:
                 jsonrpc:
                     type: string
                     example: '2.0'
                     default: '2.0'
-                headers:
-                    $ref: '#/components/schemas/Symfony_Component_HttpFoundation_ResponseHeaderBag'
-                content:
-                    type: string
-                version:
-                    type: string
-                statusCode:
-                    type: integer
-                statusText:
-                    type: string
-                charset:
-                    type: string
-                statusTexts:
-                    type: array
+                error:
+                    $ref: '#/components/schemas/JsonRpcError'
                 id:
                     type: integer
-                    example: '0'
-                    default: '0'
             required:
                 - jsonrpc
-                - id
+                - error
+    securitySchemes:
+        ApiKeyAuth:
+            type: apiKey
+            in: header
+            name: X-AUTH-TOKEN
+security:
+    -
+        ApiKeyAuth: {  }
 

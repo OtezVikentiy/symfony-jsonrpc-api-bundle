@@ -4,6 +4,7 @@ namespace OV\JsonRPCAPIBundle\Command;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\SwaggerArrayProperty;
 use OV\JsonRPCAPIBundle\Core\Annotation\SwaggerProperty;
+use OV\JsonRPCAPIBundle\Core\Response\PlainResponseInterface;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use OV\JsonRPCAPIBundle\Swagger\Informational\Contact;
 use OV\JsonRPCAPIBundle\Swagger\Informational\Info;
@@ -19,17 +20,18 @@ use OV\JsonRPCAPIBundle\Swagger\Server;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionProperty;
+use ReflectionUnionType;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\TypeInfo\Type\UnionType;
 use Symfony\Component\Yaml\Yaml;
 
 #[AsCommand(name: 'ov:swagger:generate')]
 final class SwaggerGenerate extends Command
 {
     private array $components = [];
+    private array $processedClasses = [];
 
     public function __construct(
         private readonly string $ovJsonRpcApiSwaggerPath,
@@ -48,6 +50,8 @@ final class SwaggerGenerate extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         foreach ($this->swagger as $name => $item) {
+            $this->components = [];
+            $this->processedClasses = [];
             $yaml = $this->generateSwaggerYaml($item);
 
             if ($this->passToOutput) {
@@ -92,9 +96,25 @@ final class SwaggerGenerate extends Command
             new Server($testPath, $item['test_path_description'] ?? ''),
         ];
 
-        [$tags, $paths] = $this->generateApis($item['auth_token_name'], $item['auth_token_test_value'], $item['api_version']);
+        $authTokenName = $item['auth_token_name'];
 
-        $swagger = new Openapi($info, $servers, $tags, $paths, $this->components);
+        [$tags, $paths] = $this->generateApis($item['api_version']);
+
+        $this->addJsonRpcErrorResponseSchema();
+
+        $swagger = new Openapi(
+            info: $info,
+            servers: $servers,
+            tags: $tags,
+            paths: $paths,
+            components: $this->components,
+            securitySchemeName: 'ApiKeyAuth',
+            securityScheme: [
+                'type' => 'apiKey',
+                'in' => 'header',
+                'name' => $authTokenName,
+            ],
+        );
 
         return Yaml::dump($swagger->toArray(), 12);
     }
@@ -102,7 +122,7 @@ final class SwaggerGenerate extends Command
     /**
      * @throws ReflectionException
      */
-    private function generateApis(string $authTokenName, string $authTokenDefaultValue, int $apiVersion): array
+    private function generateApis(int $apiVersion): array
     {
         $tags = [];
         $paths = [];
@@ -149,12 +169,7 @@ final class SwaggerGenerate extends Command
                 $addIdToGlobalRequest = false;
 
                 foreach ($method->getRequiredParameters() as $requiredParameter) {
-                    $type = $requiredParameter['type'];
-                    if ($type === 'int') {
-                        $type = 'integer';
-                    }  elseif ($type === 'bool') {
-                        $type = 'boolean';
-                    }
+                    $type = $this->normalizeType($requiredParameter['type']);
                     $prop = new SchemaProperty($requiredParameter['name'], $type);
                     $requestSchema->addProperty($prop);
                     $requestSchema->addRequired($prop);
@@ -168,12 +183,7 @@ final class SwaggerGenerate extends Command
                     if (isset($parameters[$parameter['name']])) {
                         continue;
                     }
-                    $type = $parameter['type'];
-                    if ($type === 'int') {
-                        $type = 'integer';
-                    } elseif ($type === 'bool') {
-                        $type = 'boolean';
-                    }
+                    $type = $this->normalizeType($parameter['type']);
                     $prop = new SchemaProperty($parameter['name'], $type);
                     $requestSchema->addProperty($prop);
                 }
@@ -197,15 +207,16 @@ final class SwaggerGenerate extends Command
                 $callMethod = $methodRef->getMethod('call');
                 $returnType = $callMethod->getReturnType();
 
-                if ($returnType instanceof UnionType) {
-                    continue; //Todo костыль который надо исправить
+                $responseClassName = $this->resolveResponseClassName($returnType);
+                if ($responseClassName === null) {
+                    continue;
                 }
 
-                $responseClassRef = new ReflectionClass($callMethod->getReturnType()?->getName());
+                $responseClassRef = new ReflectionClass($responseClassName);
                 $responseProperties = $responseClassRef->getProperties();
                 $requiredPropertiesOfResponse = $this->getRequiredPropertiesList($responseClassRef);
 
-                $responseSchemaName = str_replace('\\', '_', $responseClassRef->getName());
+                $responseSchemaName = $responseClassRef->getShortName();
                 $responseSchema = new Schema(sprintf('%sResponse', $responseSchemaName));
                 $responseSchema->addProperty(new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0'));
                 $responseSchema->addRequired(new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0'));
@@ -214,37 +225,66 @@ final class SwaggerGenerate extends Command
                     $this->processProperty($responseProperty, $responseSchema, in_array($responseProperty->getName(), $requiredPropertiesOfResponse));
                 }
 
-                $this->components[] = $responseSchema;
-
                 if ($addIdToGlobalRequest) {
                     $responseSchema->addProperty(new SchemaProperty(name: 'id', type: 'integer', default: '0', example: '0'));
                     $responseSchema->addRequired(new SchemaProperty(name: 'id', type: 'integer', default: '0', example: '0'));
                 }
 
+                $this->components[] = $responseSchema;
+
                 $response = new Response('200', sprintf('%sResponse', $responseSchemaName));
 
+                $pathName = '/' . $this->camelToSnake($method->getMethodName(), '_');
+                if ($method->getGroup() !== null) {
+                    $pathName = '/' . $this->camelToSnake($method->getGroup(), '_') . $pathName;
+                }
+
                 $path = new Path(
-                    name: '/' . $this->camelToSnake($method->getMethodName(), '_'),
+                    name: $pathName,
                     methodType: $method->getRequestType(),
                     summary: $method->getSummary(),
                     description: $method->getDescription(),
                     requestBody: $requestBody,
                     tags: $method->getTags(),
                     responses: [$response],
-                    parameters: [
-                        [
-                            'in' => 'header',
-                            'name' => $authTokenName,
-                            'schema' => ['type' => 'string'],
-                            'example' => $authTokenDefaultValue
-                        ]
-                    ],
                 );
                 $paths[] = $path;
             }
         }
 
         return [array_values($tags), $paths];
+    }
+
+    /**
+     * Resolves the response class name from a return type, handling Union types.
+     * For Union types, picks the first non-PlainResponseInterface type.
+     * Returns null if only PlainResponse types exist (binary-only endpoint).
+     */
+    private function resolveResponseClassName(\ReflectionType $returnType): ?string
+    {
+        if ($returnType instanceof ReflectionUnionType) {
+            foreach ($returnType->getTypes() as $type) {
+                $typeName = $type->getName();
+                if (!class_exists($typeName)) {
+                    continue;
+                }
+                $typeReflection = new ReflectionClass($typeName);
+                if (!$typeReflection->implementsInterface(PlainResponseInterface::class)) {
+                    return $typeName;
+                }
+            }
+            return null;
+        }
+
+        $typeName = $returnType->getName();
+        if (class_exists($typeName)) {
+            $typeReflection = new ReflectionClass($typeName);
+            if ($typeReflection->implementsInterface(PlainResponseInterface::class)) {
+                return null;
+            }
+        }
+
+        return $typeName;
     }
 
     private function processProperty(ReflectionProperty $property, Schema $schema, bool $required): void
@@ -272,12 +312,16 @@ final class SwaggerGenerate extends Command
             $schemaProperty->setFormat($format);
         }
 
-        $type = $property->getType()->getName();
-        if ($type === 'int') {
-            $type = 'integer';
-        } elseif ($type === 'bool') {
-            $type = 'boolean';
+        $propertyType = $property->getType();
+        if ($propertyType === null) {
+            $schemaProperty->setType('string');
+            $schema->addProperty($schemaProperty);
+            if ($required) $schema->addRequired($schemaProperty);
+            return;
         }
+
+        $type = $propertyType->getName();
+        $type = $this->normalizeType($type);
 
         if (!in_array($type, ['array', 'boolean', 'integer', 'number', 'object', 'string'])) {
             $this->processObjectProperty($property->getType()->getName(), $schemaProperty, $schema, $required);
@@ -322,7 +366,24 @@ final class SwaggerGenerate extends Command
         bool $required,
         bool $schemaItem = false
     ): void {
-        $innerSchema = new Schema(str_replace('\\', '_', $name));
+        $shortName = (new ReflectionClass($name))->getShortName();
+
+        // Guard against circular references and duplicate processing
+        if (isset($this->processedClasses[$name])) {
+            if ($schemaItem) {
+                $schemaProperty
+                    ->setType('array')
+                    ->setItems(new SchemaItem(type: 'object', ref: $shortName));
+            } else {
+                $schemaProperty->setRef($shortName);
+            }
+            $schema->addProperty($schemaProperty);
+            if ($required) $schema->addRequired($schemaProperty);
+            return;
+        }
+        $this->processedClasses[$name] = true;
+
+        $innerSchema = new Schema($shortName);
         $reflection = new ReflectionClass($name);
         $requiredPropertiesOfResponse = $this->getRequiredPropertiesList($reflection);
         foreach ($reflection->getProperties() as $reflectionProperty) {
@@ -336,16 +397,32 @@ final class SwaggerGenerate extends Command
         if ($schemaItem) {
             $schemaProperty
                 ->setType('array')
-                ->setItems(new SchemaItem(type: 'object', ref: str_replace('\\', '_', $name)));
+                ->setItems(new SchemaItem(type: 'object', ref: $shortName));
             $schema->addProperty($schemaProperty);
             if ($required) $schema->addRequired($schemaProperty);
         } else {
-            $schemaProperty
-                ->setType('object')
-                ->setRef(str_replace('\\', '_', $name));
+            $schemaProperty->setRef($shortName);
             $schema->addProperty($schemaProperty);
             if ($required) $schema->addRequired($schemaProperty);
         }
+    }
+
+    private function addJsonRpcErrorResponseSchema(): void
+    {
+        $errorDetailSchema = new Schema('JsonRpcError');
+        $errorDetailSchema->addProperty(new SchemaProperty(name: 'code', type: 'integer'));
+        $errorDetailSchema->addRequired(new SchemaProperty(name: 'code', type: 'integer'));
+        $errorDetailSchema->addProperty(new SchemaProperty(name: 'message', type: 'string'));
+        $errorDetailSchema->addRequired(new SchemaProperty(name: 'message', type: 'string'));
+        $this->components[] = $errorDetailSchema;
+
+        $errorResponseSchema = new Schema('JsonRpcErrorResponse');
+        $errorResponseSchema->addProperty(new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0'));
+        $errorResponseSchema->addRequired(new SchemaProperty(name: 'jsonrpc', type: 'string', default: '2.0', example: '2.0'));
+        $errorResponseSchema->addProperty(new SchemaProperty(name: 'error', ref: 'JsonRpcError'));
+        $errorResponseSchema->addRequired(new SchemaProperty(name: 'error', ref: 'JsonRpcError'));
+        $errorResponseSchema->addProperty(new SchemaProperty(name: 'id', type: 'integer'));
+        $this->components[] = $errorResponseSchema;
     }
 
     private function getRequiredPropertiesList(ReflectionClass $reflection): array
@@ -362,6 +439,16 @@ final class SwaggerGenerate extends Command
             }
         }
         return $requiredPropertiesOfResponse;
+    }
+
+    private function normalizeType(string $type): string
+    {
+        return match ($type) {
+            'int' => 'integer',
+            'bool' => 'boolean',
+            'float', 'double' => 'number',
+            default => $type,
+        };
     }
 
     private function camelToSnake(string $string, string $us = "-"): string

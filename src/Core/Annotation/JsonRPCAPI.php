@@ -24,6 +24,7 @@ final readonly class JsonRPCAPI
         private string $description = '',
         private bool $ignoreInSwagger = false,
         private array $roles = [],
+        private ?string $group = null,
     ) {
     }
 
@@ -72,5 +73,11 @@ final readonly class JsonRPCAPI
     public function getRoles(): array
     {
         return $this->roles;
+    }
+
+    /** @noinspection PhpUnused */
+    public function getGroup(): ?string
+    {
+        return $this->group;
     }
 }

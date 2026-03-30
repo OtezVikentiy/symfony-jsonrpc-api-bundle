@@ -3,7 +3,7 @@
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.2-8892BF.svg)](https://php.net/)
 [![Symfony Version](https://img.shields.io/badge/symfony-%3E%3D6.4-000000.svg)](https://symfony.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-3.0-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
+[![Version](https://img.shields.io/badge/version-3.1-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
 
 Symfony-бандл для быстрого и удобного создания JSON-RPC 2.0 API приложений.
 
@@ -453,6 +453,7 @@ class DeleteUserMethod
 | `tags` | ?array | нет | `null` | Теги для группировки в Swagger |
 | `roles` | array | нет | `[]` | Требуемые роли для доступа |
 | `ignoreInSwagger` | bool | нет | `false` | Исключить метод из Swagger-документации |
+| `group` | ?string | нет | `null` | Группа для пути в Swagger (например, `'products'` → `/products/get_product`) |
 
 ---
 

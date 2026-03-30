@@ -91,6 +91,52 @@ bin/console ov:swagger:generate
 
 Результат: `public/openapi/api_v1.yaml`
 
+## Группировка путей (group)
+
+Параметр `group` задаёт префикс пути в Swagger. Это удобно для визуальной организации большого количества методов:
+
+```php
+#[JsonRPCAPI(
+    methodName: 'GetProduct',
+    type: 'POST',
+    tags: ['products'],
+    group: 'products'
+)]
+class GetProductMethod { /* ... */ }
+
+#[JsonRPCAPI(
+    methodName: 'CreateProduct',
+    type: 'POST',
+    tags: ['products'],
+    group: 'products'
+)]
+class CreateProductMethod { /* ... */ }
+
+#[JsonRPCAPI(
+    methodName: 'GetUser',
+    type: 'POST',
+    tags: ['users'],
+    group: 'users'
+)]
+class GetUserMethod { /* ... */ }
+```
+
+В Swagger UI пути будут:
+```
+/products/get_product
+/products/create_product
+/users/get_user
+```
+
+Без `group` все пути остаются в корне:
+```
+/get_product
+/create_product
+/get_user
+```
+
+> `group` и `tags` — разные вещи. `tags` группируют методы визуально в Swagger UI (сворачиваемые секции). `group` формирует иерархию URL-путей.
+
 ## Скрытие метода из Swagger
 
 Если метод не должен попадать в Swagger-документацию (например, служебный или тестовый), используйте `ignoreInSwagger`:

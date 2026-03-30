@@ -28,6 +28,7 @@ final class MethodSpecTest extends TestCase
             plainResponse: $overrides['plainResponse'] ?? false,
             preProcessorExists: $overrides['preProcessorExists'] ?? false,
             postProcessorExists: $overrides['postProcessorExists'] ?? false,
+            group: $overrides['group'] ?? null,
         );
     }
 
@@ -187,5 +188,17 @@ final class MethodSpecTest extends TestCase
     {
         $spec = $this->createMethodSpec();
         $this->assertFalse($spec->isPostProcessorExists());
+    }
+
+    public function testGetGroup(): void
+    {
+        $spec = $this->createMethodSpec(['group' => 'products']);
+        $this->assertEquals('products', $spec->getGroup());
+    }
+
+    public function testGetGroupDefaultNull(): void
+    {
+        $spec = $this->createMethodSpec();
+        $this->assertNull($spec->getGroup());
     }
 }
