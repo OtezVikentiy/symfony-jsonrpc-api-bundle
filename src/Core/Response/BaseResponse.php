@@ -17,7 +17,7 @@ final readonly class BaseResponse implements OvResponseInterface, BaseJsonRespon
 {
     public function __construct(
         private mixed $result,
-        private readonly mixed $id = null,
+        private mixed $id = null,
         private string $jsonrpc = '2.0'
     ) {
     }
