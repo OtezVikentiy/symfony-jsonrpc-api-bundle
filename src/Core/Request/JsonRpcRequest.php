@@ -41,7 +41,6 @@ abstract class JsonRpcRequest
         $result = [];
 
         foreach ($properties as $property) {
-            $property->setAccessible(true);
             $propertyName = $property->getName();
             $type = $property->getType();
             $typeName = $type instanceof \ReflectionNamedType ? $type->getName() : null;
