@@ -18,8 +18,13 @@
   },
   "autoload": {
     "psr-4": {
-      "OV\\JsonRPCAPIBundle\\": "src/",
-      "OV\\JsonRPCAPIBundle\\Tests\\": "tests/"
+      "OV\\JsonRPCAPIBundle\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "OV\\JsonRPCAPIBundle\\Tests\\": "tests/",
+      "OV\\JsonRPCAPIBundle\\RPC\\": "tests/Fixtures/RPC/"
     }
   },
   "require": {

@@ -12,7 +12,8 @@ final class SchemaProperty
         private ?string $example = null,
         private ?SchemaItem $items = null,
         private ?string $ref = null,
-    ) {}
+    ) {
+    }
 
     public function getName(): string
     {
@@ -94,7 +95,7 @@ final class SchemaProperty
             return $arr;
         } else {
             return [
-                '$ref' => '#/components/schemas/'.$this->ref,
+                '$ref' => '#/components/schemas/' . $this->ref,
             ];
         }
     }

@@ -11,7 +11,8 @@ final readonly class Info
         private string $version = '',
         private ?Contact $contact = null,
         private ?License $license = null,
-    ) {}
+    ) {
+    }
 
     public function toArray(): array
     {

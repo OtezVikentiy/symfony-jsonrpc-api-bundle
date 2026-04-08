@@ -8,7 +8,8 @@ final readonly class Contact
         private string $name = '',
         private string $url = '',
         private string $email = '',
-    ) {}
+    ) {
+    }
 
     public function getName(): string
     {

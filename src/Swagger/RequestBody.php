@@ -7,7 +7,8 @@ final readonly class RequestBody
     public function __construct(
         private string $contentRef = '',
         private string $description = '',
-    ) {}
+    ) {
+    }
 
     private function getContentRef(): array
     {

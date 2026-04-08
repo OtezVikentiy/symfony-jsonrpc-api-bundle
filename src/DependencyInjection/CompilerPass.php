@@ -258,7 +258,7 @@ final class CompilerPass implements CompilerPassInterface
                 'type' => $property->getType()->getName(),
             ];
 
-            if ($property instanceof  \ReflectionProperty) {
+            if ($property instanceof \ReflectionProperty) {
                 $method = 'hasDefaultValue';
             } elseif ($property instanceof \ReflectionParameter) {
                 $method = 'isDefaultValueAvailable';

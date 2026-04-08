@@ -12,7 +12,8 @@ final readonly class Path
         private ?RequestBody $requestBody = null,
         private array $tags = [],
         private array $responses = [],
-    ) {}
+    ) {
+    }
 
     public function getName(): string
     {

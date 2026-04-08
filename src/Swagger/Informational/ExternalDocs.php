@@ -7,7 +7,8 @@ final readonly class ExternalDocs
     public function __construct(
         private string $description = '',
         private string $url = '',
-    ) {}
+    ) {
+    }
 
     public function getDescription(): string
     {

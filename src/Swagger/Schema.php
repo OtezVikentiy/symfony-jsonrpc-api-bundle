@@ -9,7 +9,8 @@ final class Schema
         private array $properties = [],
         private array $required = [],
         private readonly string $type = 'object',
-    ) {}
+    ) {
+    }
 
     public function addProperty(SchemaProperty $property): void
     {

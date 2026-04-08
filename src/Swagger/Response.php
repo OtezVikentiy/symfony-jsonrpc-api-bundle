@@ -8,7 +8,8 @@ final readonly class Response
         private string $code = '',
         private string $contentRef = '',
         private string $description = '',
-    ) {}
+    ) {
+    }
 
     private function getContentRef(): array
     {

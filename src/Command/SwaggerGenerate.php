@@ -316,7 +316,9 @@ final class SwaggerGenerate extends Command
         if ($propertyType === null) {
             $schemaProperty->setType('string');
             $schema->addProperty($schemaProperty);
-            if ($required) $schema->addRequired($schemaProperty);
+            if ($required) {
+                $schema->addRequired($schemaProperty);
+            }
             return;
         }
 
@@ -331,7 +333,9 @@ final class SwaggerGenerate extends Command
         if ($type !== 'array') {
             $schemaProperty->setType($type);
             $schema->addProperty($schemaProperty);
-            if ($required) $schema->addRequired($schemaProperty);
+            if ($required) {
+                $schema->addRequired($schemaProperty);
+            }
             return;
         }
 
@@ -345,7 +349,9 @@ final class SwaggerGenerate extends Command
                         ->setType($type)
                         ->setItems(new SchemaItem(type: $attributeType));
                     $schema->addProperty($schemaProperty);
-                    if ($required) $schema->addRequired($schemaProperty);
+                    if ($required) {
+                        $schema->addRequired($schemaProperty);
+                    }
                     return;
                 } else {
                     $this->processObjectProperty($attributeType, $schemaProperty, $schema, $required, true);
@@ -356,7 +362,9 @@ final class SwaggerGenerate extends Command
 
         $schemaProperty->setType($type);
         $schema->addProperty($schemaProperty);
-        if ($required) $schema->addRequired($schemaProperty);
+        if ($required) {
+            $schema->addRequired($schemaProperty);
+        }
     }
 
     private function processObjectProperty(
@@ -378,7 +386,9 @@ final class SwaggerGenerate extends Command
                 $schemaProperty->setRef($shortName);
             }
             $schema->addProperty($schemaProperty);
-            if ($required) $schema->addRequired($schemaProperty);
+            if ($required) {
+                $schema->addRequired($schemaProperty);
+            }
             return;
         }
         $this->processedClasses[$name] = true;
@@ -399,11 +409,15 @@ final class SwaggerGenerate extends Command
                 ->setType('array')
                 ->setItems(new SchemaItem(type: 'object', ref: $shortName));
             $schema->addProperty($schemaProperty);
-            if ($required) $schema->addRequired($schemaProperty);
+            if ($required) {
+                $schema->addRequired($schemaProperty);
+            }
         } else {
             $schemaProperty->setRef($shortName);
             $schema->addProperty($schemaProperty);
-            if ($required) $schema->addRequired($schemaProperty);
+            if ($required) {
+                $schema->addRequired($schemaProperty);
+            }
         }
     }
 

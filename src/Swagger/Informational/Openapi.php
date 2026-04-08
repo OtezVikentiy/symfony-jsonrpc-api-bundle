@@ -12,7 +12,8 @@ final readonly class Openapi
         private array $components,
         private ?string $securitySchemeName = null,
         private ?array $securityScheme = null,
-    ) {}
+    ) {
+    }
 
     public function toArray(): array
     {

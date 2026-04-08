@@ -24,7 +24,6 @@ final readonly class ResponseService
 
     public function prepareJsonResponse(BaseJsonResponseInterface $data): JsonResponse
     {
-
         $json = $this->serializer->serialize($data, 'json', [
             'json_encode_options' => SymfonyJsonResponse::DEFAULT_ENCODING_OPTIONS,
         ]);

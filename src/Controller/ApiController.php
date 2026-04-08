@@ -11,13 +11,12 @@
 namespace OV\JsonRPCAPIBundle\Controller;
 
 use OV\JsonRPCAPIBundle\Core\JRPCException;
-use OV\JsonRPCAPIBundle\Core\Response\{ErrorResponse, OvResponseInterface};
-use OV\JsonRPCAPIBundle\Core\Services\{
-    RequestHandler,
-    RequestHandler\BatchStrategyFactory,
-    RequestRawDataHandler,
-    ResponseService
-};
+use OV\JsonRPCAPIBundle\Core\Response\ErrorResponse;
+use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
+use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
+use OV\JsonRPCAPIBundle\Core\Services\RequestHandler\BatchStrategyFactory;
+use OV\JsonRPCAPIBundle\Core\Services\RequestRawDataHandler;
+use OV\JsonRPCAPIBundle\Core\Services\ResponseService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;

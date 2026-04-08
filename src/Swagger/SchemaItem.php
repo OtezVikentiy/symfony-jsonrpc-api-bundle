@@ -10,7 +10,8 @@ final class SchemaItem
         private readonly ?int $maxItems = null,
         private readonly ?string $ref = null,
         private ?array $items = null,
-    ) {}
+    ) {
+    }
 
     public function addItem(SchemaItem $item): void
     {
@@ -32,7 +33,7 @@ final class SchemaItem
         }
 
         if (!is_null($this->ref)) {
-            $array['$ref'] = '#/components/schemas/'.$this->ref;
+            $array['$ref'] = '#/components/schemas/' . $this->ref;
         }
 
         if (!is_null($this->items)) {
