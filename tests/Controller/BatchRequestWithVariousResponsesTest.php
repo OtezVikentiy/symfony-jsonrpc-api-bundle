@@ -3,6 +3,8 @@
 namespace OV\JsonRPCAPIBundle\Tests\Controller;
 
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use OV\JsonRPCAPIBundle\RPC\V1\GetData\GetDataRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\GetDataMethod;
 use OV\JsonRPCAPIBundle\RPC\V1\NotifyHello\NotifyHelloRequest;
@@ -55,62 +57,78 @@ final class BatchRequestWithVariousResponsesTest extends AbstractTest
             new MethodSpec(
                 methodClass: SumMethod::class,
                 requestType: 'POST',
-                summary: '',
-                description: '',
-                ignoreInSwagger: false,
                 methodName: 'sum',
-                allParameters: [['name' => 'params', 'type' => 'array']],
-                requiredParameters: [],
-                request: SumRequest::class,
-                requestGetters: ['params' => 'getParams'],
-                requestSetters: ['params' => 'setParams'],
-                requestAdders: [],
-                validators: ['params' => ['allowsNull' => false, 'type' => 'array']]
+                requestMetadata: new RequestMetadata(
+                    request: SumRequest::class,
+                    allParameters: [['name' => 'params', 'type' => 'array']],
+                    requiredParameters: [],
+                    requestGetters: ['params' => 'getParams'],
+                    requestSetters: ['params' => 'setParams'],
+                    requestAdders: [],
+                    validators: ['params' => ['allowsNull' => false, 'type' => 'array']],
+                ),
+                swaggerMetadata: new SwaggerMetadata(
+                    summary: '',
+                    description: '',
+                    ignoreInSwagger: false,
+                ),
             ),
             new MethodSpec(
                 methodClass: NotifyHelloMethod::class,
                 requestType: 'POST',
-                summary: '',
-                description: '',
-                ignoreInSwagger: false,
                 methodName: 'notify_hello',
-                allParameters: [['name' => 'params', 'type' => 'array']],
-                requiredParameters: [],
-                request: NotifyHelloRequest::class,
-                requestGetters: ['params' => 'getParams'],
-                requestSetters: ['params' => 'setParams'],
-                requestAdders: [],
-                validators: ['params' => ['allowsNull' => false, 'type' => 'array']]
+                requestMetadata: new RequestMetadata(
+                    request: NotifyHelloRequest::class,
+                    allParameters: [['name' => 'params', 'type' => 'array']],
+                    requiredParameters: [],
+                    requestGetters: ['params' => 'getParams'],
+                    requestSetters: ['params' => 'setParams'],
+                    requestAdders: [],
+                    validators: ['params' => ['allowsNull' => false, 'type' => 'array']],
+                ),
+                swaggerMetadata: new SwaggerMetadata(
+                    summary: '',
+                    description: '',
+                    ignoreInSwagger: false,
+                ),
             ),
             new MethodSpec(
                 methodClass: SubtractMethod::class,
                 requestType: 'POST',
-                summary: '',
-                description: '',
-                ignoreInSwagger: false,
                 methodName: 'subtract',
-                allParameters: [['name' => 'params', 'type' => 'array']],
-                requiredParameters: [],
-                request: SubtractRequest::class,
-                requestGetters: ['params' => 'getParams'],
-                requestSetters: ['params' => 'setParams'],
-                requestAdders: [],
-                validators: ['params' => ['allowsNull' => false, 'type' => 'array']]
+                requestMetadata: new RequestMetadata(
+                    request: SubtractRequest::class,
+                    allParameters: [['name' => 'params', 'type' => 'array']],
+                    requiredParameters: [],
+                    requestGetters: ['params' => 'getParams'],
+                    requestSetters: ['params' => 'setParams'],
+                    requestAdders: [],
+                    validators: ['params' => ['allowsNull' => false, 'type' => 'array']],
+                ),
+                swaggerMetadata: new SwaggerMetadata(
+                    summary: '',
+                    description: '',
+                    ignoreInSwagger: false,
+                ),
             ),
             new MethodSpec(
                 methodClass: GetDataMethod::class,
                 requestType: 'POST',
-                summary: '',
-                description: '',
-                ignoreInSwagger: false,
                 methodName: 'get_data',
-                allParameters: [],
-                requiredParameters: [],
-                request: GetDataRequest::class,
-                requestGetters: [],
-                requestSetters: [],
-                requestAdders: [],
-                validators: []
+                requestMetadata: new RequestMetadata(
+                    request: GetDataRequest::class,
+                    allParameters: [],
+                    requiredParameters: [],
+                    requestGetters: [],
+                    requestSetters: [],
+                    requestAdders: [],
+                    validators: [],
+                ),
+                swaggerMetadata: new SwaggerMetadata(
+                    summary: '',
+                    description: '',
+                    ignoreInSwagger: false,
+                ),
             ),
         ];
         $responseData = [

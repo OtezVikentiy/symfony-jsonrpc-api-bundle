@@ -3,6 +3,8 @@
 namespace OV\JsonRPCAPIBundle\Tests\DependencyInjection;
 
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use PHPUnit\Framework\TestCase;
 
 final class MethodSpecTest extends TestCase
@@ -12,23 +14,27 @@ final class MethodSpecTest extends TestCase
         return new MethodSpec(
             methodClass: $overrides['methodClass'] ?? 'App\\Method\\TestMethod',
             requestType: $overrides['requestType'] ?? 'POST',
-            summary: $overrides['summary'] ?? 'Test summary',
-            description: $overrides['description'] ?? 'Test description',
-            ignoreInSwagger: $overrides['ignoreInSwagger'] ?? false,
             methodName: $overrides['methodName'] ?? 'testMethod',
-            allParameters: $overrides['allParameters'] ?? [['name' => 'id', 'type' => 'int']],
-            requiredParameters: $overrides['requiredParameters'] ?? [['name' => 'id', 'type' => 'int']],
-            request: $overrides['request'] ?? 'App\\Method\\TestRequest',
-            requestGetters: $overrides['requestGetters'] ?? ['id' => 'getId'],
-            requestSetters: $overrides['requestSetters'] ?? ['id' => 'setId'],
-            requestAdders: $overrides['requestAdders'] ?? [],
-            validators: $overrides['validators'] ?? ['id' => ['allowsNull' => false, 'type' => 'int']],
+            requestMetadata: new RequestMetadata(
+                request: $overrides['request'] ?? 'App\\Method\\TestRequest',
+                allParameters: $overrides['allParameters'] ?? [['name' => 'id', 'type' => 'int']],
+                requiredParameters: $overrides['requiredParameters'] ?? [['name' => 'id', 'type' => 'int']],
+                requestGetters: $overrides['requestGetters'] ?? ['id' => 'getId'],
+                requestSetters: $overrides['requestSetters'] ?? ['id' => 'setId'],
+                requestAdders: $overrides['requestAdders'] ?? [],
+                validators: $overrides['validators'] ?? ['id' => ['allowsNull' => false, 'type' => 'int']],
+            ),
+            swaggerMetadata: new SwaggerMetadata(
+                summary: $overrides['summary'] ?? 'Test summary',
+                description: $overrides['description'] ?? 'Test description',
+                ignoreInSwagger: $overrides['ignoreInSwagger'] ?? false,
+                tags: $overrides['tags'] ?? ['test'],
+                group: $overrides['group'] ?? null,
+            ),
             roles: $overrides['roles'] ?? [],
-            tags: $overrides['tags'] ?? ['test'],
             plainResponse: $overrides['plainResponse'] ?? false,
             preProcessorExists: $overrides['preProcessorExists'] ?? false,
             postProcessorExists: $overrides['postProcessorExists'] ?? false,
-            group: $overrides['group'] ?? null,
         );
     }
 
@@ -93,17 +99,21 @@ final class MethodSpecTest extends TestCase
         $spec = new MethodSpec(
             methodClass: 'App\\Method\\TestMethod',
             requestType: 'POST',
-            summary: '',
-            description: '',
-            ignoreInSwagger: false,
             methodName: 'test',
-            allParameters: [],
-            requiredParameters: [],
-            request: null,
-            requestGetters: [],
-            requestSetters: [],
-            requestAdders: [],
-            validators: [],
+            requestMetadata: new RequestMetadata(
+                request: null,
+                allParameters: [],
+                requiredParameters: [],
+                requestGetters: [],
+                requestSetters: [],
+                requestAdders: [],
+                validators: [],
+            ),
+            swaggerMetadata: new SwaggerMetadata(
+                summary: '',
+                description: '',
+                ignoreInSwagger: false,
+            ),
         );
         $this->assertNull($spec->getRequest());
     }

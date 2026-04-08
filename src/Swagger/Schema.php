@@ -22,6 +22,14 @@ final class Schema
         $this->required[] = $property->getName();
     }
 
+    public function addPropertyWithRequired(SchemaProperty $property, bool $required): void
+    {
+        $this->properties[] = $property;
+        if ($required) {
+            $this->required[] = $property->getName();
+        }
+    }
+
     public function getName(): string
     {
         return $this->name;

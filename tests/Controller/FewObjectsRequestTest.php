@@ -3,6 +3,8 @@
 namespace OV\JsonRPCAPIBundle\Tests\Controller;
 
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use OV\JsonRPCAPIBundle\RPC\V1\CreateSome\Token;
 use OV\JsonRPCAPIBundle\RPC\V1\CreateSomeMethod;
 use OV\JsonRPCAPIBundle\RPC\V1\CreateSome\Request;
@@ -39,17 +41,21 @@ final class FewObjectsRequestTest extends AbstractTest
         $methodSpec = new MethodSpec(
             methodClass: CreateSomeMethod::class,
             requestType: 'POST',
-            summary: '',
-            description: '',
-            ignoreInSwagger: true,
             methodName: 'CreateSomeMethod',
-            allParameters: [['name' => 'tokens', 'type' => Token::class]],
-            requiredParameters: [],
-            request: Request::class,
-            requestGetters: ['tokens' => 'getTokens'],
-            requestSetters: ['tokens' => 'setTokens'],
-            requestAdders: ['token' => 'addToken'],
-            validators: []
+            requestMetadata: new RequestMetadata(
+                request: Request::class,
+                allParameters: [['name' => 'tokens', 'type' => Token::class]],
+                requiredParameters: [],
+                requestGetters: ['tokens' => 'getTokens'],
+                requestSetters: ['tokens' => 'setTokens'],
+                requestAdders: ['token' => 'addToken'],
+                validators: [],
+            ),
+            swaggerMetadata: new SwaggerMetadata(
+                summary: '',
+                description: '',
+                ignoreInSwagger: true,
+            ),
         );
 
         $responseData = [

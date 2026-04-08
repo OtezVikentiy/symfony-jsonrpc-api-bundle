@@ -3,6 +3,8 @@
 namespace OV\JsonRPCAPIBundle\Tests\Controller;
 
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use OV\JsonRPCAPIBundle\RPC\V1\TestPreProcessor\Request;
 use OV\JsonRPCAPIBundle\RPC\V1\TestPreProcessorMethod;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -23,20 +25,22 @@ final class BeforeMethodPreProcessorTest extends AbstractTest
         $methodSpec = new MethodSpec(
             methodClass: TestPreProcessorMethod::class,
             requestType: 'POST',
-            summary: '',
-            description: '',
-            ignoreInSwagger: false,
             methodName: 'testPreProcessor',
-            allParameters: [['name' => 'id', 'type' => 'int'], ['name' => 'title', 'type' => 'string']],
-            requiredParameters: [['name' => 'id', 'type' => 'int']],
-            request: Request::class,
-            requestGetters: ['id' => 'getId', 'title' => 'getTitle'],
-            requestSetters: ['id' => 'setId', 'title' => 'setTitle'],
-            requestAdders: [],
-            validators: ['id' => ['allowsNull' => false, 'type' => 'int'], 'title' => ['allowsNull' => false, 'type' => 'string']],
-            roles: [],
-            plainResponse: false,
-            preProcessorExists: true
+            requestMetadata: new RequestMetadata(
+                request: Request::class,
+                allParameters: [['name' => 'id', 'type' => 'int'], ['name' => 'title', 'type' => 'string']],
+                requiredParameters: [['name' => 'id', 'type' => 'int']],
+                requestGetters: ['id' => 'getId', 'title' => 'getTitle'],
+                requestSetters: ['id' => 'setId', 'title' => 'setTitle'],
+                requestAdders: [],
+                validators: ['id' => ['allowsNull' => false, 'type' => 'int'], 'title' => ['allowsNull' => false, 'type' => 'string']],
+            ),
+            swaggerMetadata: new SwaggerMetadata(
+                summary: '',
+                description: '',
+                ignoreInSwagger: false,
+            ),
+            preProcessorExists: true,
         );
 
         $responseData = [

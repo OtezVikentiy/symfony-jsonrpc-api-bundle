@@ -3,6 +3,8 @@
 namespace OV\JsonRPCAPIBundle\Tests\Controller;
 
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use OV\JsonRPCAPIBundle\RPC\V1\Nested\Multiply\MultiplyRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\Nested\MultiplyMethod;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -21,17 +23,21 @@ final class NestedNamespaceMethodTest extends AbstractTest
         $methodSpec = new MethodSpec(
             methodClass: MultiplyMethod::class,
             requestType: 'POST',
-            summary: '',
-            description: '',
-            ignoreInSwagger: false,
             methodName: 'multiply',
-            allParameters: [['name' => 'params', 'type' => 'array']],
-            requiredParameters: [],
-            request: MultiplyRequest::class,
-            requestGetters: ['params' => 'getParams'],
-            requestSetters: ['params' => 'setParams'],
-            requestAdders: [],
-            validators: ['params' => ['allowsNull' => false, 'type' => 'array']]
+            requestMetadata: new RequestMetadata(
+                request: MultiplyRequest::class,
+                allParameters: [['name' => 'params', 'type' => 'array']],
+                requiredParameters: [],
+                requestGetters: ['params' => 'getParams'],
+                requestSetters: ['params' => 'setParams'],
+                requestAdders: [],
+                validators: ['params' => ['allowsNull' => false, 'type' => 'array']],
+            ),
+            swaggerMetadata: new SwaggerMetadata(
+                summary: '',
+                description: '',
+                ignoreInSwagger: false,
+            ),
         );
 
         $responseData = [

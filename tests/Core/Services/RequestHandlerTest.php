@@ -10,6 +10,8 @@ use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler\SingleBatchStrategy;
 use OV\JsonRPCAPIBundle\Core\Services\ResponseService;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use OV\JsonRPCAPIBundle\RPC\V1\Subtract\SubtractRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\SubtractMethod;
@@ -77,17 +79,21 @@ final class RequestHandlerTest extends TestCase
         $methodSpec = new MethodSpec(
             methodClass: SubtractMethod::class,
             requestType: 'POST',
-            summary: '',
-            description: '',
-            ignoreInSwagger: false,
             methodName: 'subtract',
-            allParameters: [['name' => 'params', 'type' => 'array']],
-            requiredParameters: [],
-            request: SubtractRequest::class,
-            requestGetters: ['params' => 'getParams'],
-            requestSetters: ['params' => 'setParams'],
-            requestAdders: [],
-            validators: ['params' => ['allowsNull' => false, 'type' => 'array']],
+            requestMetadata: new RequestMetadata(
+                request: SubtractRequest::class,
+                allParameters: [['name' => 'params', 'type' => 'array']],
+                requiredParameters: [],
+                requestGetters: ['params' => 'getParams'],
+                requestSetters: ['params' => 'setParams'],
+                requestAdders: [],
+                validators: ['params' => ['allowsNull' => false, 'type' => 'array']],
+            ),
+            swaggerMetadata: new SwaggerMetadata(
+                summary: '',
+                description: '',
+                ignoreInSwagger: false,
+            ),
         );
         $specCollection->addMethodSpec(1, 'subtract', $methodSpec);
 
@@ -135,17 +141,21 @@ final class RequestHandlerTest extends TestCase
         $methodSpec = new MethodSpec(
             methodClass: SubtractMethod::class,
             requestType: 'PUT',
-            summary: '',
-            description: '',
-            ignoreInSwagger: false,
             methodName: 'subtract',
-            allParameters: [],
-            requiredParameters: [],
-            request: SubtractRequest::class,
-            requestGetters: [],
-            requestSetters: [],
-            requestAdders: [],
-            validators: [],
+            requestMetadata: new RequestMetadata(
+                request: SubtractRequest::class,
+                allParameters: [],
+                requiredParameters: [],
+                requestGetters: [],
+                requestSetters: [],
+                requestAdders: [],
+                validators: [],
+            ),
+            swaggerMetadata: new SwaggerMetadata(
+                summary: '',
+                description: '',
+                ignoreInSwagger: false,
+            ),
         );
         $specCollection->addMethodSpec(1, 'subtract', $methodSpec);
 
@@ -171,17 +181,21 @@ final class RequestHandlerTest extends TestCase
         $methodSpec = new MethodSpec(
             methodClass: TestMethod::class,
             requestType: 'POST',
-            summary: '',
-            description: '',
-            ignoreInSwagger: false,
             methodName: 'test',
-            allParameters: [],
-            requiredParameters: [],
-            request: TestRequest::class,
-            requestGetters: [],
-            requestSetters: [],
-            requestAdders: [],
-            validators: [],
+            requestMetadata: new RequestMetadata(
+                request: TestRequest::class,
+                allParameters: [],
+                requiredParameters: [],
+                requestGetters: [],
+                requestSetters: [],
+                requestAdders: [],
+                validators: [],
+            ),
+            swaggerMetadata: new SwaggerMetadata(
+                summary: '',
+                description: '',
+                ignoreInSwagger: false,
+            ),
             roles: ['ROLE_ADMIN'],
         );
         $specCollection->addMethodSpec(1, 'test', $methodSpec);
@@ -206,17 +220,21 @@ final class RequestHandlerTest extends TestCase
         $methodSpec = new MethodSpec(
             methodClass: TestMethod::class,
             requestType: 'POST',
-            summary: '',
-            description: '',
-            ignoreInSwagger: false,
             methodName: 'test',
-            allParameters: [['name' => 'id', 'type' => 'int'], ['name' => 'title', 'type' => 'string']],
-            requiredParameters: [['name' => 'id', 'type' => 'int']],
-            request: TestRequest::class,
-            requestGetters: ['id' => 'getId', 'title' => 'getTitle'],
-            requestSetters: ['id' => 'setId', 'title' => 'setTitle'],
-            requestAdders: [],
-            validators: ['id' => ['allowsNull' => false, 'type' => 'int'], 'title' => ['allowsNull' => false, 'type' => 'string']],
+            requestMetadata: new RequestMetadata(
+                request: TestRequest::class,
+                allParameters: [['name' => 'id', 'type' => 'int'], ['name' => 'title', 'type' => 'string']],
+                requiredParameters: [['name' => 'id', 'type' => 'int']],
+                requestGetters: ['id' => 'getId', 'title' => 'getTitle'],
+                requestSetters: ['id' => 'setId', 'title' => 'setTitle'],
+                requestAdders: [],
+                validators: ['id' => ['allowsNull' => false, 'type' => 'int'], 'title' => ['allowsNull' => false, 'type' => 'string']],
+            ),
+            swaggerMetadata: new SwaggerMetadata(
+                summary: '',
+                description: '',
+                ignoreInSwagger: false,
+            ),
             roles: ['ROLE_USER'],
         );
         $specCollection->addMethodSpec(1, 'test', $methodSpec);
@@ -271,18 +289,21 @@ final class RequestHandlerTest extends TestCase
         $methodSpec = new MethodSpec(
             methodClass: SubtractMethod::class,
             requestType: 'POST',
-            summary: '',
-            description: '',
-            ignoreInSwagger: false,
             methodName: 'subtract',
-            allParameters: [['name' => 'params', 'type' => 'array']],
-            requiredParameters: [],
-            request: SubtractRequest::class,
-            requestGetters: ['params' => 'getParams'],
-            requestSetters: ['params' => 'setParams'],
-            requestAdders: [],
-            validators: ['params' => ['allowsNull' => false, 'type' => 'array']],
-            roles: [],
+            requestMetadata: new RequestMetadata(
+                request: SubtractRequest::class,
+                allParameters: [['name' => 'params', 'type' => 'array']],
+                requiredParameters: [],
+                requestGetters: ['params' => 'getParams'],
+                requestSetters: ['params' => 'setParams'],
+                requestAdders: [],
+                validators: ['params' => ['allowsNull' => false, 'type' => 'array']],
+            ),
+            swaggerMetadata: new SwaggerMetadata(
+                summary: '',
+                description: '',
+                ignoreInSwagger: false,
+            ),
         );
         $specCollection->addMethodSpec(1, 'subtract', $methodSpec);
 
@@ -309,17 +330,21 @@ final class RequestHandlerTest extends TestCase
         $methodSpec = new MethodSpec(
             methodClass: NotifyHelloMethod::class,
             requestType: 'POST',
-            summary: '',
-            description: '',
-            ignoreInSwagger: false,
             methodName: 'notify_hello',
-            allParameters: [['name' => 'params', 'type' => 'array']],
-            requiredParameters: [],
-            request: NotifyHelloRequest::class,
-            requestGetters: ['params' => 'getParams'],
-            requestSetters: ['params' => 'setParams'],
-            requestAdders: [],
-            validators: ['params' => ['allowsNull' => false, 'type' => 'array']],
+            requestMetadata: new RequestMetadata(
+                request: NotifyHelloRequest::class,
+                allParameters: [['name' => 'params', 'type' => 'array']],
+                requiredParameters: [],
+                requestGetters: ['params' => 'getParams'],
+                requestSetters: ['params' => 'setParams'],
+                requestAdders: [],
+                validators: ['params' => ['allowsNull' => false, 'type' => 'array']],
+            ),
+            swaggerMetadata: new SwaggerMetadata(
+                summary: '',
+                description: '',
+                ignoreInSwagger: false,
+            ),
         );
         $specCollection->addMethodSpec(1, 'notify_hello', $methodSpec);
 
@@ -345,17 +370,21 @@ final class RequestHandlerTest extends TestCase
         $methodSpec = new MethodSpec(
             methodClass: SubtractMethod::class,
             requestType: 'POST',
-            summary: '',
-            description: '',
-            ignoreInSwagger: false,
             methodName: 'subtract',
-            allParameters: [['name' => 'params', 'type' => 'array']],
-            requiredParameters: [],
-            request: SubtractRequest::class,
-            requestGetters: ['params' => 'getParams'],
-            requestSetters: ['params' => 'setParams'],
-            requestAdders: [],
-            validators: ['params' => ['allowsNull' => false, 'type' => 'array']],
+            requestMetadata: new RequestMetadata(
+                request: SubtractRequest::class,
+                allParameters: [['name' => 'params', 'type' => 'array']],
+                requiredParameters: [],
+                requestGetters: ['params' => 'getParams'],
+                requestSetters: ['params' => 'setParams'],
+                requestAdders: [],
+                validators: ['params' => ['allowsNull' => false, 'type' => 'array']],
+            ),
+            swaggerMetadata: new SwaggerMetadata(
+                summary: '',
+                description: '',
+                ignoreInSwagger: false,
+            ),
         );
         $specCollection->addMethodSpec(1, 'subtract', $methodSpec);
 

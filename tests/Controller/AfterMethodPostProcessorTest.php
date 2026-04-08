@@ -3,6 +3,8 @@
 namespace OV\JsonRPCAPIBundle\Tests\Controller;
 
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use OV\JsonRPCAPIBundle\RPC\V1\TestPostProcessorMethod;
 use OV\JsonRPCAPIBundle\RPC\V1\TestPostProcessor\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -23,21 +25,21 @@ final class AfterMethodPostProcessorTest extends AbstractTest
         $methodSpec = new MethodSpec(
             methodClass: TestPostProcessorMethod::class,
             requestType: 'POST',
-            summary: '',
-            description: '',
-            ignoreInSwagger: false,
             methodName: 'testPostProcessor',
-            allParameters: [['name' => 'id', 'type' => 'int'], ['name' => 'title', 'type' => 'string']],
-            requiredParameters: [['name' => 'id', 'type' => 'int']],
-            request: Request::class,
-            requestGetters: ['id' => 'getId', 'title' => 'getTitle'],
-            requestSetters: ['id' => 'setId', 'title' => 'setTitle'],
-            requestAdders: [],
-            validators: ['id' => ['allowsNull' => false, 'type' => 'int'], 'title' => ['allowsNull' => false, 'type' => 'string']],
-            roles: [],
-            tags: [],
-            plainResponse: false,
-            preProcessorExists: false,
+            requestMetadata: new RequestMetadata(
+                request: Request::class,
+                allParameters: [['name' => 'id', 'type' => 'int'], ['name' => 'title', 'type' => 'string']],
+                requiredParameters: [['name' => 'id', 'type' => 'int']],
+                requestGetters: ['id' => 'getId', 'title' => 'getTitle'],
+                requestSetters: ['id' => 'setId', 'title' => 'setTitle'],
+                requestAdders: [],
+                validators: ['id' => ['allowsNull' => false, 'type' => 'int'], 'title' => ['allowsNull' => false, 'type' => 'string']],
+            ),
+            swaggerMetadata: new SwaggerMetadata(
+                summary: '',
+                description: '',
+                ignoreInSwagger: false,
+            ),
             postProcessorExists: true,
         );
 

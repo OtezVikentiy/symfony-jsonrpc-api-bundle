@@ -5,6 +5,8 @@ namespace OV\JsonRPCAPIBundle\Tests\DependencyInjection;
 use Exception;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use PHPUnit\Framework\TestCase;
 
@@ -15,17 +17,21 @@ final class MethodSpecCollectionTest extends TestCase
         return new MethodSpec(
             methodClass: 'App\\Method\\TestMethod',
             requestType: 'POST',
-            summary: '',
-            description: '',
-            ignoreInSwagger: false,
             methodName: $methodName,
-            allParameters: [],
-            requiredParameters: [],
-            request: null,
-            requestGetters: [],
-            requestSetters: [],
-            requestAdders: [],
-            validators: [],
+            requestMetadata: new RequestMetadata(
+                request: null,
+                allParameters: [],
+                requiredParameters: [],
+                requestGetters: [],
+                requestSetters: [],
+                requestAdders: [],
+                validators: [],
+            ),
+            swaggerMetadata: new SwaggerMetadata(
+                summary: '',
+                description: '',
+                ignoreInSwagger: false,
+            ),
         );
     }
 

@@ -3,6 +3,8 @@
 namespace OV\JsonRPCAPIBundle\Tests\Controller;
 
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use OV\JsonRPCAPIBundle\RPC\V1\GetFilteredData;
 use OV\JsonRPCAPIBundle\RPC\V1\GetFilteredData\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -32,17 +34,21 @@ final class GetFilteredDataTest extends AbstractTest
             new MethodSpec(
                 methodClass: GetFilteredData::class,
                 requestType: 'POST',
-                summary: '',
-                description: '',
-                ignoreInSwagger: true,
                 methodName: 'GetFilteredData',
-                allParameters: [['name' => 'filter', 'type' => GetFilteredData\Filter::class],['name' => 'limit', 'type' => 'integer'],['name' => 'offset', 'type' => 'integer']],
-                requiredParameters: [],
-                request: Request::class,
-                requestGetters: ['filter' => 'getFilter' ,'limit' => 'getLimit', 'offset' => 'getOffset'],
-                requestSetters: ['filter' => 'setFilter' ,'limit' => 'setLimit', 'offset' => 'setOffset'],
-                requestAdders: [],
-                validators: ['filter' => ['allowsNull' => false, 'type' => GetFilteredData\Filter::class], 'limit' => ['allowsNull' => false, 'type' => 'integer'], 'offset' => ['allowsNull' => false, 'type' => 'integer']]
+                requestMetadata: new RequestMetadata(
+                    request: Request::class,
+                    allParameters: [['name' => 'filter', 'type' => GetFilteredData\Filter::class],['name' => 'limit', 'type' => 'integer'],['name' => 'offset', 'type' => 'integer']],
+                    requiredParameters: [],
+                    requestGetters: ['filter' => 'getFilter' ,'limit' => 'getLimit', 'offset' => 'getOffset'],
+                    requestSetters: ['filter' => 'setFilter' ,'limit' => 'setLimit', 'offset' => 'setOffset'],
+                    requestAdders: [],
+                    validators: ['filter' => ['allowsNull' => false, 'type' => GetFilteredData\Filter::class], 'limit' => ['allowsNull' => false, 'type' => 'integer'], 'offset' => ['allowsNull' => false, 'type' => 'integer']],
+                ),
+                swaggerMetadata: new SwaggerMetadata(
+                    summary: '',
+                    description: '',
+                    ignoreInSwagger: true,
+                ),
             ),
         ];
         $responseData = [

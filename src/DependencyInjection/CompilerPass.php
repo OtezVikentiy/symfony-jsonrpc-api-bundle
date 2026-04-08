@@ -15,6 +15,8 @@ use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 use OV\JsonRPCAPIBundle\Core\PostProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\PreProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\Response\PlainResponseInterface;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionUnionType;
@@ -57,59 +59,12 @@ final class CompilerPass implements CompilerPassInterface
 
             $methodReflectionClass = new ReflectionClass($className);
 
-            $methodName = $requestType = null;
-            $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
-            $roles = [];
-            $apiTags = [];
-            $summary = '';
-            $description = '';
-            $ignoreInSwagger = false;
-            $version = null;
-            $group = null;
-            foreach ($attributes as $attribute) {
-                if ($attribute->getName() === JsonRPCAPI::class) {
-                    $methodName = $attribute->getArguments()['methodName'] ?? throw new Exception(sprintf('Class %s does not have attribute param methodName', $className));
-                    $requestType = $attribute->getArguments()['type'] ?? throw new Exception(sprintf('Class %s does not have attribute param type', $className));
-                    $summary = $attribute->getArguments()['summary'] ?? '';
-                    $description = $attribute->getArguments()['description'] ?? '';
-                    $ignoreInSwagger = $attribute->getArguments()['ignoreInSwagger'] ?? false;
-                    $roles = $attribute->getArguments()['roles'] ?? [];
-                    $apiTags = $attribute->getArguments()['tags'] ?? [];
-                    $version = $attribute->getArguments()['version'] ?? null;
-                    $group = $attribute->getArguments()['group'] ?? null;
-                }
-            }
-
-            if (is_null($version)) {
-                $namespace = $methodReflectionClass->getNamespaceName();
-                if (preg_match('/\\\\(V[0-9]+)(?:\\\\|$)/', $namespace, $matches) === 0) {
-                    throw new RuntimeException(
-                        sprintf(
-                            'Version for API endpoint %s is not defined. Either use the version parameter in the
-                            JsonRPCAPI attribute explicitly, or specify the API version number in the namespace,
-                            for example App\\RPC\\V1',
-                            $namespace . '\\' . $className,
-                        ),
-                    );
-                }
-
-                $version = (int)preg_replace('/[A-Za-z]+/', '', $matches[1]);
-
-                if (empty($version) || $version == 0) {
-                    throw new RuntimeException(
-                        sprintf(
-                            'Version for API endpoint %s is not defined or zero. Either use the version parameter in the 
-                            JsonRPCAPI attribute explicitly, or specify the API version number in the namespace, 
-                            for example App\\RPC\\V1',
-                            $namespace . '\\' . $className,
-                        ),
-                    );
-                }
-            }
-
-            if (is_null($methodName) || is_null($requestType)) {
+            $metadata = $this->extractAttributeMetadata($methodReflectionClass, $className);
+            if ($metadata === null) {
                 continue;
             }
+
+            $version = $this->resolveVersion($methodReflectionClass, $metadata['version'], $className);
 
             if (!$methodReflectionClass->hasMethod(self::CALL_METHOD)) {
                 throw new RuntimeException(
@@ -121,116 +76,38 @@ final class CompilerPass implements CompilerPassInterface
                 );
             }
 
-            $allParameters           = [];
-            $requiredParameters      = [];
-            $requestGetters          = [];
-            $requestSetters          = [];
-            $requestAdders           = [];
-            $validators              = [];
-            $methodRequestReflection = null;
-            $callParameters          = $methodReflectionClass->getMethod('call')->getParameters();
+            $requestAnalysis = $this->analyzeRequestClass($methodReflectionClass, $className);
+            $plainResponse = $this->detectPlainResponse($methodReflectionClass);
+            [$preProcessorExists, $postProcessorExists] = $this->detectProcessors($methodReflectionClass);
 
-            if (count($callParameters) > 1) {
-                throw new RuntimeException(
-                    sprintf(
-                        'Method %s::%s should have one or zero incoming parameters',
-                        $className,
-                        self::CALL_METHOD,
-                    ),
-                );
-            }
-
-            if (!empty($callParameters[0])) {
-                $callParameter = $callParameters[0];
-                $methodRequestReflection = new ReflectionClass($callParameter->getType()->getName());
-                $validators              = $this->getValidatorsForRequest($methodRequestReflection);
-                $allParameters           = $this->getProperties($methodRequestReflection->getProperties() ?? []);
-                $requiredParameters      = $this->getProperties($methodRequestReflection->getConstructor()?->getParameters() ?? []);
-                $requestMethods          = $methodRequestReflection->getMethods();
-
-                foreach ($requestMethods as $requestSingleMethod) {
-                    $name = $requestSingleMethod->getName();
-                    if (str_starts_with($name, 'set')) {
-                        $name = $requestSingleMethod->getParameters()[0]?->getName() ?? null;
-                        if (!is_null($name)) {
-                            $requestSetters[$name] = $requestSingleMethod->getName();
-                        }
-                    } elseif (str_starts_with($name, 'add')) {
-                        $name = $requestSingleMethod->getParameters()[0]?->getName() ?? null;
-                        if (!is_null($name)) {
-                            $requestAdders[$name] = $requestSingleMethod->getName();
-
-                            unset($requestSetters[$name]);
-
-                            foreach ($allParameters as $k => $allParameter) {
-                                if (str_contains($allParameter['name'], $name)) {
-                                    $allParameters[$k]['type'] = $requestSingleMethod->getParameters()[0]?->getType()?->getName();
-                                }
-                            }
-                        }
-                    } elseif (str_starts_with($name, 'get') || str_starts_with($name, 'is')) {
-                        foreach ($allParameters as $k => $allParameter) {
-                            if (str_contains(mb_strtolower($name), mb_strtolower($allParameter['name']))) {
-                                $requestGetters[$allParameter['name']] = $name;
-                            }
-                        }
-                    }
-                }
-            }
-
-            $plainResponse = false;
-            $callResponseType = $methodReflectionClass->getMethod('call')->getReturnType();
-            if ($callResponseType instanceof ReflectionUnionType) {
-                $callResponseTypes = $callResponseType->getTypes();
-                foreach ($callResponseTypes as $callResponseType) {
-                    $responseTypeReflection = new ReflectionClass($callResponseType->getName());
-                    $interfaces = $responseTypeReflection->getInterfaces();
-                    foreach ($interfaces as $interface) {
-                        if ($interface->getName() === PlainResponseInterface::class) {
-                            $plainResponse = true;
-                        }
-                    }
-                }
-            }
-
-            $preProcessorExists = false;
-            $postProcessorExists = false;
-            $parentClass = $methodReflectionClass->getParentClass();
-            if ($parentClass) {
-                $preProcessorExists = $parentClass->implementsInterface(PreProcessorInterface::class);
-                $postProcessorExists = $parentClass->implementsInterface(PostProcessorInterface::class);
-            }
-            if ($methodReflectionClass->implementsInterface(PreProcessorInterface::class)) {
-                $preProcessorExists = true;
-            }
-            if ($methodReflectionClass->implementsInterface(PostProcessorInterface::class)) {
-                $postProcessorExists = true;
-            }
-
-            $methodAlias            = $this->getMethodAlias($methodName, $methodReflectionClass->getNamespaceName() . '\\' ?? '');
+            $methodAlias            = $this->getMethodAlias($metadata['methodName'], $methodReflectionClass->getNamespaceName() . '\\' ?? '');
             $methodSpecDefinitionId = uniqid('OV_JSON_RPC_API_' . $methodAlias, true);
             $methodSpec             = $container->register($methodSpecDefinitionId, MethodSpec::class);
 
             $methodSpec->setArguments([
                 $methodReflectionClass->getName(),
-                $requestType,
-                $summary,
-                $description,
-                $ignoreInSwagger,
-                $methodName,
-                $allParameters,
-                $requiredParameters,
-                $methodRequestReflection?->getName() ?? null,
-                $requestGetters,
-                $requestSetters,
-                $requestAdders,
-                $validators,
-                $roles,
-                $apiTags,
+                $metadata['requestType'],
+                $metadata['methodName'],
+                new RequestMetadata(
+                    $requestAnalysis['requestClass'],
+                    $requestAnalysis['allParameters'],
+                    $requestAnalysis['requiredParameters'],
+                    $requestAnalysis['requestGetters'],
+                    $requestAnalysis['requestSetters'],
+                    $requestAnalysis['requestAdders'],
+                    $requestAnalysis['validators'],
+                ),
+                new SwaggerMetadata(
+                    $metadata['summary'],
+                    $metadata['description'],
+                    $metadata['ignoreInSwagger'],
+                    $metadata['apiTags'],
+                    $metadata['group'],
+                ),
+                $metadata['roles'],
                 $plainResponse,
                 $preProcessorExists,
                 $postProcessorExists,
-                $group,
             ])->setPublic(true)->setAutowired(true)->setAutoconfigured(true);
 
             if (PHP_VERSION_ID >= 80300) {
@@ -241,11 +118,181 @@ final class CompilerPass implements CompilerPassInterface
                 'addMethodSpec',
                 [
                     '$version' => $version,
-                    '$methodName' => $methodName,
+                    '$methodName' => $metadata['methodName'],
                     '$methodSpec' => new Reference($methodSpecDefinitionId),
                 ],
             );
         }
+    }
+
+    private function extractAttributeMetadata(ReflectionClass $reflectionClass, string $className): ?array
+    {
+        $attributes = $reflectionClass->getAttributes(JsonRPCAPI::class);
+
+        foreach ($attributes as $attribute) {
+            if ($attribute->getName() === JsonRPCAPI::class) {
+                return [
+                    'methodName' => $attribute->getArguments()['methodName'] ?? throw new Exception(sprintf('Class %s does not have attribute param methodName', $className)),
+                    'requestType' => $attribute->getArguments()['type'] ?? throw new Exception(sprintf('Class %s does not have attribute param type', $className)),
+                    'summary' => $attribute->getArguments()['summary'] ?? '',
+                    'description' => $attribute->getArguments()['description'] ?? '',
+                    'ignoreInSwagger' => $attribute->getArguments()['ignoreInSwagger'] ?? false,
+                    'roles' => $attribute->getArguments()['roles'] ?? [],
+                    'apiTags' => $attribute->getArguments()['tags'] ?? [],
+                    'version' => $attribute->getArguments()['version'] ?? null,
+                    'group' => $attribute->getArguments()['group'] ?? null,
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveVersion(ReflectionClass $reflectionClass, ?int $attributeVersion, string $className): int
+    {
+        if ($attributeVersion !== null) {
+            return $attributeVersion;
+        }
+
+        $namespace = $reflectionClass->getNamespaceName();
+        if (preg_match('/\\\\(V[0-9]+)(?:\\\\|$)/', $namespace, $matches) === 0) {
+            throw new RuntimeException(
+                sprintf(
+                    'Version for API endpoint %s is not defined. Either use the version parameter in the
+                    JsonRPCAPI attribute explicitly, or specify the API version number in the namespace,
+                    for example App\\RPC\\V1',
+                    $namespace . '\\' . $className,
+                ),
+            );
+        }
+
+        $version = (int)preg_replace('/[A-Za-z]+/', '', $matches[1]);
+
+        if (empty($version) || $version == 0) {
+            throw new RuntimeException(
+                sprintf(
+                    'Version for API endpoint %s is not defined or zero. Either use the version parameter in the
+                    JsonRPCAPI attribute explicitly, or specify the API version number in the namespace,
+                    for example App\\RPC\\V1',
+                    $namespace . '\\' . $className,
+                ),
+            );
+        }
+
+        return $version;
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function analyzeRequestClass(ReflectionClass $methodReflectionClass, string $className): array
+    {
+        $allParameters           = [];
+        $requiredParameters      = [];
+        $requestGetters          = [];
+        $requestSetters          = [];
+        $requestAdders           = [];
+        $validators              = [];
+        $methodRequestReflection = null;
+        $callParameters          = $methodReflectionClass->getMethod('call')->getParameters();
+
+        if (count($callParameters) > 1) {
+            throw new RuntimeException(
+                sprintf(
+                    'Method %s::%s should have one or zero incoming parameters',
+                    $className,
+                    self::CALL_METHOD,
+                ),
+            );
+        }
+
+        if (!empty($callParameters[0])) {
+            $callParameter = $callParameters[0];
+            $methodRequestReflection = new ReflectionClass($callParameter->getType()->getName());
+            $validators              = $this->getValidatorsForRequest($methodRequestReflection);
+            $allParameters           = $this->getProperties($methodRequestReflection->getProperties() ?? []);
+            $requiredParameters      = $this->getProperties($methodRequestReflection->getConstructor()?->getParameters() ?? []);
+            $requestMethods          = $methodRequestReflection->getMethods();
+
+            foreach ($requestMethods as $requestSingleMethod) {
+                $name = $requestSingleMethod->getName();
+                if (str_starts_with($name, 'set')) {
+                    $name = $requestSingleMethod->getParameters()[0]?->getName() ?? null;
+                    if (!is_null($name)) {
+                        $requestSetters[$name] = $requestSingleMethod->getName();
+                    }
+                } elseif (str_starts_with($name, 'add')) {
+                    $name = $requestSingleMethod->getParameters()[0]?->getName() ?? null;
+                    if (!is_null($name)) {
+                        $requestAdders[$name] = $requestSingleMethod->getName();
+
+                        unset($requestSetters[$name]);
+
+                        foreach ($allParameters as $k => $allParameter) {
+                            if (str_contains($allParameter['name'], $name)) {
+                                $allParameters[$k]['type'] = $requestSingleMethod->getParameters()[0]?->getType()?->getName();
+                            }
+                        }
+                    }
+                } elseif (str_starts_with($name, 'get') || str_starts_with($name, 'is')) {
+                    foreach ($allParameters as $k => $allParameter) {
+                        if (str_contains(mb_strtolower($name), mb_strtolower($allParameter['name']))) {
+                            $requestGetters[$allParameter['name']] = $name;
+                        }
+                    }
+                }
+            }
+        }
+
+        return [
+            'allParameters' => $allParameters,
+            'requiredParameters' => $requiredParameters,
+            'requestGetters' => $requestGetters,
+            'requestSetters' => $requestSetters,
+            'requestAdders' => $requestAdders,
+            'validators' => $validators,
+            'requestClass' => $methodRequestReflection?->getName() ?? null,
+        ];
+    }
+
+    private function detectPlainResponse(ReflectionClass $methodReflectionClass): bool
+    {
+        $callResponseType = $methodReflectionClass->getMethod('call')->getReturnType();
+        if ($callResponseType instanceof ReflectionUnionType) {
+            foreach ($callResponseType->getTypes() as $type) {
+                $responseTypeReflection = new ReflectionClass($type->getName());
+                foreach ($responseTypeReflection->getInterfaces() as $interface) {
+                    if ($interface->getName() === PlainResponseInterface::class) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array{bool, bool}
+     */
+    private function detectProcessors(ReflectionClass $methodReflectionClass): array
+    {
+        $preProcessorExists = false;
+        $postProcessorExists = false;
+
+        $parentClass = $methodReflectionClass->getParentClass();
+        if ($parentClass) {
+            $preProcessorExists = $parentClass->implementsInterface(PreProcessorInterface::class);
+            $postProcessorExists = $parentClass->implementsInterface(PostProcessorInterface::class);
+        }
+        if ($methodReflectionClass->implementsInterface(PreProcessorInterface::class)) {
+            $preProcessorExists = true;
+        }
+        if ($methodReflectionClass->implementsInterface(PostProcessorInterface::class)) {
+            $postProcessorExists = true;
+        }
+
+        return [$preProcessorExists, $postProcessorExists];
     }
 
     private function getProperties(array $properties = []): array
@@ -310,8 +357,8 @@ final class CompilerPass implements CompilerPassInterface
             if ($setterParamType === null) {
                 continue;
             }
-            $setterAndPropertyTypesAreEqual = $setterParamType->getName() !== $typeData['type'];
-            if ($setterAndPropertyTypesAreEqual) {
+            $setterTypeMismatch = $setterParamType->getName() !== $typeData['type'];
+            if ($setterTypeMismatch) {
                 throw new Exception(
                     sprintf(
                         'Property %s of method %s has invalid data type in setter %s',
@@ -321,8 +368,8 @@ final class CompilerPass implements CompilerPassInterface
                     ),
                 );
             }
-            $getterAndPropertyTypesAreEqual = $getter->getReturnType()->getName() !== $typeData['type'];
-            if ($getterAndPropertyTypesAreEqual) {
+            $getterTypeMismatch = $getter->getReturnType()->getName() !== $typeData['type'];
+            if ($getterTypeMismatch) {
                 throw new Exception(
                     sprintf(
                         'Property %s of method %s has invalid data type in getter %s',

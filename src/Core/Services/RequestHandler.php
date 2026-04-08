@@ -157,6 +157,13 @@ final readonly class RequestHandler
 
     private function processRequestClass(MethodSpec $methodSpec, BaseRequest $baseRequest, string $requestClass): mixed
     {
+        $requestInstance = $this->instantiateRequest($methodSpec, $baseRequest, $requestClass);
+
+        return $this->hydrateRequest($requestInstance, $methodSpec, $baseRequest);
+    }
+
+    private function instantiateRequest(MethodSpec $methodSpec, BaseRequest $baseRequest, string $requestClass): mixed
+    {
         $constructorParams = [];
         foreach ($methodSpec->getRequiredParameters() as $requiredParameter) {
             if ($requiredParameter['name'] === 'id') {
@@ -166,8 +173,11 @@ final readonly class RequestHandler
             $constructorParams[] = $baseRequest->getParams()[$requiredParameter['name']] ?? ($requiredParameter['defaultValue'] ?? null);
         }
 
-        $requestInstance = new $requestClass(...$constructorParams);
+        return new $requestClass(...$constructorParams);
+    }
 
+    private function hydrateRequest(mixed $requestInstance, MethodSpec $methodSpec, BaseRequest $baseRequest): mixed
+    {
         foreach ($methodSpec->getAllParameters() as $allParameter) {
             $name = $allParameter['name'];
 

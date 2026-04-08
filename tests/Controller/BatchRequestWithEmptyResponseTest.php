@@ -3,6 +3,8 @@
 namespace OV\JsonRPCAPIBundle\Tests\Controller;
 
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use OV\JsonRPCAPIBundle\RPC\V1\NotifyHello\NotifyHelloRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\NotifyHelloMethod;
 use OV\JsonRPCAPIBundle\RPC\V1\NotifySum\NotifySumRequest;
@@ -30,32 +32,40 @@ final class BatchRequestWithEmptyResponseTest extends AbstractTest
             new MethodSpec(
                 methodClass: NotifySumMethod::class,
                 requestType: 'POST',
-                summary: '',
-                description: '',
-                ignoreInSwagger: false,
                 methodName: 'notify_sum',
-                allParameters: [['name' => 'params', 'type' => 'array']],
-                requiredParameters: [],
-                request: NotifySumRequest::class,
-                requestGetters: ['params' => 'getParams'],
-                requestSetters: ['params' => 'setParams'],
-                requestAdders: [],
-                validators: ['params' => ['allowsNull' => false, 'type' => 'array']]
+                requestMetadata: new RequestMetadata(
+                    request: NotifySumRequest::class,
+                    allParameters: [['name' => 'params', 'type' => 'array']],
+                    requiredParameters: [],
+                    requestGetters: ['params' => 'getParams'],
+                    requestSetters: ['params' => 'setParams'],
+                    requestAdders: [],
+                    validators: ['params' => ['allowsNull' => false, 'type' => 'array']],
+                ),
+                swaggerMetadata: new SwaggerMetadata(
+                    summary: '',
+                    description: '',
+                    ignoreInSwagger: false,
+                ),
             ),
             new MethodSpec(
                 methodClass: NotifyHelloMethod::class,
                 requestType: 'POST',
-                summary: '',
-                description: '',
-                ignoreInSwagger: false,
                 methodName: 'notify_hello',
-                allParameters: [['name' => 'params', 'type' => 'array']],
-                requiredParameters: [],
-                request: NotifyHelloRequest::class,
-                requestGetters: ['params' => 'getParams'],
-                requestSetters: ['params' => 'setParams'],
-                requestAdders: [],
-                validators: ['params' => ['allowsNull' => false, 'type' => 'array']]
+                requestMetadata: new RequestMetadata(
+                    request: NotifyHelloRequest::class,
+                    allParameters: [['name' => 'params', 'type' => 'array']],
+                    requiredParameters: [],
+                    requestGetters: ['params' => 'getParams'],
+                    requestSetters: ['params' => 'setParams'],
+                    requestAdders: [],
+                    validators: ['params' => ['allowsNull' => false, 'type' => 'array']],
+                ),
+                swaggerMetadata: new SwaggerMetadata(
+                    summary: '',
+                    description: '',
+                    ignoreInSwagger: false,
+                ),
             ),
         ];
 

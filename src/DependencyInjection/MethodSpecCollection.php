@@ -20,7 +20,7 @@ final class MethodSpecCollection
     /**
      * @throws Exception
      */
-    public function addMethodSpec(string $version, string $methodName, MethodSpec $methodSpec): void
+    public function addMethodSpec(int $version, string $methodName, MethodSpec $methodSpec): void
     {
         if (!empty($this->methodSpecs[$version][$methodName])) {
             throw new Exception(sprintf('Method name %s already in use.', $methodName));
@@ -32,7 +32,7 @@ final class MethodSpecCollection
     /**
      * @throws JRPCException
      */
-    public function getMethodSpec(string $version, string $methodName): MethodSpec
+    public function getMethodSpec(int $version, string $methodName): MethodSpec
     {
         if (!isset($this->methodSpecs[$version][$methodName])) {
             throw new JRPCException('Method not found.', JRPCException::METHOD_NOT_FOUND);

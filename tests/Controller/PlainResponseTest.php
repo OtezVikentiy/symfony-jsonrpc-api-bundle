@@ -3,6 +3,8 @@
 namespace OV\JsonRPCAPIBundle\Tests\Controller;
 
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use OV\JsonRPCAPIBundle\RPC\V1\PlainResponse\Request;
 use OV\JsonRPCAPIBundle\RPC\V1\PlainResponseMethod;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,21 +22,22 @@ final class PlainResponseTest extends AbstractTest
         $methodSpec = new MethodSpec(
             methodClass: PlainResponseMethod::class,
             requestType: 'POST',
-            summary: '',
-            description: '',
-            ignoreInSwagger: false,
             methodName: 'plainResponse',
-            allParameters: [['name' => 'id', 'type' => 'int']],
-            requiredParameters: [['name' => 'id', 'type' => 'int']],
-            request: Request::class,
-            requestGetters: ['id' => 'getId'],
-            requestSetters: ['id' => 'setId'],
-            requestAdders: [],
-            validators: ['id' => ['allowsNull' => false, 'type' => 'int']],
-            roles: [],
+            requestMetadata: new RequestMetadata(
+                request: Request::class,
+                allParameters: [['name' => 'id', 'type' => 'int']],
+                requiredParameters: [['name' => 'id', 'type' => 'int']],
+                requestGetters: ['id' => 'getId'],
+                requestSetters: ['id' => 'setId'],
+                requestAdders: [],
+                validators: ['id' => ['allowsNull' => false, 'type' => 'int']],
+            ),
+            swaggerMetadata: new SwaggerMetadata(
+                summary: '',
+                description: '',
+                ignoreInSwagger: false,
+            ),
             plainResponse: true,
-            preProcessorExists: false,
-            postProcessorExists: false,
         );
 
         $result = $this->executeControllerTest($data, $methodSpec);

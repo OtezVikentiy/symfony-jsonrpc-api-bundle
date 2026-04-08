@@ -10,29 +10,27 @@
 
 namespace OV\JsonRPCAPIBundle\DependencyInjection;
 
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
+
 readonly class MethodSpec
 {
     public function __construct(
         private string $methodClass,
         private string $requestType,
-        private string $summary,
-        private string $description,
-        private bool $ignoreInSwagger,
         private string $methodName,
-        private array $allParameters,
-        private array $requiredParameters,
-        private ?string $request,
-        private array $requestGetters,
-        private array $requestSetters,
-        private array $requestAdders,
-        private array $validators,
+        private RequestMetadata $requestMetadata,
+        private SwaggerMetadata $swaggerMetadata,
         private array $roles = [],
-        private ?array $tags = null,
         private bool $plainResponse = false,
         private bool $preProcessorExists = false,
         private bool $postProcessorExists = false,
-        private ?string $group = null,
     ) {
+    }
+
+    public function getMethodClass(): string
+    {
+        return $this->methodClass;
     }
 
     public function getRequestType(): string
@@ -41,73 +39,88 @@ readonly class MethodSpec
     }
 
     /** @noinspection PhpUnused */
-    public function getSummary(): string
-    {
-        return $this->summary;
-    }
-
-    /** @noinspection PhpUnused */
-    public function getTags(): ?array
-    {
-        return $this->tags;
-    }
-
-    /** @noinspection PhpUnused */
-    public function getDescription(): string
-    {
-        return $this->description;
-    }
-
-    /** @noinspection PhpUnused */
-    public function isIgnoreInSwagger(): bool
-    {
-        return $this->ignoreInSwagger;
-    }
-
-    /** @noinspection PhpUnused */
     public function getMethodName(): string
     {
         return $this->methodName;
     }
 
-    public function getValidators(): array
+    public function getRequestMetadata(): RequestMetadata
     {
-        return $this->validators;
+        return $this->requestMetadata;
     }
 
-    public function getRequestGetters(): array
+    public function getSwaggerMetadata(): SwaggerMetadata
     {
-        return $this->requestGetters;
+        return $this->swaggerMetadata;
     }
 
-    public function getRequestSetters(): array
+    /** @noinspection PhpUnused */
+    public function getSummary(): string
     {
-        return $this->requestSetters;
+        return $this->swaggerMetadata->getSummary();
     }
 
-    public function getRequestAdders(): array
+    /** @noinspection PhpUnused */
+    public function getDescription(): string
     {
-        return $this->requestAdders;
+        return $this->swaggerMetadata->getDescription();
+    }
+
+    /** @noinspection PhpUnused */
+    public function isIgnoreInSwagger(): bool
+    {
+        return $this->swaggerMetadata->isIgnoreInSwagger();
+    }
+
+    /** @noinspection PhpUnused */
+    public function getTags(): ?array
+    {
+        return $this->swaggerMetadata->getTags();
+    }
+
+    public function getGroup(): ?string
+    {
+        return $this->swaggerMetadata->getGroup();
     }
 
     public function getRequest(): ?string
     {
-        return $this->request;
-    }
-
-    public function getMethodClass(): string
-    {
-        return $this->methodClass;
+        return $this->requestMetadata->getRequest();
     }
 
     public function getAllParameters(): array
     {
-        return $this->allParameters;
+        return $this->requestMetadata->getAllParameters();
     }
 
     public function getRequiredParameters(): array
     {
-        return $this->requiredParameters;
+        return $this->requestMetadata->getRequiredParameters();
+    }
+
+    public function getRequestGetters(): array
+    {
+        return $this->requestMetadata->getRequestGetters();
+    }
+
+    public function getRequestSetters(): array
+    {
+        return $this->requestMetadata->getRequestSetters();
+    }
+
+    public function getRequestAdders(): array
+    {
+        return $this->requestMetadata->getRequestAdders();
+    }
+
+    public function getValidators(): array
+    {
+        return $this->requestMetadata->getValidators();
+    }
+
+    public function getRoles(): array
+    {
+        return $this->roles;
     }
 
     public function isPlainResponse(): bool
@@ -123,15 +136,5 @@ readonly class MethodSpec
     public function isPostProcessorExists(): bool
     {
         return $this->postProcessorExists;
-    }
-
-    public function getRoles(): array
-    {
-        return $this->roles;
-    }
-
-    public function getGroup(): ?string
-    {
-        return $this->group;
     }
 }

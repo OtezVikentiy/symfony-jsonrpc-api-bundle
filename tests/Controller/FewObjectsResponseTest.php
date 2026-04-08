@@ -3,6 +3,8 @@
 namespace OV\JsonRPCAPIBundle\Tests\Controller;
 
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use OV\JsonRPCAPIBundle\RPC\V1\GetProductsMethod;
 use OV\JsonRPCAPIBundle\RPC\V1\GetProducts\GetProductsRequest;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -22,17 +24,21 @@ final class FewObjectsResponseTest extends AbstractTest
         $methodSpec = new MethodSpec(
             methodClass: GetProductsMethod::class,
             requestType: 'POST',
-            summary: '',
-            description: '',
-            ignoreInSwagger: false,
             methodName: 'getProducts',
-            allParameters: [['name' => 'ids', 'type' => 'array']],
-            requiredParameters: [['name' => 'ids', 'type' => 'array']],
-            request: GetProductsRequest::class,
-            requestGetters: ['ids' => 'getIds'],
-            requestSetters: ['ids' => 'setIds'],
-            requestAdders: [],
-            validators: ['ids' => ['allowsNull' => false, 'type' => 'array']]
+            requestMetadata: new RequestMetadata(
+                request: GetProductsRequest::class,
+                allParameters: [['name' => 'ids', 'type' => 'array']],
+                requiredParameters: [['name' => 'ids', 'type' => 'array']],
+                requestGetters: ['ids' => 'getIds'],
+                requestSetters: ['ids' => 'setIds'],
+                requestAdders: [],
+                validators: ['ids' => ['allowsNull' => false, 'type' => 'array']],
+            ),
+            swaggerMetadata: new SwaggerMetadata(
+                summary: '',
+                description: '',
+                ignoreInSwagger: false,
+            ),
         );
 
         $responseData = [

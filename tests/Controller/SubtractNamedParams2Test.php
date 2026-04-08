@@ -3,6 +3,8 @@
 namespace OV\JsonRPCAPIBundle\Tests\Controller;
 
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use OV\JsonRPCAPIBundle\RPC\V1\Subtract2\Subtract2Request;
 use OV\JsonRPCAPIBundle\RPC\V1\Subtract2Method;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -24,17 +26,21 @@ final class SubtractNamedParams2Test extends AbstractTest
         $methodSpec = new MethodSpec(
             methodClass: Subtract2Method::class,
             requestType: 'POST',
-            summary: '',
-            description: '',
-            ignoreInSwagger: false,
             methodName: 'subtract2',
-            allParameters: [['name' => 'subtrahend', 'type' => 'int'], ['name' => 'minuend', 'type' => 'int']],
-            requiredParameters: [],
-            request: Subtract2Request::class,
-            requestGetters: ['subtrahend' => 'getSubtrahend', 'minuend' => 'getMinuend'],
-            requestSetters: ['subtrahend' => 'setSubtrahend', 'minuend' => 'setMinuend'],
-            requestAdders: [],
-            validators: ['subtrahend' => ['allowsNull' => false, 'type' => 'int'], 'minuend' => ['allowsNull' => false, 'type' => 'int']]
+            requestMetadata: new RequestMetadata(
+                request: Subtract2Request::class,
+                allParameters: [['name' => 'subtrahend', 'type' => 'int'], ['name' => 'minuend', 'type' => 'int']],
+                requiredParameters: [],
+                requestGetters: ['subtrahend' => 'getSubtrahend', 'minuend' => 'getMinuend'],
+                requestSetters: ['subtrahend' => 'setSubtrahend', 'minuend' => 'setMinuend'],
+                requestAdders: [],
+                validators: ['subtrahend' => ['allowsNull' => false, 'type' => 'int'], 'minuend' => ['allowsNull' => false, 'type' => 'int']],
+            ),
+            swaggerMetadata: new SwaggerMetadata(
+                summary: '',
+                description: '',
+                ignoreInSwagger: false,
+            ),
         );
 
         $responseData = [
