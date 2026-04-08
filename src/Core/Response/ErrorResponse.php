@@ -42,4 +42,13 @@ final readonly class ErrorResponse implements OvResponseInterface, BaseJsonRespo
     {
         return $this->id;
     }
+
+    public function toArray(): array
+    {
+        return [
+            'jsonrpc' => $this->jsonrpc,
+            'error' => $this->getError(),
+            'id' => $this->id,
+        ];
+    }
 }

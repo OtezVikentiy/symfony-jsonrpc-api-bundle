@@ -46,8 +46,8 @@ final class BeforeMethodPreProcessorTest extends AbstractTest
         $responseData = [
             'jsonrpc' => '2.0',
             'result' => [
-                'title' => 'AZAZAZA',
                 'success' => true,
+                'title' => 'AZAZAZA',
             ],
             'id' => '1',
         ];

@@ -9,23 +9,25 @@ final class MultiBatchStrategy implements HandleBatchInterface
 {
     public function handleBatch(array $batch, int $version, string $methodType, callable $batchProcessor): OvResponseInterface
     {
-        $responsesContent = [];
+        $jsonParts = [];
 
         foreach ($batch as $item) {
             $response = $batchProcessor($item, $version, $methodType);
             if (is_null($response)) {
                 continue;
             }
-            $decoded = json_decode($response->getContent(), true);
-            if ($decoded !== null || json_last_error() === JSON_ERROR_NONE) {
-                $responsesContent[] = $decoded;
+            $content = $response->getContent();
+            if ($content !== '' && $content !== false) {
+                $jsonParts[] = $content;
             }
         }
 
-        if (empty($responsesContent)) {
+        if (empty($jsonParts)) {
             return new JsonResponse(data: '', json: true);
         }
 
-        return new JsonResponse(data: $responsesContent);
+        $json = '[' . implode(',', $jsonParts) . ']';
+
+        return new JsonResponse(data: $json, json: true);
     }
 }

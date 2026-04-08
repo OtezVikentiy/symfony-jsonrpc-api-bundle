@@ -329,6 +329,7 @@ final readonly class RequestHandler
             foreach ($methodSpec->getRoles() as $role) {
                 if ($this->security->isGranted($role)) {
                     $allowed = true;
+                    break;
                 }
             }
 
