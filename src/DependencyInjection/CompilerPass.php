@@ -81,14 +81,10 @@ final class CompilerPass implements CompilerPassInterface
             [$preProcessorExists, $postProcessorExists] = $this->detectProcessors($methodReflectionClass);
 
             $methodAlias            = $this->getMethodAlias($metadata['methodName'], $methodReflectionClass->getNamespaceName() . '\\' ?? '');
-            $methodSpecDefinitionId = uniqid('OV_JSON_RPC_API_' . $methodAlias, true);
-            $methodSpec             = $container->register($methodSpecDefinitionId, MethodSpec::class);
 
-            $methodSpec->setArguments([
-                $methodReflectionClass->getName(),
-                $metadata['requestType'],
-                $metadata['methodName'],
-                new RequestMetadata(
+            $requestMetadataId = uniqid('OV_JSON_RPC_API_REQ_' . $methodAlias, true);
+            $container->register($requestMetadataId, RequestMetadata::class)
+                ->setArguments([
                     $requestAnalysis['requestClass'],
                     $requestAnalysis['allParameters'],
                     $requestAnalysis['requiredParameters'],
@@ -96,14 +92,27 @@ final class CompilerPass implements CompilerPassInterface
                     $requestAnalysis['requestSetters'],
                     $requestAnalysis['requestAdders'],
                     $requestAnalysis['validators'],
-                ),
-                new SwaggerMetadata(
+                ])->setPublic(false);
+
+            $swaggerMetadataId = uniqid('OV_JSON_RPC_API_SWG_' . $methodAlias, true);
+            $container->register($swaggerMetadataId, SwaggerMetadata::class)
+                ->setArguments([
                     $metadata['summary'],
                     $metadata['description'],
                     $metadata['ignoreInSwagger'],
                     $metadata['apiTags'],
                     $metadata['group'],
-                ),
+                ])->setPublic(false);
+
+            $methodSpecDefinitionId = uniqid('OV_JSON_RPC_API_' . $methodAlias, true);
+            $methodSpec             = $container->register($methodSpecDefinitionId, MethodSpec::class);
+
+            $methodSpec->setArguments([
+                $methodReflectionClass->getName(),
+                $metadata['requestType'],
+                $metadata['methodName'],
+                new Reference($requestMetadataId),
+                new Reference($swaggerMetadataId),
                 $metadata['roles'],
                 $plainResponse,
                 $preProcessorExists,
