@@ -1,9 +1,11 @@
 # OtezVikentiy Symfony JSON-RPC API Bundle
 
+[English version](./README.en.md)
+
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.2-8892BF.svg)](https://php.net/)
 [![Symfony Version](https://img.shields.io/badge/symfony-%3E%3D6.4-000000.svg)](https://symfony.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-3.5-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
+[![Version](https://img.shields.io/badge/version-3.6-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
 
 Symfony-бандл для быстрого и удобного создания JSON-RPC 2.0 API приложений.
 
@@ -153,11 +155,12 @@ class Response
 namespace App\RPC\V1;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use App\RPC\V1\GetProduct\Request;
 use App\RPC\V1\GetProduct\Response;
 
 #[JsonRPCAPI(methodName: 'getProduct', type: 'POST')]
-class GetProductMethod
+class GetProductMethod implements ApiMethodInterface
 {
     public function call(Request $request): Response
     {
@@ -174,7 +177,7 @@ class GetProductMethod
 ```bash
 curl -X POST http://localhost/api/v1 \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc": "2.0", "method": "getProduct", "params": {"id": 1, "title": "test"}, "id": 1}'
+  -d '{"jsonrpc": "2.0", "method": "getProduct", "params": {"id": 1, "title": "test"}, "id": "1"}'
 ```
 
 Ответ:
@@ -243,7 +246,20 @@ src/RPC/V1/
 | [Базовый](./docs/examples/base.md) | Простейший пример создания API-метода | Request, Response, Method |
 | [Pre/Post-процессоры](./docs/examples/pre-and-post-processors.md) | Выполнение логики до и после вызова метода | Request, Response, Method, AbstractMethod |
 | [Массив объектов](./docs/examples/array_of_objects.md) | Возврат коллекции объектов в ответе | Request, Response, Method, Product |
-| [Бинарный ответ](./docs/examples/simple_response.md) | Возврат изображений, документов и других бинарных данных | Request, PlainResponse, Method |
+| [Бинарный ответ](./docs/examples/plain_response.md) | Возврат изображений, документов и других бинарных данных | Request, PlainResponse, Method |
+
+---
+
+## Дополнительная документация
+
+| Раздел | Описание |
+|--------|----------|
+| [Обработка ошибок](./docs/errors.md) | Коды ошибок, `JRPCException`, кастомные ошибки, `additionalInfo` |
+| [Notification-запросы](./docs/notifications.md) | Запросы без `id`, параметр `strict_notifications` |
+| [Валидация параметров](./docs/validation.md) | Автоматическая валидация типов, nullable, формат ошибок |
+| [Базовый класс JsonRpcRequest](./docs/json_rpc_request.md) | Метод `toArray()`, рекурсивная сериализация |
+| [Troubleshooting / FAQ](./docs/troubleshooting.md) | Типичные проблемы и их решения |
+| [CHANGELOG](./CHANGELOG.md) | История изменений по версиям |
 
 ---
 
