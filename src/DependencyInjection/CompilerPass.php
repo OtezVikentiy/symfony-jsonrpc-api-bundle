@@ -82,18 +82,18 @@ final class CompilerPass implements CompilerPassInterface
 
             if (is_null($version)) {
                 $namespace = $methodReflectionClass->getNamespaceName();
-                if (preg_match('/V[0-9]+$/', $namespace, $matches) === 0) {
+                if (preg_match('/\\\\(V[0-9]+)(?:\\\\|$)/', $namespace, $matches) === 0) {
                     throw new RuntimeException(
                         sprintf(
-                            'Version for API endpoint %s is not defined. Either use the version parameter in the 
-                            JsonRPCAPI attribute explicitly, or specify the API version number in the namespace, 
+                            'Version for API endpoint %s is not defined. Either use the version parameter in the
+                            JsonRPCAPI attribute explicitly, or specify the API version number in the namespace,
                             for example App\\RPC\\V1',
                             $namespace . '\\' . $className,
                         ),
                     );
                 }
 
-                $version = (int)preg_replace('/[A-Za-z]+/', '', $matches[0]);
+                $version = (int)preg_replace('/[A-Za-z]+/', '', $matches[1]);
 
                 if (empty($version) || $version == 0) {
                     throw new RuntimeException(
