@@ -17,6 +17,7 @@ final class AfterMethodPostProcessorTest extends AbstractTest
             'jsonrpc' => '2.0',
             'method' => 'testPostProcessor',
             'params' => [
+                'id' => 10,
                 'title' => 'AZAZAZA',
             ],
             'id' => '1',

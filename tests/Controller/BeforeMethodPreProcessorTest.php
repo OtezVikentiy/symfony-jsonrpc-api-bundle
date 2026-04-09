@@ -17,6 +17,7 @@ final class BeforeMethodPreProcessorTest extends AbstractTest
             'jsonrpc' => '2.0',
             'method' => 'testPreProcessor',
             'params' => [
+                'id' => 10,
                 'title' => 'AZAZAZA',
             ],
             'id' => '1',

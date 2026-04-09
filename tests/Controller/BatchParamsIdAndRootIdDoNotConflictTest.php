@@ -9,18 +9,29 @@ use OV\JsonRPCAPIBundle\RPC\V1\Test\TestRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\TestMethod;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class BaseSimpleControllerTest extends AbstractTest
+final class BatchParamsIdAndRootIdDoNotConflictTest extends AbstractTest
 {
-    public function testController()
+    public function testBatchRootIdsDoNotMixWithParamsIds()
     {
         $data = [
-            'jsonrpc' => '2.0',
-            'method' => 'test',
-            'params' => [
-                'id' => 10,
-                'title' => 'AZAZAZA',
+            [
+                'jsonrpc' => '2.0',
+                'method' => 'test',
+                'params' => [
+                    'id' => 10,
+                    'title' => 'AAA',
+                ],
+                'id' => '1',
             ],
-            'id' => '1',
+            [
+                'jsonrpc' => '2.0',
+                'method' => 'test',
+                'params' => [
+                    'id' => 20,
+                    'title' => 'BBB',
+                ],
+                'id' => '2',
+            ],
         ];
 
         $methodSpec = new MethodSpec(
@@ -44,18 +55,31 @@ final class BaseSimpleControllerTest extends AbstractTest
         );
 
         $responseData = [
-            'jsonrpc' => '2.0',
-            'result' => [
-                'success' => true,
-                'title' => 'AZAZAZA',
-                'request' => null,
-                'tests' => [],
-                'errors' => [],
+            [
+                'jsonrpc' => '2.0',
+                'result' => [
+                    'success' => true,
+                    'title' => 'AAA',
+                    'request' => null,
+                    'tests' => [],
+                    'errors' => [],
+                ],
+                'id' => '1',
             ],
-            'id' => '1',
+            [
+                'jsonrpc' => '2.0',
+                'result' => [
+                    'success' => true,
+                    'title' => 'BBB',
+                    'request' => null,
+                    'tests' => [],
+                    'errors' => [],
+                ],
+                'id' => '2',
+            ],
         ];
 
-        $result = $this->executeControllerTest($data, $methodSpec);
+        $result = $this->executeControllerTest(data: $data, methodSpecs: [$methodSpec]);
 
         $this->assertInstanceOf(JsonResponse::class, $result);
         $this->assertEquals(200, $result->getStatusCode());

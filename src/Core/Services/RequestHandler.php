@@ -166,10 +166,6 @@ final readonly class RequestHandler
     {
         $constructorParams = [];
         foreach ($methodSpec->getRequiredParameters() as $requiredParameter) {
-            if ($requiredParameter['name'] === 'id') {
-                $constructorParams[] = $baseRequest->getId();
-                continue;
-            }
             $constructorParams[] = $baseRequest->getParams()[$requiredParameter['name']] ?? ($requiredParameter['defaultValue'] ?? null);
         }
 
@@ -214,10 +210,6 @@ final readonly class RequestHandler
                     if ($value !== null) {
                         $value = $this->prepareParametersFromClass($allParameter['type'], $value);
                     }
-                }
-
-                if ($name === 'id') {
-                    $value = $baseRequest->getParams()[$name] ?? $baseRequest->getId() ?? null;
                 }
 
                 if (is_null($value) && $name === 'params') {
@@ -281,9 +273,6 @@ final readonly class RequestHandler
     private function processValidatorsForRequestInstance(MethodSpec $methodSpec, BaseRequest $baseRequest, mixed $requestInstance): void
     {
         $requestData = $baseRequest->getParams();
-        if (!is_null($baseRequest->getId())) {
-            $requestData = $requestData + ['id' => $baseRequest->getId()];
-        }
 
         $validators = [];
         foreach ($methodSpec->getValidators() as $field => $validatorItem) {

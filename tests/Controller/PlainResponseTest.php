@@ -16,6 +16,9 @@ final class PlainResponseTest extends AbstractTest
         $data = [
             'jsonrpc' => '2.0',
             'method' => 'plainResponse',
+            'params' => [
+                'id' => 5,
+            ],
             'id' => '5',
         ];
 

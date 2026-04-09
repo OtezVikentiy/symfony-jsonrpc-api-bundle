@@ -245,7 +245,7 @@ final class RequestHandlerTest extends TestCase
         $batch = [
             'jsonrpc' => '2.0',
             'method' => 'test',
-            'params' => ['title' => 'Hello'],
+            'params' => ['id' => 1, 'title' => 'Hello'],
             'id' => '1',
         ];
 
