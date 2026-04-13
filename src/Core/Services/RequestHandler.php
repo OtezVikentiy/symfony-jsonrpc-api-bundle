@@ -31,6 +31,7 @@ final readonly class RequestHandler
         private Container $container,
         private ResponseService $responseService,
         private bool $strictNotifications = false,
+        private bool $allowExtraFields = false,
     ) {
     }
 
@@ -294,9 +295,11 @@ final readonly class RequestHandler
             }
         }
 
+        $allowExtraFields = $this->allowExtraFields || $methodSpec->isAllowExtraFields();
+
         $violations = $this->validator->validate(
             $requestData,
-            new Assert\Collection($validators)
+            new Assert\Collection(fields: $validators, allowExtraFields: $allowExtraFields)
         );
 
         if ($violations->count()) {

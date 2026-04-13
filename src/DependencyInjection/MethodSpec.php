@@ -25,6 +25,7 @@ readonly class MethodSpec
         private bool $plainResponse = false,
         private bool $preProcessorExists = false,
         private bool $postProcessorExists = false,
+        private bool $allowExtraFields = false,
     ) {
     }
 
@@ -136,5 +137,10 @@ readonly class MethodSpec
     public function isPostProcessorExists(): bool
     {
         return $this->postProcessorExists;
+    }
+
+    public function isAllowExtraFields(): bool
+    {
+        return $this->allowExtraFields;
     }
 }

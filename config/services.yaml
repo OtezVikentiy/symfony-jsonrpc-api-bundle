@@ -2,6 +2,7 @@ parameters:
     ovJsonRpcApiSwaggerPath: '%env(string:OV_JSON_RPC_API_SWAGGER_PATH)%'
     accessControlAllowOriginList: '%ov_json_rpc_api.access_control_allow_origin_list%'
     strictNotifications: '%ov_json_rpc_api.strict_notifications%'
+    allowExtraFields: '%ov_json_rpc_api.allow_extra_fields%'
 
 services:
     _defaults:
@@ -11,6 +12,7 @@ services:
         bind:
             $accessControlAllowOriginList: '%accessControlAllowOriginList%'
             $strictNotifications: '%strictNotifications%'
+            $allowExtraFields: '%allowExtraFields%'
 
     OV\JsonRPCAPIBundle\:
         resource: '../src/'

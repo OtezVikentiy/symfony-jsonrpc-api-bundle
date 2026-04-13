@@ -37,6 +37,7 @@ final class OVJsonRPCAPIExtension extends Extension
         $container->setParameter($this->getAlias() . '.swagger', $config['swagger']);
         $container->setParameter($this->getAlias() . '.access_control_allow_origin_list', $config['access_control_allow_origin_list']);
         $container->setParameter($this->getAlias() . '.strict_notifications', $config['strict_notifications']);
+        $container->setParameter($this->getAlias() . '.allow_extra_fields', $config['allow_extra_fields']);
 
         $container->registerForAutoconfiguration(ApiMethodInterface::class)->addTag('ov.rpc.method');
     }

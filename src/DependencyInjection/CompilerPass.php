@@ -117,6 +117,7 @@ final class CompilerPass implements CompilerPassInterface
                 $plainResponse,
                 $preProcessorExists,
                 $postProcessorExists,
+                $metadata['allowExtraFields'],
             ])->setPublic(true)->setAutowired(true)->setAutoconfigured(true);
 
             if (PHP_VERSION_ID >= 80300) {
@@ -150,6 +151,7 @@ final class CompilerPass implements CompilerPassInterface
                     'apiTags' => $attribute->getArguments()['tags'] ?? [],
                     'version' => $attribute->getArguments()['version'] ?? null,
                     'group' => $attribute->getArguments()['group'] ?? null,
+                    'allowExtraFields' => $attribute->getArguments()['allowExtraFields'] ?? false,
                 ];
             }
         }

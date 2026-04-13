@@ -24,6 +24,7 @@ use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationList;
+use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 abstract class AbstractTest extends TestCase
@@ -39,6 +40,8 @@ abstract class AbstractTest extends TestCase
     private ?RequestHandler $requestHandler = null;
     private ?RequestRawDataHandler $requestRawDataHandler = null;
     private ?ResponseService $responseService = null;
+    protected bool $allowExtraFields = false;
+    protected bool $useRealValidator = false;
 
     protected function tearDown(): void
     {
@@ -106,6 +109,7 @@ abstract class AbstractTest extends TestCase
             $this->headersPreparer,
             $this->container,
             $this->responseService,
+            allowExtraFields: $this->allowExtraFields,
         );
     }
 
@@ -204,6 +208,11 @@ abstract class AbstractTest extends TestCase
 
     private function prepareValidator(array $violationList = []): void
     {
+        if ($this->useRealValidator) {
+            $this->validator = Validation::createValidator();
+            return;
+        }
+
         $validator = $this->createMock(ValidatorInterface::class);
         $violations = new ConstraintViolationList();
 

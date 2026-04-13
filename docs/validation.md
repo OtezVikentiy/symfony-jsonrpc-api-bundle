@@ -121,3 +121,53 @@ class Request
 | `bool` | `bool` |
 | `array` | `array` |
 | Класс (`Filter`, `Address`, ...) | Рекурсивная валидация через setters |
+
+---
+
+## Разрешение дополнительных полей (allowExtraFields)
+
+По умолчанию бандл отклоняет любые параметры, которые не описаны в Request-классе. Если в `params` передать поле, для которого нет свойства в Request — бандл вернёт ошибку `-32602`.
+
+Это поведение можно отключить двумя способами:
+
+### Глобальная настройка
+
+Добавьте параметр `allow_extra_fields: true` в конфигурацию бандла:
+
+```yaml
+# config/packages/ov_json_rpc_api.yaml
+ov_json_rpc_api:
+    allow_extra_fields: true
+```
+
+При включении глобальной настройки **все** JSON-RPC методы будут игнорировать дополнительные поля в запросе. Настройка на уровне атрибута метода при этом игнорируется.
+
+### Настройка для конкретного метода
+
+Добавьте параметр `allowExtraFields: true` в атрибут `#[JsonRPCAPI]`:
+
+```php
+#[JsonRPCAPI(
+    methodName: 'updateProduct',
+    type: 'POST',
+    allowExtraFields: true,
+)]
+class UpdateProductMethod implements ApiMethodInterface
+{
+    public function call(UpdateProductRequest $request): UpdateProductResponse
+    {
+        // ...
+    }
+}
+```
+
+Настройка через атрибут работает только когда глобальная настройка `allow_extra_fields` равна `false` (значение по умолчанию).
+
+### Приоритет
+
+| Глобальный конфиг | Атрибут метода | Результат |
+|-------------------|----------------|-----------|
+| `false` (по умолчанию) | `false` (по умолчанию) | Extra-поля **запрещены** |
+| `false` | `true` | Extra-поля **разрешены** для данного метода |
+| `true` | `false` | Extra-поля **разрешены** (глобальный побеждает) |
+| `true` | `true` | Extra-поля **разрешены** |
