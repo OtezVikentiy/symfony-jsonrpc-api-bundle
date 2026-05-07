@@ -5,7 +5,7 @@
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.2-8892BF.svg)](https://php.net/)
 [![Symfony Version](https://img.shields.io/badge/symfony-%3E%3D6.4-000000.svg)](https://symfony.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-3.8-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
+[![Version](https://img.shields.io/badge/version-3.9-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
 
 A Symfony bundle for fast and convenient creation of JSON-RPC 2.0 API applications.
 
@@ -258,8 +258,58 @@ Classes marked with the `#[JsonRPCAPI]` attribute are automatically discovered a
 | [Notification Requests](./docs/notifications.md) | Requests without `id`, `strict_notifications` parameter |
 | [Parameter Validation](./docs/validation.md) | Automatic type validation, nullable, error format |
 | [JsonRpcRequest Base Class](./docs/json_rpc_request.md) | `toArray()` method, recursive serialization |
+| [Partial updates (JSON Merge Patch)](./docs/partial_updates.md) | `PartialRequestInterface`, `wasProvided()`, RFC 7396 semantics |
 | [Troubleshooting / FAQ](./docs/troubleshooting.md) | Common problems and their solutions |
 | [CHANGELOG](./CHANGELOG.md) | Version history |
+
+---
+
+## Partial updates (JSON Merge Patch)
+
+The bundle supports PATCH semantics per [RFC 7396](https://datatracker.ietf.org/doc/html/rfc7396) for Update methods where the client sends only changed fields.
+
+**Problem:** the standard `if ($request->getX() !== null) { $entity->setX($request->getX()); }` pattern cannot distinguish "field not in payload" from "field sent as `null`" — both give `null` on the DTO. This means a field cannot be **cleared** via PATCH.
+
+**Solution:** the Request DTO implements `PartialRequestInterface`, and the framework tracks which fields actually arrived in the payload. The service layer uses `wasProvided('x')` instead of `!== null`:
+
+```php
+use OV\JsonRPCAPIBundle\Core\Request\PartialUpdateRequest;
+
+class UpdateUserRequest extends PartialUpdateRequest
+{
+    private ?int $id = null;
+    private ?string $email = null;
+    private ?string $bio = null;
+    // getters/setters...
+}
+```
+
+```php
+public function call(UpdateUserRequest $request): Response
+{
+    $user = $this->userRepository->find($request->getId());
+
+    if ($request->wasProvided('email')) {
+        $user->setEmail($request->getEmail()); // null = clear
+    }
+    if ($request->wasProvided('bio')) {
+        $user->setBio($request->getBio());
+    }
+    // ...
+}
+```
+
+**Payload semantics:**
+
+| Payload | `wasProvided` | Service behavior |
+|---|---|---|
+| `{"email": "new@x.com"}` | `true` | set the new value |
+| `{"email": null}` | `true` | clear the field (`null`) |
+| `{}` (key absent) | `false` | leave the field untouched |
+
+**Opt-in:** only DTOs implementing `PartialRequestInterface` get tracking. Existing DTOs work without changes (full backward compatibility).
+
+Details and edge cases — in [docs/partial_updates.md](./docs/partial_updates.md).
 
 ---
 

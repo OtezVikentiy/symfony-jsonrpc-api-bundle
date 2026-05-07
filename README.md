@@ -5,7 +5,7 @@
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.2-8892BF.svg)](https://php.net/)
 [![Symfony Version](https://img.shields.io/badge/symfony-%3E%3D6.4-000000.svg)](https://symfony.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-3.8-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
+[![Version](https://img.shields.io/badge/version-3.9-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
 
 Symfony-бандл для быстрого и удобного создания JSON-RPC 2.0 API приложений.
 
@@ -258,8 +258,58 @@ src/RPC/V1/
 | [Notification-запросы](./docs/notifications.md) | Запросы без `id`, параметр `strict_notifications` |
 | [Валидация параметров](./docs/validation.md) | Автоматическая валидация типов, nullable, формат ошибок |
 | [Базовый класс JsonRpcRequest](./docs/json_rpc_request.md) | Метод `toArray()`, рекурсивная сериализация |
+| [Partial updates (JSON Merge Patch)](./docs/partial_updates.md) | `PartialRequestInterface`, `wasProvided()`, RFC 7396 семантика |
 | [Troubleshooting / FAQ](./docs/troubleshooting.md) | Типичные проблемы и их решения |
 | [CHANGELOG](./CHANGELOG.md) | История изменений по версиям |
+
+---
+
+## Partial updates (JSON Merge Patch)
+
+Бандл поддерживает PATCH-семантику по [RFC 7396](https://datatracker.ietf.org/doc/html/rfc7396) для Update-методов, где клиент шлёт только изменённые поля.
+
+**Проблема:** при стандартном паттерне `if ($request->getX() !== null) { $entity->setX($request->getX()); }` нельзя различить «поле не передано» и «поле передано как `null`» — оба случая дают `null` в DTO. Это значит, что нельзя **очистить** поле через PATCH.
+
+**Решение:** Request DTO реализует `PartialRequestInterface`, и фреймворк отслеживает, какие поля реально пришли в payload. Сервис-слой использует `wasProvided('x')` вместо `!== null`:
+
+```php
+use OV\JsonRPCAPIBundle\Core\Request\PartialUpdateRequest;
+
+class UpdateUserRequest extends PartialUpdateRequest
+{
+    private ?int $id = null;
+    private ?string $email = null;
+    private ?string $bio = null;
+    // getters/setters...
+}
+```
+
+```php
+public function call(UpdateUserRequest $request): Response
+{
+    $user = $this->userRepository->find($request->getId());
+
+    if ($request->wasProvided('email')) {
+        $user->setEmail($request->getEmail()); // null = очистить
+    }
+    if ($request->wasProvided('bio')) {
+        $user->setBio($request->getBio());
+    }
+    // ...
+}
+```
+
+**Семантика payload-а:**
+
+| Payload | `wasProvided` | Поведение в сервисе |
+|---|---|---|
+| `{"email": "new@x.com"}` | `true` | установить новое значение |
+| `{"email": null}` | `true` | очистить поле (`null`) |
+| `{}` (ключ отсутствует) | `false` | не трогать поле |
+
+**Опт-ин:** только DTO, реализующие `PartialRequestInterface`, получают трекинг. Существующие DTO работают без изменений (полная обратная совместимость).
+
+Подробности и edge-кейсы — в [docs/partial_updates.md](./docs/partial_updates.md).
 
 ---
 

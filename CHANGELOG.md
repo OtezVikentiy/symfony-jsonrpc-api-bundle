@@ -6,6 +6,30 @@
 
 ---
 
+## [3.9] - 2026-05-07
+
+### Добавлено
+- **Поддержка JSON Merge Patch (RFC 7396) на уровне Request DTO** — введён opt-in контракт, позволяющий сервис-слою различать «поле не передано в payload» и «поле передано как `null`» (= очистить).
+  - **Интерфейс `OV\JsonRPCAPIBundle\Core\Request\PartialRequestInterface`** — контракт с методами `markProvided(string)`, `wasProvided(string): bool`, `getProvidedFields(): array`.
+  - **Трейт `OV\JsonRPCAPIBundle\Core\Request\TracksProvidedFieldsTrait`** — дефолтная реализация контракта.
+  - **Базовый класс `OV\JsonRPCAPIBundle\Core\Request\PartialUpdateRequest`** — `extends JsonRpcRequest implements PartialRequestInterface; use TracksProvidedFieldsTrait;`. Удобный шорткат для PATCH-сценариев.
+  - **`RequestHandler::hydrateRequest()`** — после успешного set-а свойства, если DTO реализует `PartialRequestInterface`, фреймворк вызывает `markProvided($name)` ТОЛЬКО когда ключ реально присутствовал в raw-payload. Для веток `defaultValue` и синтетического `params` — не вызывается.
+  - **`RequestHandler::prepareParametersFromClass()`** — симметричная поддержка для рекурсивных вложенных DTO (RFC 7396 object-merge).
+- **Тест `TracksProvidedFieldsTraitTest`** — юнит-тест контракта трейта.
+- **Тест `PartialRequestHydrationTest`** — интеграционные тесты гидратации:
+  - ключ присутствует со значением → `wasProvided` true;
+  - ключ присутствует с `null` → `wasProvided` true (поле очищено);
+  - ключ отсутствует → `wasProvided` false;
+  - сработал `defaultValue` → `wasProvided` false;
+  - DTO без интерфейса не задевается (BC-проверка);
+  - вложенный DTO с интерфейсом корректно трекает поля.
+
+### Обратная совместимость
+- Полностью сохранена. DTO, не реализующие `PartialRequestInterface`, ведут себя ровно как в 3.8 — `instanceof`-проверка короткозамкнута, ноль накладных расходов.
+- Никаких новых обязательных параметров в публичных API. Конфиг-флаг не нужен — opt-in через интерфейс.
+
+---
+
 ## [3.8] - 2026-04-13
 
 ### Добавлено

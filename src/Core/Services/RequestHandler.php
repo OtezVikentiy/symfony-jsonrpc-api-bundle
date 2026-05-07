@@ -5,6 +5,7 @@ namespace OV\JsonRPCAPIBundle\Core\Services;
 use OV\JsonRPCAPIBundle\Core\PostProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\PreProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\Request\BaseRequest;
+use OV\JsonRPCAPIBundle\Core\Request\PartialRequestInterface;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
 use OV\JsonRPCAPIBundle\Core\Response\BaseResponse;
 use OV\JsonRPCAPIBundle\Core\Response\ErrorResponse;
@@ -175,11 +176,15 @@ final readonly class RequestHandler
 
     private function hydrateRequest(mixed $requestInstance, MethodSpec $methodSpec, BaseRequest $baseRequest): mixed
     {
+        $tracksProvided = $requestInstance instanceof PartialRequestInterface;
+
         foreach ($methodSpec->getAllParameters() as $allParameter) {
             $name = $allParameter['name'];
+            $wasProvided = false;
 
             if (array_key_exists($name, $baseRequest->getParams())) {
                 $value = $baseRequest->getParams()[$name];
+                $wasProvided = true;
             } elseif (array_key_exists('defaultValue', $allParameter)) {
                 $value = $allParameter['defaultValue'];
             } elseif ($name === 'params') {
@@ -202,6 +207,10 @@ final readonly class RequestHandler
                     }
                 }
 
+                if ($tracksProvided && $wasProvided) {
+                    $requestInstance->markProvided($name);
+                }
+
                 continue;
             }
 
@@ -218,6 +227,10 @@ final readonly class RequestHandler
                 }
 
                 $requestInstance->$requestSetter($value);
+
+                if ($tracksProvided && $wasProvided) {
+                    $requestInstance->markProvided($name);
+                }
             }
         }
 
@@ -231,6 +244,7 @@ final readonly class RequestHandler
         }
 
         $parametersClass = new $class();
+        $tracksProvided = $parametersClass instanceof PartialRequestInterface;
 
         $classReflection = new \ReflectionClass($class);
         $methods = $classReflection->getMethods();
@@ -258,6 +272,11 @@ final readonly class RequestHandler
                 $parametersClass->$setterName($value);
             } catch (\InvalidArgumentException|\TypeError $e) {
                 $invalidTypeErrors[] = sprintf('[%s] - This value should be of type %s', $name, $setterArgumentType);
+                continue;
+            }
+
+            if ($tracksProvided) {
+                $parametersClass->markProvided($name);
             }
         }
 
