@@ -38,6 +38,13 @@ final class OVJsonRPCAPIExtension extends Extension
         $container->setParameter($this->getAlias() . '.access_control_allow_origin_list', $config['access_control_allow_origin_list']);
         $container->setParameter($this->getAlias() . '.strict_notifications', $config['strict_notifications']);
         $container->setParameter($this->getAlias() . '.allow_extra_fields', $config['allow_extra_fields']);
+        $container->setParameter($this->getAlias() . '.expose_internal_errors', $config['expose_internal_errors']);
+        $container->setParameter($this->getAlias() . '.cors_strict', $config['cors_strict']);
+        $container->setParameter($this->getAlias() . '.max_payload_bytes', $config['max_payload_bytes']);
+        $container->setParameter($this->getAlias() . '.max_json_depth', $config['max_json_depth']);
+        $container->setParameter($this->getAlias() . '.max_batch_size', $config['max_batch_size']);
+        $container->setParameter($this->getAlias() . '.max_dto_depth', $config['max_dto_depth']);
+        $container->setParameter($this->getAlias() . '.max_array_param_size', $config['max_array_param_size']);
 
         $container->registerForAutoconfiguration(ApiMethodInterface::class)->addTag('ov.rpc.method');
     }

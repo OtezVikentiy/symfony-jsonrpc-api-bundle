@@ -9,6 +9,8 @@ use OV\JsonRPCAPIBundle\Core\JRPCException;
 use OV\JsonRPCAPIBundle\Core\Services\HeadersPreparer;
 use OV\JsonRPCAPIBundle\Core\Services\ResponseService;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 final class ResponseServiceTest extends TestCase
 {
@@ -58,15 +60,21 @@ final class ResponseServiceTest extends TestCase
         $this->assertEquals('*', $response->headers->get('Access-Control-Allow-Origin'));
     }
 
-    public function testResponseWithMultipleOrigins(): void
+    public function testResponseWithMultipleOriginsMatchesRequest(): void
     {
-        $headersPreparer = new HeadersPreparer(['https://a.com', 'https://b.com']);
+        $request = new Request();
+        $request->headers->set('Origin', 'https://b.com');
+        $stack = new RequestStack();
+        $stack->push($request);
+
+        $headersPreparer = new HeadersPreparer(['https://a.com', 'https://b.com'], $stack);
         $responseService = new ResponseService($headersPreparer);
 
         $baseResponse = new BaseResponse(result: null, id: '1');
         $response = $responseService->prepareJsonResponse($baseResponse);
 
-        $this->assertEquals('https://a.com, https://b.com', $response->headers->get('Access-Control-Allow-Origin'));
+        $this->assertSame('https://b.com', $response->headers->get('Access-Control-Allow-Origin'));
+        $this->assertSame('Origin', $response->headers->get('Vary'));
     }
 
     public function testResponseStatusIs200(): void

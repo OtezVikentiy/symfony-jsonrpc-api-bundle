@@ -10,4 +10,14 @@
             <exclude>tests/Fixtures</exclude>
         </testsuite>
     </testsuites>
+
+    <source>
+        <include>
+            <directory suffix=".php">src</directory>
+        </include>
+        <exclude>
+            <directory>src/DependencyInjection/MethodSpec</directory>
+            <file>src/OVJsonRPCAPIBundle.php</file>
+        </exclude>
+    </source>
 </phpunit>

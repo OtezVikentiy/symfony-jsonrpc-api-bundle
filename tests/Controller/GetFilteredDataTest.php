@@ -9,7 +9,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\GetFilteredData;
 use OV\JsonRPCAPIBundle\RPC\V1\GetFilteredData\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class GetFilteredDataTest extends AbstractTest
+final class GetFilteredDataTest extends AbstractControllerTestCase
 {
     public function testRpcCallBatch()
     {

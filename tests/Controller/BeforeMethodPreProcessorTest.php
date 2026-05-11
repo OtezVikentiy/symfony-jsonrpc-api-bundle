@@ -9,7 +9,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\TestPreProcessor\Request;
 use OV\JsonRPCAPIBundle\RPC\V1\TestPreProcessorMethod;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class BeforeMethodPreProcessorTest extends AbstractTest
+final class BeforeMethodPreProcessorTest extends AbstractControllerTestCase
 {
     public function testController()
     {

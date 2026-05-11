@@ -9,7 +9,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\Test\TestRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\TestMethod;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class BaseSimpleControllerTest extends AbstractTest
+final class BaseSimpleControllerTest extends AbstractControllerTestCase
 {
     public function testController()
     {

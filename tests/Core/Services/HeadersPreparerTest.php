@@ -4,24 +4,47 @@ namespace OV\JsonRPCAPIBundle\Tests\Core\Services;
 
 use OV\JsonRPCAPIBundle\Core\Services\HeadersPreparer;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 final class HeadersPreparerTest extends TestCase
 {
-    public function testSingleOrigin(): void
+    public function testSingleOriginMatchesRequest(): void
     {
-        $preparer = new HeadersPreparer(['https://example.com']);
+        $preparer = new HeadersPreparer(
+            ['https://example.com'],
+            $this->stackWithOrigin('https://example.com'),
+        );
+
         $headers = $preparer->prepareHeaders();
 
-        $this->assertArrayHasKey('Access-Control-Allow-Origin', $headers);
-        $this->assertEquals('https://example.com', $headers['Access-Control-Allow-Origin']);
+        $this->assertSame('https://example.com', $headers['Access-Control-Allow-Origin']);
+        $this->assertSame('Origin', $headers['Vary']);
     }
 
-    public function testMultipleOrigins(): void
+    public function testMultipleOriginsPickWhichever(): void
     {
-        $preparer = new HeadersPreparer(['https://example.com', 'https://app.example.com']);
+        $preparer = new HeadersPreparer(
+            ['https://a.com', 'https://b.com'],
+            $this->stackWithOrigin('https://b.com'),
+        );
+
         $headers = $preparer->prepareHeaders();
 
-        $this->assertEquals('https://example.com, https://app.example.com', $headers['Access-Control-Allow-Origin']);
+        $this->assertSame('https://b.com', $headers['Access-Control-Allow-Origin']);
+        $this->assertSame('Origin', $headers['Vary']);
+    }
+
+    public function testOriginNotInWhitelistEmitsNoCorsHeaderInStrictMode(): void
+    {
+        $preparer = new HeadersPreparer(
+            ['https://a.com', 'https://b.com'],
+            $this->stackWithOrigin('https://evil.com'),
+        );
+
+        $headers = $preparer->prepareHeaders();
+
+        $this->assertSame([], $headers);
     }
 
     public function testWildcardOrigin(): void
@@ -29,7 +52,8 @@ final class HeadersPreparerTest extends TestCase
         $preparer = new HeadersPreparer(['*']);
         $headers = $preparer->prepareHeaders();
 
-        $this->assertEquals('*', $headers['Access-Control-Allow-Origin']);
+        $this->assertSame('*', $headers['Access-Control-Allow-Origin']);
+        $this->assertArrayNotHasKey('Vary', $headers);
     }
 
     public function testEmptyOriginList(): void
@@ -37,15 +61,31 @@ final class HeadersPreparerTest extends TestCase
         $preparer = new HeadersPreparer([]);
         $headers = $preparer->prepareHeaders();
 
-        $this->assertEquals('', $headers['Access-Control-Allow-Origin']);
+        $this->assertSame('', $headers['Access-Control-Allow-Origin']);
     }
 
-    public function testHeadersReturnArray(): void
+    public function testLegacyModeFallsBackToCommaJoined(): void
     {
-        $preparer = new HeadersPreparer(['*']);
+        $preparer = new HeadersPreparer(
+            ['https://a.com', 'https://b.com'],
+            $this->stackWithOrigin(null),
+            corsStrict: false,
+        );
+
         $headers = $preparer->prepareHeaders();
 
-        $this->assertIsArray($headers);
-        $this->assertCount(1, $headers);
+        $this->assertSame('https://a.com, https://b.com', $headers['Access-Control-Allow-Origin']);
+    }
+
+    private function stackWithOrigin(?string $origin): RequestStack
+    {
+        $request = new Request();
+        if ($origin !== null) {
+            $request->headers->set('Origin', $origin);
+        }
+        $stack = new RequestStack();
+        $stack->push($request);
+
+        return $stack;
     }
 }

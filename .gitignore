@@ -3,4 +3,5 @@
 .phpunit.result.cache
 .todolist
 .claude
+.remember
 .run

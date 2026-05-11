@@ -8,11 +8,11 @@ use OV\JsonRPCAPIBundle\Core\Request\BaseRequest;
 use OV\JsonRPCAPIBundle\Core\Request\PartialRequestInterface;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
 use OV\JsonRPCAPIBundle\Core\Response\BaseResponse;
-use OV\JsonRPCAPIBundle\Core\Response\ErrorResponse;
 use OV\JsonRPCAPIBundle\Core\Response\JsonResponse;
 use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
 use OV\JsonRPCAPIBundle\Core\Response\PlainResponseInterface;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler\HandleBatchInterface;
+use OV\JsonRPCAPIBundle\Core\Services\RequestHandler\MultiBatchStrategy;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -31,13 +31,27 @@ final readonly class RequestHandler
         private HeadersPreparer $headersPreparer,
         private Container $container,
         private ResponseService $responseService,
-        private bool $strictNotifications = false,
+        private bool $strictNotifications = true,
         private bool $allowExtraFields = false,
+        private int $maxBatchSize = 50,
+        private int $maxDtoDepth = 10,
+        private int $maxArrayParamSize = 1000,
     ) {
     }
 
     public function applyStrategy(HandleBatchInterface $strategy, array $data, int $version, string $methodType): ?OvResponseInterface
     {
+        if ($strategy instanceof MultiBatchStrategy && count($data) > $this->maxBatchSize) {
+            return $this->responseService->prepareErrorResponse(
+                new JRPCException(
+                    'Invalid Request.',
+                    JRPCException::INVALID_REQUEST,
+                    sprintf('Batch size %d exceeds limit %d.', count($data), $this->maxBatchSize),
+                ),
+                null,
+            );
+        }
+
         return $strategy->handleBatch($data, $version, $methodType, [$this, 'processBatch']);
     }
 
@@ -95,8 +109,7 @@ final readonly class RequestHandler
                 default => $id = null,
             };
 
-            $response = $this->responseService->prepareJsonResponse(new ErrorResponse(error: $e, id: $id));
-            return $response;
+            return $this->responseService->prepareErrorResponse($e, $id);
         } finally {
             if (
                 isset($methodSpec)
@@ -195,6 +208,20 @@ final readonly class RequestHandler
 
             $requestAdder = $methodSpec->getRequestAdders()[substr($name, 0, -1)] ?? null;
             if (!is_null($requestAdder) && !empty($value)) {
+                if (!is_array($value)) {
+                    throw new JRPCException(
+                        'Invalid params.',
+                        JRPCException::INVALID_PARAMS,
+                        sprintf('Parameter "%s" must be an array.', $name),
+                    );
+                }
+                if (count($value) > $this->maxArrayParamSize) {
+                    throw new JRPCException(
+                        'Invalid params.',
+                        JRPCException::INVALID_PARAMS,
+                        sprintf('Array parameter "%s" size %d exceeds limit %d.', $name, count($value), $this->maxArrayParamSize),
+                    );
+                }
                 if (class_exists($allParameter['type'])) {
                     foreach ($value as $elem) {
                         $elemVal = $this->prepareParametersFromClass($allParameter['type'], $elem);
@@ -237,8 +264,16 @@ final readonly class RequestHandler
         return $requestInstance;
     }
 
-    private function prepareParametersFromClass(string $class, array|string $values): object
+    private function prepareParametersFromClass(string $class, array|string $values, int $depth = 0): object
     {
+        if ($depth > $this->maxDtoDepth) {
+            throw new JRPCException(
+                'Invalid params.',
+                JRPCException::INVALID_PARAMS,
+                sprintf('DTO nesting depth %d exceeds limit %d.', $depth, $this->maxDtoDepth),
+            );
+        }
+
         if (is_string($values)) {
             return new $class($values);
         }
@@ -257,7 +292,7 @@ final readonly class RequestHandler
         foreach ($values as $name => $value) {
             $setterName = 'set' . ucfirst($name);
 
-            if (!isset($methodsIdx[$setterName])) {
+            if (!isset($methodsIdx[$setterName]) || !$methodsIdx[$setterName]->isPublic()) {
                 throw new JRPCException('Invalid params.', JRPCException::INVALID_PARAMS, sprintf('Parameters %s is not expected in request.', $name));
             }
 
@@ -265,7 +300,7 @@ final readonly class RequestHandler
             $setterParamType = $setter->getParameters()[0]->getType();
             $setterArgumentType = $setterParamType?->getName() ?? 'mixed';
             if ($setterParamType !== null && class_exists($setterArgumentType)) {
-                $value = $this->prepareParametersFromClass($setterArgumentType, $value);
+                $value = $this->prepareParametersFromClass($setterArgumentType, $value, $depth + 1);
             }
 
             try {

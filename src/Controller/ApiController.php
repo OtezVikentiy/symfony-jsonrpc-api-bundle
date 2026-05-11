@@ -11,7 +11,6 @@
 namespace OV\JsonRPCAPIBundle\Controller;
 
 use OV\JsonRPCAPIBundle\Core\JRPCException;
-use OV\JsonRPCAPIBundle\Core\Response\ErrorResponse;
 use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler\BatchStrategyFactory;
@@ -48,7 +47,7 @@ final class ApiController extends AbstractController
                 throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
             }
         } catch (JRPCException|Throwable $e) {
-            return $responseService->prepareJsonResponse(data: new ErrorResponse(error: $e, id: isset($data) ? ($data['id'] ?? null) : null));
+            return $responseService->prepareErrorResponse($e, isset($data) ? ($data['id'] ?? null) : null);
         }
 
         return $requestHandler->applyStrategy(

@@ -27,7 +27,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-abstract class AbstractTest extends TestCase
+abstract class AbstractControllerTestCase extends TestCase
 {
     private ?MethodSpecCollection $methodSpecCollection = null;
     private ?Container $container = null;
@@ -231,7 +231,7 @@ abstract class AbstractTest extends TestCase
         $this->validator = $validator;
     }
 
-    public function setValidateMethodExpectation(string $validateMethodExpectation): AbstractTest
+    public function setValidateMethodExpectation(string $validateMethodExpectation): static
     {
         $this->validateMethodExpectation = $validateMethodExpectation;
 

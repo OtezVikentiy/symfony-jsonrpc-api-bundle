@@ -9,7 +9,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\Subtract2\Subtract2Request;
 use OV\JsonRPCAPIBundle\RPC\V1\Subtract2Method;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class GlobalOverridesAttributeTest extends AbstractTest
+final class GlobalOverridesAttributeTest extends AbstractControllerTestCase
 {
     protected bool $useRealValidator = true;
     protected bool $allowExtraFields = true;

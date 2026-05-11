@@ -9,7 +9,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\Subtract\SubtractRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\SubtractMethod;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class Subtract1Test extends AbstractTest
+final class Subtract1Test extends AbstractControllerTestCase
 {
     public function testRpcCallWithPositionalParameters()
     {

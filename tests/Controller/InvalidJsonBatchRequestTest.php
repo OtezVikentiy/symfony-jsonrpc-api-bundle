@@ -9,7 +9,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\Update\UpdateRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\UpdateMethod;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class InvalidJsonBatchRequestTest extends AbstractTest
+final class InvalidJsonBatchRequestTest extends AbstractControllerTestCase
 {
     public function testRpcCallBatchWithInvalidJson()
     {
@@ -39,7 +39,7 @@ final class InvalidJsonBatchRequestTest extends AbstractTest
             'jsonrpc' => '2.0',
             'error' => [
                 'code' => -32700,
-                'message' => 'Parse error.'
+                'message' => 'Parse error. Additional info: Syntax error'
             ],
             'id' => null,
         ];

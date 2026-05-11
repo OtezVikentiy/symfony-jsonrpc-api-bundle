@@ -9,7 +9,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\Test\TestRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\TestMethod;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class ParamsIdAndRootIdDoNotConflictTest extends AbstractTest
+final class ParamsIdAndRootIdDoNotConflictTest extends AbstractControllerTestCase
 {
     public function testRootIdInResponseAndParamsIdInBusinessLogic()
     {

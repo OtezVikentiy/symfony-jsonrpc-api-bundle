@@ -118,7 +118,7 @@ final class ConfigurationTest extends TestCase
         $this->assertEquals('description', $v1['info']['description']);
     }
 
-    public function testStrictNotificationsDefaultFalse(): void
+    public function testStrictNotificationsDefaultTrue(): void
     {
         $configuration = new Configuration();
         $processor = new Processor();
@@ -126,18 +126,60 @@ final class ConfigurationTest extends TestCase
         $config = $processor->processConfiguration($configuration, []);
 
         $this->assertArrayHasKey('strict_notifications', $config);
-        $this->assertFalse($config['strict_notifications']);
+        $this->assertTrue($config['strict_notifications']);
     }
 
-    public function testStrictNotificationsCanBeSetToTrue(): void
+    public function testStrictNotificationsCanBeDisabled(): void
     {
         $configuration = new Configuration();
         $processor = new Processor();
 
         $config = $processor->processConfiguration($configuration, [
-            ['strict_notifications' => true],
+            ['strict_notifications' => false],
         ]);
 
-        $this->assertTrue($config['strict_notifications']);
+        $this->assertFalse($config['strict_notifications']);
+    }
+
+    public function testSecurityDefaults(): void
+    {
+        $configuration = new Configuration();
+        $processor = new Processor();
+
+        $config = $processor->processConfiguration($configuration, []);
+
+        $this->assertFalse($config['expose_internal_errors']);
+        $this->assertTrue($config['cors_strict']);
+        $this->assertSame(1048576, $config['max_payload_bytes']);
+        $this->assertSame(64, $config['max_json_depth']);
+        $this->assertSame(50, $config['max_batch_size']);
+        $this->assertSame(10, $config['max_dto_depth']);
+        $this->assertSame(1000, $config['max_array_param_size']);
+    }
+
+    public function testSecurityOverrides(): void
+    {
+        $configuration = new Configuration();
+        $processor = new Processor();
+
+        $config = $processor->processConfiguration($configuration, [
+            [
+                'expose_internal_errors' => true,
+                'cors_strict' => false,
+                'max_payload_bytes' => 2048,
+                'max_json_depth' => 32,
+                'max_batch_size' => 5,
+                'max_dto_depth' => 3,
+                'max_array_param_size' => 100,
+            ],
+        ]);
+
+        $this->assertTrue($config['expose_internal_errors']);
+        $this->assertFalse($config['cors_strict']);
+        $this->assertSame(2048, $config['max_payload_bytes']);
+        $this->assertSame(32, $config['max_json_depth']);
+        $this->assertSame(5, $config['max_batch_size']);
+        $this->assertSame(3, $config['max_dto_depth']);
+        $this->assertSame(100, $config['max_array_param_size']);
     }
 }

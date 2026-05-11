@@ -15,7 +15,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\Sum\SumRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\SumMethod;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class BatchRequestWithVariousResponsesTest extends AbstractTest
+final class BatchRequestWithVariousResponsesTest extends AbstractControllerTestCase
 {
     public function testRpcCallBatch()
     {
