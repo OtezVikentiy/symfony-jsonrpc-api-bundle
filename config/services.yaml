@@ -3,6 +3,13 @@ parameters:
     accessControlAllowOriginList: '%ov_json_rpc_api.access_control_allow_origin_list%'
     strictNotifications: '%ov_json_rpc_api.strict_notifications%'
     allowExtraFields: '%ov_json_rpc_api.allow_extra_fields%'
+    exposeInternalErrors: '%ov_json_rpc_api.expose_internal_errors%'
+    corsStrict: '%ov_json_rpc_api.cors_strict%'
+    maxPayloadBytes: '%ov_json_rpc_api.max_payload_bytes%'
+    maxJsonDepth: '%ov_json_rpc_api.max_json_depth%'
+    maxBatchSize: '%ov_json_rpc_api.max_batch_size%'
+    maxDtoDepth: '%ov_json_rpc_api.max_dto_depth%'
+    maxArrayParamSize: '%ov_json_rpc_api.max_array_param_size%'
 
 services:
     _defaults:
@@ -13,6 +20,13 @@ services:
             $accessControlAllowOriginList: '%accessControlAllowOriginList%'
             $strictNotifications: '%strictNotifications%'
             $allowExtraFields: '%allowExtraFields%'
+            $exposeInternalErrors: '%exposeInternalErrors%'
+            $corsStrict: '%corsStrict%'
+            $maxPayloadBytes: '%maxPayloadBytes%'
+            $maxJsonDepth: '%maxJsonDepth%'
+            $maxBatchSize: '%maxBatchSize%'
+            $maxDtoDepth: '%maxDtoDepth%'
+            $maxArrayParamSize: '%maxArrayParamSize%'
 
     OV\JsonRPCAPIBundle\:
         resource: '../src/'

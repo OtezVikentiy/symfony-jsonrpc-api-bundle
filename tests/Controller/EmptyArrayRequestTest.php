@@ -9,7 +9,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\Update\UpdateRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\UpdateMethod;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class EmptyArrayRequestTest extends AbstractTest
+final class EmptyArrayRequestTest extends AbstractControllerTestCase
 {
     public function testRpcCallWithAnEmptyArray()
     {

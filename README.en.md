@@ -5,7 +5,7 @@
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.2-8892BF.svg)](https://php.net/)
 [![Symfony Version](https://img.shields.io/badge/symfony-%3E%3D6.4-000000.svg)](https://symfony.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-3.9-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
+[![Version](https://img.shields.io/badge/version-4.0-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
 
 A Symfony bundle for fast and convenient creation of JSON-RPC 2.0 API applications.
 
@@ -406,7 +406,7 @@ use OV\JsonRPCAPIBundle\Core\Annotation\SwaggerProperty;
 
 class Response
 {
-    #[SwaggerProperty(default: true, example: true)]
+    #[SwaggerProperty(default: 'true', example: 'true')]
     private bool $success;
 
     #[SwaggerProperty(format: 'email', example: 'user@example.com')]
@@ -472,23 +472,53 @@ The bundle is compatible with any Symfony authentication method:
 
 ---
 
+## Testing
+
+Run the test suite:
+
+```bash
+./vendor/bin/phpunit tests/
+```
+
+Coverage reports require a coverage driver (xdebug or pcov). The `phpunit.xml.dist` config already declares the `<source>` block for PHPUnit 10+ coverage output.
+
+The bundled test suite covers:
+- **Unit tests** — every Core component, services, request/response models, DI, Swagger models.
+- **Integration tests** — full request lifecycle through the controller.
+- **Command tests** — Swagger YAML generation.
+- **Security regression tests** (`tests/Security/`) — DoS limits (payload, batch, DTO depth, array size), error sanitization, CORS origin matching, setter visibility, command path containment.
+
+See [docs/testing.md](./docs/testing.md) for guidance on writing tests for your own RPC methods.
+
+---
+
 ## Configuration
 
 ### `ov_json_rpc_api` Parameters
 
-| Parameter | Description |
-|-----------|-------------|
-| `access_control_allow_origin_list` | Allowed CORS domains list |
-| `strict_notifications` | Strict JSON-RPC 2.0 Notification compliance. When `true` — server does not return response. When `false` (default) — response is returned if result is non-empty |
-| `swagger` | Swagger configuration per API version |
-| `swagger.*.api_version` | API version number |
-| `swagger.*.base_path` | Production server URL |
-| `swagger.*.test_path` | Test server URL |
-| `swagger.*.base_path_variables` | Variables for base_path substitution |
-| `swagger.*.test_path_variables` | Variables for test_path substitution |
-| `swagger.*.auth_token_name` | Authorization token header name |
-| `swagger.*.auth_token_test_value` | Test token value |
-| `swagger.*.info` | API information (title, description, contact, license) |
+| Parameter | Default | Description |
+|-----------|:-------:|-------------|
+| `access_control_allow_origin_list` | `[]` | Allowed CORS origins. Use `['*']` for wildcard, or list exact origins for matching against the request `Origin` header. |
+| `cors_strict` | `true` | When `true`, origins not in the whitelist receive no CORS header. When `false`, falls back to the legacy comma-joined header (non-compliant; for backwards compatibility only). |
+| `strict_notifications` | `true` | Strict JSON-RPC 2.0 Notification compliance. When `true` — server does not respond to notifications (per spec). When `false` — server returns a response even for notifications if the result is non-empty (legacy 3.x behaviour). |
+| `allow_extra_fields` | `false` | When `false`, request params containing fields not declared on the Request DTO are rejected with `INVALID_PARAMS`. Can be overridden per-method via the `#[JsonRPCAPI(allowExtraFields: true)]` attribute. |
+| `expose_internal_errors` | `false` | When `false` (production-safe), uncaught non-`JRPCException` throwables are replaced with a generic `Internal error.` payload and the original is sent to the logger. Set to `true` only in dev to expose raw exception messages. |
+| `max_payload_bytes` | `1048576` | Maximum bytes accepted for the raw request body. Larger requests are rejected with `INVALID_REQUEST`. |
+| `max_json_depth` | `64` | Maximum allowed JSON nesting depth when decoding the payload. Deeper inputs are rejected with `PARSE_ERROR`. |
+| `max_batch_size` | `50` | Maximum number of requests allowed in a single JSON-RPC batch. Larger batches return a single `INVALID_REQUEST` error. |
+| `max_dto_depth` | `10` | Maximum recursion depth when hydrating nested Request DTO objects. Prevents stack/memory exhaustion via deeply nested payloads. |
+| `max_array_param_size` | `1000` | Maximum element count for array parameters bound through `addX()` adders. |
+| `swagger` | — | Swagger configuration per API version. |
+| `swagger.*.api_version` | `'1'` | API version number. |
+| `swagger.*.base_path` | — | Production server URL. |
+| `swagger.*.test_path` | `null` | Test server URL. |
+| `swagger.*.base_path_variables` | `[]` | Variables for base_path substitution. |
+| `swagger.*.test_path_variables` | `[]` | Variables for test_path substitution. |
+| `swagger.*.auth_token_name` | — | Authorization token header name. |
+| `swagger.*.auth_token_test_value` | — | Test token value. |
+| `swagger.*.info` | — | API information (title, description, contact, license). |
+
+> **Security hardening:** see [docs/security_hardening.md](./docs/security_hardening.md) for recommended values, rationale, and tuning tips for high-volume APIs.
 
 ---
 

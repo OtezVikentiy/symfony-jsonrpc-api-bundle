@@ -9,7 +9,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\Update\UpdateRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\UpdateMethod;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class NonExistentMethodTest extends AbstractTest
+final class NonExistentMethodTest extends AbstractControllerTestCase
 {
     public function testNonExistentMethod()
     {

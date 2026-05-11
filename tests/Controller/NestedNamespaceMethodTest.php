@@ -9,7 +9,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\Nested\Multiply\MultiplyRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\Nested\MultiplyMethod;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class NestedNamespaceMethodTest extends AbstractTest
+final class NestedNamespaceMethodTest extends AbstractControllerTestCase
 {
     public function testRpcCallWithMethodInNestedNamespace()
     {

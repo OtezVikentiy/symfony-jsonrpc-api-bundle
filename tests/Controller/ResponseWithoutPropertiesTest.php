@@ -9,7 +9,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\Update\UpdateRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\UpdateMethod;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class ResponseWithoutPropertiesTest extends AbstractTest
+final class ResponseWithoutPropertiesTest extends AbstractControllerTestCase
 {
     public function testNotification()
     {

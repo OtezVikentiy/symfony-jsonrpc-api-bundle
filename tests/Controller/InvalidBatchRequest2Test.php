@@ -9,7 +9,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\Update\UpdateRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\UpdateMethod;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class InvalidBatchRequest2Test extends AbstractTest
+final class InvalidBatchRequest2Test extends AbstractControllerTestCase
 {
     public function testRpcCallWithAnInvalidBatch()
     {

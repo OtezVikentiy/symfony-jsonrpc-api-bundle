@@ -6,6 +6,58 @@
 
 ---
 
+## [4.0] - 2026-05-11
+
+Security-hardened релиз. Подробности миграции — [docs/upgrade-4.0.md](./docs/upgrade-4.0.md).
+
+### Добавлено
+- **Sanitization ошибок** — новый сервис `OV\JsonRPCAPIBundle\Core\Services\ErrorSanitizer`. Любой `Throwable` кроме `JRPCException` заменяется на дженерик `Internal error.` (`-32603`); полное исключение пишется в `Psr\Log\LoggerInterface`. Контролируется конфигом `expose_internal_errors` (default `false`).
+- **DoS-лимиты** с safe-default'ами:
+  - `max_payload_bytes` (1 MiB) — размер сырого тела HTTP-запроса.
+  - `max_json_depth` (64) — глубина вложенности JSON.
+  - `max_batch_size` (50) — число запросов в одном batch'е.
+  - `max_dto_depth` (10) — глубина рекурсии при гидратации вложенных DTO.
+  - `max_array_param_size` (1000) — число элементов массива-параметра через `addX()`.
+- **CORS origin matching** — `HeadersPreparer` теперь принимает `RequestStack`, читает заголовок `Origin` и матчит против whitelist'а. Добавляется `Vary: Origin`. Конфиг `cors_strict` (default `true`).
+- **Security regression test suite** — `tests/Security/`: `PayloadLimitTest`, `BatchSizeLimitTest`, `DtoHydrationLimitsTest`, `ArrayParamLimitTest`, `ErrorSanitizationTest`, `CorsMultiOriginTest`, `SwaggerGenerateSecurityTest`.
+- **Новая документация:**
+  - [docs/security_hardening.md](./docs/security_hardening.md) — все новые конфиги + tuning.
+  - [docs/upgrade-4.0.md](./docs/upgrade-4.0.md) — миграция с 3.x.
+  - [docs/cors.md](./docs/cors.md) — CORS-поведение.
+  - [docs/batch.md](./docs/batch.md) — batch-семантика и лимиты.
+  - [docs/testing.md](./docs/testing.md) — гайд по написанию тестов для RPC-методов.
+- **Coverage tooling в `phpunit.xml.dist`** — `<source>`-блок для PHPUnit 10+ coverage reports.
+- **Прямые unit-тесты** на ранее не покрытые классы: `OVJsonRPCAPIExtension`, `MethodSpec\RequestMetadata`, `MethodSpec\SwaggerMetadata`, `PartialUpdateRequest`, плюс расширенное покрытие HTTP method enforcement и `INTERNAL_ERROR` сценариев.
+- **Английский README** — добавлена секция Testing, паритет с русским README.
+
+### Изменено (BC-breaking)
+- **`strict_notifications` default переключён в `true`** — соответствие JSON-RPC 2.0 спеку. Notifications (запросы без `id`) **никогда** не получают ответ. Для legacy: `strict_notifications: false`.
+- **`expose_internal_errors` default `false`** — production-safe. Сырые сообщения исключений больше не утекают клиенту.
+- **`cors_strict` default `true`** — multi-origin теперь матчит request `Origin`; для origin'а вне whitelist'а CORS-заголовок не отдаётся.
+- **DoS-лимиты включены по умолчанию** — большие payload'ы, batch'и, deeply-nested DTO, огромные массивы теперь отвергаются с `INVALID_REQUEST` / `INVALID_PARAMS`. Тюнинг через конфиг.
+- **Невидимые сеттеры в Request DTO отвергаются** — `RequestHandler::prepareParametersFromClass()` теперь требует `ReflectionMethod::isPublic()`. Private/protected setters больше не вызываются через dynamic dispatch.
+- **`SwaggerGenerate::__construct($name)` теперь явно `?string`** — fix для PHP 8.4 implicit-nullable deprecation.
+- **`HeadersPreparer::__construct(array, ?RequestStack, bool)`** — добавлены два опциональных аргумента. Существующий `new HeadersPreparer(['*'])` продолжает работать.
+- **`ResponseService::__construct(HeadersPreparer, ?ErrorSanitizer)`** — добавлен опциональный второй аргумент.
+- **Parse-error `message` теперь содержит причину** — `"Parse error. Additional info: Syntax error"` вместо `"Parse error."`. Парсите `code === -32700`, не текст.
+- **`tests/Controller/AbstractTest` → `AbstractControllerTestCase`** — переименование для соответствия PHPUnit 10+ конвенции. Если вы наследовались — обновите имя класса.
+
+### Исправлено
+- **CORS multi-origin bug** — список из нескольких origin'ов больше не конкатенируется через `, ` (это нарушало CORS-спек). Теперь возвращается ровно один origin, совпавший с request `Origin`-заголовком.
+- **PHP 8.4 deprecation в `SwaggerGenerate`** — параметр `$name` стал явно `?string`.
+- **`SwaggerGenerate` path containment** — `realpath()` валидация целевой директории; при невалидном пути команда возвращает `FAILURE` с понятным сообщением.
+
+### Security
+- HIGH: DoS через unbounded payload size — закрыт `max_payload_bytes`.
+- HIGH: DoS через unbounded batch — закрыт `max_batch_size`.
+- HIGH: DoS через unbounded DTO nesting recursion — закрыт `max_dto_depth`.
+- HIGH: DoS через unbounded array-param expansion — закрыт `max_array_param_size`.
+- HIGH: Information disclosure через `Throwable::getMessage()` — закрыт `ErrorSanitizer`.
+- MEDIUM: невалидный CORS-заголовок при multi-origin — исправлен origin matching'ом.
+- LOW: hardening DTO hydration — private/protected setters не вызываются.
+
+---
+
 ## [3.9] - 2026-05-07
 
 ### Добавлено

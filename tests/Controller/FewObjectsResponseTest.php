@@ -9,7 +9,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\GetProductsMethod;
 use OV\JsonRPCAPIBundle\RPC\V1\GetProducts\GetProductsRequest;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class FewObjectsResponseTest extends AbstractTest
+final class FewObjectsResponseTest extends AbstractControllerTestCase
 {
     public function testController()
     {
@@ -18,7 +18,8 @@ final class FewObjectsResponseTest extends AbstractTest
             'method' => 'getProducts',
             'params' => [
                 'ids' => [1, 2, 3],
-            ]
+            ],
+            'id' => 1,
         ];
 
         $methodSpec = new MethodSpec(
@@ -63,7 +64,7 @@ final class FewObjectsResponseTest extends AbstractTest
                     ],
                 ],
             ],
-            'id' => null,
+            'id' => 1,
         ];
 
         $result = $this->executeControllerTest($data, $methodSpec);

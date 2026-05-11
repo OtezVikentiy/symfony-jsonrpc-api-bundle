@@ -9,7 +9,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\Update\UpdateRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\UpdateMethod;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class InvalidRequestObjectTest extends AbstractTest
+final class InvalidRequestObjectTest extends AbstractControllerTestCase
 {
     public function testRpcCallWithInvalidRequestObject()
     {

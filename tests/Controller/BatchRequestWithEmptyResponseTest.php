@@ -11,7 +11,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\NotifySum\NotifySumRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\NotifySumMethod;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class BatchRequestWithEmptyResponseTest extends AbstractTest
+final class BatchRequestWithEmptyResponseTest extends AbstractControllerTestCase
 {
     public function testRpcCallBatchAllNotifications()
     {

@@ -10,7 +10,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\CreateSomeMethod;
 use OV\JsonRPCAPIBundle\RPC\V1\CreateSome\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class FewObjectsRequestTest extends AbstractTest
+final class FewObjectsRequestTest extends AbstractControllerTestCase
 {
     public function testController()
     {
@@ -35,7 +35,8 @@ final class FewObjectsRequestTest extends AbstractTest
                         'summary' => 'summary3',
                     ],
                 ],
-            ]
+            ],
+            'id' => 1,
         ];
 
         $methodSpec = new MethodSpec(
@@ -64,7 +65,7 @@ final class FewObjectsRequestTest extends AbstractTest
                 'success' => true,
                 'responseString' => 'name1_value1_summary1 ||| name2_value2_summary2 ||| name3_value3_summary3'
             ],
-            'id' => null,
+            'id' => 1,
         ];
 
         $result = $this->executeControllerTest($data, $methodSpec);

@@ -23,8 +23,15 @@ final class Configuration implements ConfigurationInterface
 
         $rootNode
             ->children()
-                ->booleanNode('strict_notifications')->defaultFalse()->end()
+                ->booleanNode('strict_notifications')->defaultTrue()->end()
                 ->booleanNode('allow_extra_fields')->defaultFalse()->end()
+                ->booleanNode('expose_internal_errors')->defaultFalse()->end()
+                ->booleanNode('cors_strict')->defaultTrue()->end()
+                ->integerNode('max_payload_bytes')->min(1024)->defaultValue(1048576)->end()
+                ->integerNode('max_json_depth')->min(1)->max(512)->defaultValue(64)->end()
+                ->integerNode('max_batch_size')->min(1)->defaultValue(50)->end()
+                ->integerNode('max_dto_depth')->min(1)->defaultValue(10)->end()
+                ->integerNode('max_array_param_size')->min(1)->defaultValue(1000)->end()
                 ->arrayNode('access_control_allow_origin_list')
                     ->prototype('scalar')->end()
                 ->end()

@@ -9,7 +9,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\PlainResponse\Request;
 use OV\JsonRPCAPIBundle\RPC\V1\PlainResponseMethod;
 use Symfony\Component\HttpFoundation\Response;
 
-final class PlainResponseTest extends AbstractTest
+final class PlainResponseTest extends AbstractControllerTestCase
 {
     public function testController()
     {
