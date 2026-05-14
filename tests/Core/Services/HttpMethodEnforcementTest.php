@@ -3,6 +3,7 @@
 namespace OV\JsonRPCAPIBundle\Tests\Core\Services;
 
 use OV\JsonRPCAPIBundle\Core\JRPCException;
+use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
 use OV\JsonRPCAPIBundle\Core\Services\HeadersPreparer;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 use OV\JsonRPCAPIBundle\Core\Services\ResponseService;
@@ -93,6 +94,7 @@ final class HttpMethodEnforcementTest extends TestCase
             $headersPreparer,
             $container,
             $responseService,
+            new NullJsonRpcCallLogger(),
         );
     }
 }

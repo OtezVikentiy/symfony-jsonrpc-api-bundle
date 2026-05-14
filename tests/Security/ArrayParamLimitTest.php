@@ -3,6 +3,7 @@
 namespace OV\JsonRPCAPIBundle\Tests\Security;
 
 use OV\JsonRPCAPIBundle\Core\JRPCException;
+use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
 use OV\JsonRPCAPIBundle\Core\Request\BaseRequest;
 use OV\JsonRPCAPIBundle\Core\Services\HeadersPreparer;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
@@ -109,6 +110,7 @@ final class ArrayParamLimitTest extends TestCase
             $headersPreparer,
             $this->createMock(Container::class),
             $responseService,
+            new NullJsonRpcCallLogger(),
             maxArrayParamSize: $maxArrayParamSize,
         );
     }

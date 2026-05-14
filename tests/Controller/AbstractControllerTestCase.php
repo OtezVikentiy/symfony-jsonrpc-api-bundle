@@ -5,6 +5,8 @@ namespace OV\JsonRPCAPIBundle\Tests\Controller;
 use Doctrine\Common\Annotations\AnnotationReader;
 use OV\JsonRPCAPIBundle\Controller\ApiController;
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
+use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
 use OV\JsonRPCAPIBundle\Core\Services\HeadersPreparer;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 use OV\JsonRPCAPIBundle\Core\Services\RequestRawDataHandler;
@@ -42,6 +44,7 @@ abstract class AbstractControllerTestCase extends TestCase
     private ?ResponseService $responseService = null;
     protected bool $allowExtraFields = false;
     protected bool $useRealValidator = false;
+    protected ?JsonRpcCallLoggerInterface $callLoggerOverride = null;
 
     protected function tearDown(): void
     {
@@ -55,6 +58,7 @@ abstract class AbstractControllerTestCase extends TestCase
         $this->requestHandler = null;
         $this->requestRawDataHandler = null;
         $this->responseService = null;
+        $this->callLoggerOverride = null;
         $this->after();
     }
 
@@ -87,7 +91,7 @@ abstract class AbstractControllerTestCase extends TestCase
         $controller = new ApiController();
         $controller->setContainer($this->serviceLocator);
 
-        return $controller->index($this->request, $this->requestHandler, $this->requestRawDataHandler, $this->responseService);
+        return $controller->index($this->request, $this->requestHandler, $this->requestRawDataHandler, $this->responseService, $this->callLoggerOverride ?? new NullJsonRpcCallLogger());
     }
 
     private function prepareResponseService(): void
@@ -109,6 +113,7 @@ abstract class AbstractControllerTestCase extends TestCase
             $this->headersPreparer,
             $this->container,
             $this->responseService,
+            $this->callLoggerOverride ?? new NullJsonRpcCallLogger(),
             allowExtraFields: $this->allowExtraFields,
         );
     }

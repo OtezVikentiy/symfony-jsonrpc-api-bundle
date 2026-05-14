@@ -6,6 +6,13 @@
 
 ---
 
+## [4.1] - 2026-05-14
+
+### Добавлено
+- **Request/Response logging** — опциональная подсистема, выключена по умолчанию. Конфиг `ov_json_rpc_api.logging.enabled: true` включает дефолтный логгер с форматом `Request: [method] {body} context_id: <uuid>` и парным `Response`. Поддерживает маскировку sensitive-полей по регексам на имена ключей JSON (`logging.masking.key_patterns`), кастомный форматтер (`JsonRpcLogFormatterInterface`), кастомный маскер (`SensitiveDataMaskerInterface`), кастомный генератор context_id (`ContextIdGeneratorInterface`). Подробности и примеры — [docs/logging.md](./docs/logging.md).
+
+---
+
 ## [4.0] - 2026-05-11
 
 Security-hardened релиз. Подробности миграции — [docs/upgrade-4.0.md](./docs/upgrade-4.0.md).

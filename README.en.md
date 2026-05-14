@@ -5,7 +5,8 @@
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.2-8892BF.svg)](https://php.net/)
 [![Symfony Version](https://img.shields.io/badge/symfony-%3E%3D6.4-000000.svg)](https://symfony.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-4.0-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
+[![Version](https://img.shields.io/badge/version-4.1-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
+[![Coverage](https://img.shields.io/badge/coverage-91%25-brightgreen.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
 
 A Symfony bundle for fast and convenient creation of JSON-RPC 2.0 API applications.
 
@@ -261,6 +262,12 @@ Classes marked with the `#[JsonRPCAPI]` attribute are automatically discovered a
 | [Partial updates (JSON Merge Patch)](./docs/partial_updates.md) | `PartialRequestInterface`, `wasProvided()`, RFC 7396 semantics |
 | [Troubleshooting / FAQ](./docs/troubleshooting.md) | Common problems and their solutions |
 | [CHANGELOG](./CHANGELOG.md) | Version history |
+
+---
+
+## Logging
+
+Optional Request/Response logging subsystem with sensitive-data masking through a PSR-3 logger. Disabled by default. Details — [docs/logging.md](docs/logging.md).
 
 ---
 

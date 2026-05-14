@@ -2,6 +2,7 @@
 
 namespace OV\JsonRPCAPIBundle\Core\Services;
 
+use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
 use OV\JsonRPCAPIBundle\Core\PostProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\PreProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\Request\BaseRequest;
@@ -31,6 +32,7 @@ final readonly class RequestHandler
         private HeadersPreparer $headersPreparer,
         private Container $container,
         private ResponseService $responseService,
+        private JsonRpcCallLoggerInterface $callLogger,
         private bool $strictNotifications = true,
         private bool $allowExtraFields = false,
         private int $maxBatchSize = 50,
@@ -42,7 +44,8 @@ final readonly class RequestHandler
     public function applyStrategy(HandleBatchInterface $strategy, array $data, int $version, string $methodType): ?OvResponseInterface
     {
         if ($strategy instanceof MultiBatchStrategy && count($data) > $this->maxBatchSize) {
-            return $this->responseService->prepareErrorResponse(
+            $call = $this->callLogger->logRequest($data);
+            $err = $this->responseService->prepareErrorResponse(
                 new JRPCException(
                     'Invalid Request.',
                     JRPCException::INVALID_REQUEST,
@@ -50,6 +53,8 @@ final readonly class RequestHandler
                 ),
                 null,
             );
+            $this->callLogger->logResponse($call, $err);
+            return $err;
         }
 
         return $strategy->handleBatch($data, $version, $methodType, [$this, 'processBatch']);
@@ -60,6 +65,7 @@ final readonly class RequestHandler
         int $version,
         string $methodType,
     ): ?OvResponseInterface {
+        $call = $this->callLogger->logRequest($batch);
         try {
             $baseRequest = new BaseRequest($batch);
 
@@ -69,9 +75,9 @@ final readonly class RequestHandler
                 throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
             }
 
-            $res = $this->checkRoles($methodSpec);
-            if (!is_null($res)) {
-                return $res;
+            $response = $this->checkRoles($methodSpec);
+            if (!is_null($response)) {
+                return $response;
             }
 
             $requestClass = $methodSpec->getRequest();
@@ -109,8 +115,11 @@ final readonly class RequestHandler
                 default => $id = null,
             };
 
-            return $this->responseService->prepareErrorResponse($e, $id);
+            $response = $this->responseService->prepareErrorResponse($e, $id);
+            return $response;
         } finally {
+            $loggedResponse = ($response ?? null) instanceof OvResponseInterface ? $response : null;
+            $this->callLogger->logResponse($call, $loggedResponse);
             if (
                 isset($methodSpec)
                 && isset($processor)

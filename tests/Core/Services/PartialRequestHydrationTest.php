@@ -10,6 +10,7 @@
 
 namespace OV\JsonRPCAPIBundle\Tests\Core\Services;
 
+use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
 use OV\JsonRPCAPIBundle\Core\Request\PartialRequestInterface;
 use OV\JsonRPCAPIBundle\Core\Request\PartialUpdateRequest;
 use OV\JsonRPCAPIBundle\Core\Request\TracksProvidedFieldsTrait;
@@ -198,6 +199,7 @@ final class PartialRequestHydrationTest extends TestCase
             $headersPreparer,
             $container,
             $responseService,
+            new NullJsonRpcCallLogger(),
         );
     }
 

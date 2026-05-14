@@ -10,6 +10,13 @@ parameters:
     maxBatchSize: '%ov_json_rpc_api.max_batch_size%'
     maxDtoDepth: '%ov_json_rpc_api.max_dto_depth%'
     maxArrayParamSize: '%ov_json_rpc_api.max_array_param_size%'
+    loggingRequestLevel: '%ov_json_rpc_api.logging.request_level%'
+    loggingResponseLevel: '%ov_json_rpc_api.logging.response_level%'
+    loggingErrorResponseLevel: '%ov_json_rpc_api.logging.error_response_level%'
+    loggingMaxBodyLength: '%ov_json_rpc_api.logging.max_body_length%'
+    loggingSkipPlainResponses: '%ov_json_rpc_api.logging.skip_plain_responses%'
+    loggingMaskingPlaceholder: '%ov_json_rpc_api.logging.masking.placeholder%'
+    loggingMaskingKeyPatterns: '%ov_json_rpc_api.logging.masking.key_patterns%'
 
 services:
     _defaults:
@@ -27,6 +34,13 @@ services:
             $maxBatchSize: '%maxBatchSize%'
             $maxDtoDepth: '%maxDtoDepth%'
             $maxArrayParamSize: '%maxArrayParamSize%'
+            $requestLevel: '%loggingRequestLevel%'
+            $responseLevel: '%loggingResponseLevel%'
+            $errorResponseLevel: '%loggingErrorResponseLevel%'
+            $maxBodyLength: '%loggingMaxBodyLength%'
+            $skipPlainResponses: '%loggingSkipPlainResponses%'
+            $keyPatterns: '%loggingMaskingKeyPatterns%'
+            $placeholder: '%loggingMaskingPlaceholder%'
 
     OV\JsonRPCAPIBundle\:
         resource: '../src/'
@@ -58,3 +72,12 @@ services:
             - { name: console.command, command: 'ov:swagger:generate' }
 
     OV\JsonRPCAPIBundle\Command\SwaggerGenerate: '@ov_json_rpc_api_swagger_generate_command'
+
+    OV\JsonRPCAPIBundle\Core\Logging\JsonRpcLogFormatterInterface:
+        alias: OV\JsonRPCAPIBundle\Core\Logging\DefaultJsonRpcLogFormatter
+
+    OV\JsonRPCAPIBundle\Core\Logging\SensitiveDataMaskerInterface:
+        alias: OV\JsonRPCAPIBundle\Core\Logging\SensitiveDataMasker
+
+    OV\JsonRPCAPIBundle\Core\Logging\ContextIdGeneratorInterface:
+        alias: OV\JsonRPCAPIBundle\Core\Logging\UuidContextIdGenerator

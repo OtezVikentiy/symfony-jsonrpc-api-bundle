@@ -16,6 +16,9 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
+use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLogger;
+use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
+use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
 
 final class OVJsonRPCAPIExtension extends Extension
 {
@@ -45,6 +48,23 @@ final class OVJsonRPCAPIExtension extends Extension
         $container->setParameter($this->getAlias() . '.max_batch_size', $config['max_batch_size']);
         $container->setParameter($this->getAlias() . '.max_dto_depth', $config['max_dto_depth']);
         $container->setParameter($this->getAlias() . '.max_array_param_size', $config['max_array_param_size']);
+
+        // --- logging ---
+        $loggingCfg = $config['logging'];
+        $container->setParameter($this->getAlias() . '.logging.enabled', $loggingCfg['enabled']);
+        $container->setParameter($this->getAlias() . '.logging.request_level', $loggingCfg['request_level']);
+        $container->setParameter($this->getAlias() . '.logging.response_level', $loggingCfg['response_level']);
+        $container->setParameter($this->getAlias() . '.logging.error_response_level', $loggingCfg['error_response_level']);
+        $container->setParameter($this->getAlias() . '.logging.max_body_length', $loggingCfg['max_body_length']);
+        $container->setParameter($this->getAlias() . '.logging.skip_plain_responses', $loggingCfg['skip_plain_responses']);
+        $container->setParameter($this->getAlias() . '.logging.masking.placeholder', $loggingCfg['masking']['placeholder']);
+        $container->setParameter($this->getAlias() . '.logging.masking.key_patterns', $loggingCfg['masking']['key_patterns']);
+
+        $loggerImpl = $loggingCfg['enabled']
+            ? JsonRpcCallLogger::class
+            : NullJsonRpcCallLogger::class;
+
+        $container->setAlias(JsonRpcCallLoggerInterface::class, $loggerImpl);
 
         $container->registerForAutoconfiguration(ApiMethodInterface::class)->addTag('ov.rpc.method');
     }
