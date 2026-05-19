@@ -41,6 +41,8 @@ final class Configuration implements ConfigurationInterface
                         ->scalarNode('error_response_level')->defaultValue('warning')->end()
                         ->integerNode('max_body_length')->min(0)->defaultValue(0)->end()
                         ->booleanNode('skip_plain_responses')->defaultTrue()->end()
+                        ->scalarNode('logger_service')->defaultNull()->end()
+                        ->scalarNode('call_logger_service')->defaultNull()->end()
                         ->arrayNode('masking')
                             ->addDefaultsIfNotSet()
                             ->children()

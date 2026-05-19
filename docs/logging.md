@@ -36,6 +36,8 @@ Response: [get_billing_operations] {"jsonrpc":"2.0","result":{"count":7},"id":1}
 | `logging.skip_plain_responses` | `true` | Для `PlainResponseInterface` body заменяется на `[plain response, N bytes]`. |
 | `logging.masking.placeholder` | `***` | Что подставлять вместо матченных значений. |
 | `logging.masking.key_patterns` | `[]` | Список PCRE-регексов. Совпадение по имени ключа JSON — значение целиком заменяется на placeholder. Применяется рекурсивно на любой глубине. |
+| `logging.logger_service` | `null` | ID Symfony-сервиса PSR-3 `LoggerInterface`, который бандл использует как sink (см. «Кастомный PSR-3 логгер»). `null` = стандартный `@logger`. |
+| `logging.call_logger_service` | `null` | ID Symfony-сервиса, реализующего `JsonRpcCallLoggerInterface`. Подменяет всю high-level обвязку бандла (pairing/encoding/masking). Учитывается только при `enabled: true` (см. «Полная замена JsonRpcCallLoggerInterface»). |
 
 ## Переопределение формата
 
@@ -100,18 +102,80 @@ services:
 - **Batch size exceeded** — одна пара Request/Response, method = `unknown`.
 - **Ошибка внутри логгера** — никогда не пробивается в бизнес-пайплайн. Запись `error` в основном логе с trace; обработка запроса продолжается без логирования этого вызова.
 
-## Разделение по monolog-каналам
+## Кастомный PSR-3 логгер
 
-Бандл использует автовайренный `Psr\Log\LoggerInterface`. Если нужно писать логи в отдельный monolog-канал, переопределите алиас `LoggerInterface` в своём `config/services.yaml`:
+Внутри `JsonRpcCallLogger` бандл использует PSR-3 `LoggerInterface` как sink — туда уходят уже отформатированные записи. По умолчанию это стандартный Symfony-сервис `logger` (то есть Monolog). Можно подменить на любой свой PSR-3 логгер — например, уже сконфигурированный со своим Monolog handler/processor/formatter — двумя способами.
+
+**Через `logger_service` (рекомендованный):**
+
+```yaml
+# config/packages/ov_json_rpc_api.yaml
+ov_json_rpc_api:
+    logging:
+        enabled: true
+        logger_service: App\Infrastructure\Logger\MyCustomLogger
+```
+
+**Через alias в `services.yaml`:**
 
 ```yaml
 services:
-    OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLogger:
-        arguments:
-            $logger: '@monolog.logger.json_rpc_api'
+    ov_json_rpc_api.logger:
+        alias: App\Infrastructure\Logger\MyCustomLogger
 ```
 
-или через декоратор. Бандл сам каналы не настраивает.
+Если заданы оба — побеждает `logger_service` (применяется после YAML на этапе компиляции). Сервис должен реализовывать `Psr\Log\LoggerInterface`. Бандл по-прежнему отвечает за pairing, маскировку, обрезку body и формирование message/context/level через `JsonRpcLogFormatterInterface`; кастомный логгер получает финальный `log($level, $message, $context)` со всеми его handler/processor.
+
+### Разделение по monolog-каналам
+
+Симметрично — указываем сервис monolog-канала:
+
+```yaml
+ov_json_rpc_api:
+    logging:
+        logger_service: monolog.logger.json_rpc_api
+```
+
+## Полная замена JsonRpcCallLoggerInterface
+
+Если нужно обойти всю высокоуровневую логику бандла (pairing, encoding, masking, formatter) — реализуйте `JsonRpcCallLoggerInterface` целиком и подмените дефолт.
+
+**Через `call_logger_service`:**
+
+```yaml
+ov_json_rpc_api:
+    logging:
+        enabled: true
+        call_logger_service: App\Logging\MyJsonRpcCallLogger
+```
+
+**Через alias в `services.yaml`:**
+
+```yaml
+services:
+    OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface:
+        alias: App\Logging\MyJsonRpcCallLogger
+```
+
+`logging.enabled: false` остаётся **kill-switch**: при выключенном логировании бандл всегда подставит `NullJsonRpcCallLogger`, игнорируя оба override. Если задано и через config, и через alias — выигрывает `call_logger_service`.
+
+Контракт интерфейса (`logRequest` / `logRawRequest` / `logResponse`) — см. `src/Core/Logging/JsonRpcCallLoggerInterface.php`. При своей реализации `JsonRpcLogFormatterInterface`, `SensitiveDataMaskerInterface`, `ContextIdGeneratorInterface` бандлом не используются — вы их можете подключать или нет на своё усмотрение.
+
+## Приоритет override-механизмов
+
+PSR-3 logger (`ov_json_rpc_api.logger`):
+
+1. `logging.enabled: false` → не имеет значения, в любом случае `NullJsonRpcCallLogger` ничего не пишет.
+2. `logging.logger_service` (config) — выигрывает.
+3. `ov_json_rpc_api.logger` alias в `services.yaml` — fallback.
+4. Default — `@logger`.
+
+`JsonRpcCallLoggerInterface`:
+
+1. `logging.enabled: false` → `NullJsonRpcCallLogger`, kill-switch.
+2. `logging.call_logger_service` (config) — выигрывает.
+3. `JsonRpcCallLoggerInterface` alias в `services.yaml` — fallback.
+4. Default — `JsonRpcCallLogger`.
 
 ## Производительность
 

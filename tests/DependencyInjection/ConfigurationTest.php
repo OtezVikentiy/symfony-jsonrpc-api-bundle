@@ -157,6 +157,35 @@ final class ConfigurationTest extends TestCase
         $this->assertSame(1000, $config['max_array_param_size']);
     }
 
+    public function testLoggingOverrideServicesDefaultToNull(): void
+    {
+        $configuration = new Configuration();
+        $processor = new Processor();
+
+        $config = $processor->processConfiguration($configuration, []);
+
+        $this->assertNull($config['logging']['logger_service']);
+        $this->assertNull($config['logging']['call_logger_service']);
+    }
+
+    public function testLoggingOverrideServicesAcceptCustomIds(): void
+    {
+        $configuration = new Configuration();
+        $processor = new Processor();
+
+        $config = $processor->processConfiguration($configuration, [
+            [
+                'logging' => [
+                    'logger_service' => 'app.custom_psr3_logger',
+                    'call_logger_service' => 'app.custom_call_logger',
+                ],
+            ],
+        ]);
+
+        $this->assertSame('app.custom_psr3_logger', $config['logging']['logger_service']);
+        $this->assertSame('app.custom_call_logger', $config['logging']['call_logger_service']);
+    }
+
     public function testSecurityOverrides(): void
     {
         $configuration = new Configuration();

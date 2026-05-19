@@ -6,10 +6,13 @@ use OV\JsonRPCAPIBundle\Core\Logging\DefaultJsonRpcLogFormatter;
 use OV\JsonRPCAPIBundle\Core\Logging\Direction;
 use OV\JsonRPCAPIBundle\Core\Logging\FormattedLogEntry;
 use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLogger;
+use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
 use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcLogEntry;
 use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcLogFormatterInterface;
+use OV\JsonRPCAPIBundle\Core\Logging\LoggedRpcCall;
 use OV\JsonRPCAPIBundle\Core\Logging\SensitiveDataMasker;
 use OV\JsonRPCAPIBundle\Core\Logging\UuidContextIdGenerator;
+use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
@@ -170,6 +173,80 @@ final class LoggingIntegrationTest extends AbstractControllerTestCase
 
         self::assertStringContainsString('"token":"***"', $this->sink->records[0]['message']);
         self::assertStringNotContainsString('super-secret', $this->sink->records[0]['message']);
+    }
+
+    public function testCustomPsr3LoggerReceivesFormattedRecords(): void
+    {
+        $customSink = new TestLogger();
+
+        $this->callLoggerOverride = new JsonRpcCallLogger(
+            logger: $customSink,
+            formatter: new DefaultJsonRpcLogFormatter(LogLevel::INFO, LogLevel::INFO, LogLevel::WARNING),
+            masker: new SensitiveDataMasker([], '***', new NullLogger()),
+            contextIdGenerator: new UuidContextIdGenerator(),
+            maxBodyLength: 0,
+            skipPlainResponses: true,
+        );
+
+        $this->executeControllerTest(
+            [
+                'jsonrpc' => '2.0',
+                'method' => 'subtract',
+                'params' => [42, 23],
+                'id' => 1,
+            ],
+            $this->subtractMethodSpec(),
+        );
+
+        self::assertCount(0, $this->sink->records, 'Original sink stays untouched when PSR-3 logger is swapped');
+        self::assertCount(2, $customSink->records);
+        self::assertStringContainsString('Request: [subtract]', $customSink->records[0]['message']);
+        self::assertStringContainsString('Response: [subtract]', $customSink->records[1]['message']);
+    }
+
+    public function testFullyCustomCallLoggerBypassesBundleFormatting(): void
+    {
+        $customCallLogger = new class implements JsonRpcCallLoggerInterface {
+            /** @var array<int, array{kind: string, payload: mixed}> */
+            public array $events = [];
+
+            public function logRequest(array $rpcCall): LoggedRpcCall
+            {
+                $this->events[] = ['kind' => 'request', 'payload' => $rpcCall];
+
+                return new LoggedRpcCall('custom-ctx', $rpcCall['method'] ?? null, microtime(true));
+            }
+
+            public function logRawRequest(string $rawBody): LoggedRpcCall
+            {
+                $this->events[] = ['kind' => 'raw_request', 'payload' => $rawBody];
+
+                return new LoggedRpcCall('custom-ctx', null, microtime(true));
+            }
+
+            public function logResponse(LoggedRpcCall $call, ?OvResponseInterface $response): void
+            {
+                $this->events[] = ['kind' => 'response', 'payload' => $call->contextId];
+            }
+        };
+
+        $this->callLoggerOverride = $customCallLogger;
+
+        $this->executeControllerTest(
+            [
+                'jsonrpc' => '2.0',
+                'method' => 'subtract',
+                'params' => [42, 23],
+                'id' => 1,
+            ],
+            $this->subtractMethodSpec(),
+        );
+
+        self::assertCount(0, $this->sink->records, 'Bundle PSR-3 sink is bypassed when JsonRpcCallLoggerInterface is fully overridden');
+        self::assertCount(2, $customCallLogger->events);
+        self::assertSame('request', $customCallLogger->events[0]['kind']);
+        self::assertSame('response', $customCallLogger->events[1]['kind']);
+        self::assertSame('subtract', $customCallLogger->events[0]['payload']['method']);
     }
 
     public function testCustomFormatterOverridesViaTestSetup(): void

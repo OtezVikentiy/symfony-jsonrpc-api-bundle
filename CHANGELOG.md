@@ -6,6 +6,13 @@
 
 ---
 
+## [4.2] - 2026-05-19
+
+### Добавлено
+- **Pluggable PSR-3 logger** — два новых конфига `logging.logger_service` и `logging.call_logger_service` плюс bundle-scoped alias `ov_json_rpc_api.logger`. Позволяют подменять либо внутренний PSR-3 sink, который `JsonRpcCallLogger` использует для записи (`logger_service` / alias `ov_json_rpc_api.logger`), либо целиком реализацию `JsonRpcCallLoggerInterface` (`call_logger_service` / alias `JsonRpcCallLoggerInterface`). Override через config выигрывает у alias; `logging.enabled: false` остаётся kill-switch выше всех override. Override-точка для `JsonRpcLogFormatterInterface` из 4.1 не изменена. Подробности и precedence — [docs/logging.md](./docs/logging.md).
+
+---
+
 ## [4.1] - 2026-05-14
 
 ### Добавлено

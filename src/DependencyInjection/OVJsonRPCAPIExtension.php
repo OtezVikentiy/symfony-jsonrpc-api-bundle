@@ -20,8 +20,18 @@ use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLogger;
 use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
 use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
 
+/**
+ * Symfony bundle extension.
+ *
+ * Logging override aliases:
+ *   - `ov_json_rpc_api.logger` — PSR-3 LoggerInterface used internally by JsonRpcCallLogger.
+ *   - JsonRpcCallLoggerInterface — top-level call logger; off-switch (logging.enabled=false) forces NullJsonRpcCallLogger.
+ */
+
 final class OVJsonRPCAPIExtension extends Extension
 {
+    private const LOGGER_ALIAS_ID = 'ov_json_rpc_api.logger';
+
     /**
      * @noinspection PhpUnused
      * @throws Exception
@@ -65,6 +75,14 @@ final class OVJsonRPCAPIExtension extends Extension
             : NullJsonRpcCallLogger::class;
 
         $container->setAlias(JsonRpcCallLoggerInterface::class, $loggerImpl);
+
+        if ($loggingCfg['logger_service'] !== null) {
+            $container->setAlias(self::LOGGER_ALIAS_ID, (string) $loggingCfg['logger_service']);
+        }
+
+        if ($loggingCfg['enabled'] && $loggingCfg['call_logger_service'] !== null) {
+            $container->setAlias(JsonRpcCallLoggerInterface::class, (string) $loggingCfg['call_logger_service']);
+        }
 
         $container->registerForAutoconfiguration(ApiMethodInterface::class)->addTag('ov.rpc.method');
     }

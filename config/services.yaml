@@ -41,6 +41,7 @@ services:
             $skipPlainResponses: '%loggingSkipPlainResponses%'
             $keyPatterns: '%loggingMaskingKeyPatterns%'
             $placeholder: '%loggingMaskingPlaceholder%'
+            $logger: '@ov_json_rpc_api.logger'
 
     OV\JsonRPCAPIBundle\:
         resource: '../src/'
@@ -81,3 +82,7 @@ services:
 
     OV\JsonRPCAPIBundle\Core\Logging\ContextIdGeneratorInterface:
         alias: OV\JsonRPCAPIBundle\Core\Logging\UuidContextIdGenerator
+
+    ov_json_rpc_api.logger:
+        alias: 'logger'
+        public: false

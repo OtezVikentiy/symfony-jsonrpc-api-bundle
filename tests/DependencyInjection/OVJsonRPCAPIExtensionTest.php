@@ -2,6 +2,9 @@
 
 namespace OV\JsonRPCAPIBundle\Tests\DependencyInjection;
 
+use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLogger;
+use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
+use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
 use OV\JsonRPCAPIBundle\DependencyInjection\OVJsonRPCAPIExtension;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -64,5 +67,143 @@ final class OVJsonRPCAPIExtensionTest extends TestCase
         $this->assertArrayHasKey(\OV\JsonRPCAPIBundle\Core\ApiMethodInterface::class, $autoconfigured);
         $tags = $autoconfigured[\OV\JsonRPCAPIBundle\Core\ApiMethodInterface::class]->getTags();
         $this->assertArrayHasKey('ov.rpc.method', $tags);
+    }
+
+    public function testCallLoggerDefaultsToNullWhenLoggingDisabled(): void
+    {
+        $container = new ContainerBuilder();
+        $extension = new OVJsonRPCAPIExtension();
+
+        $extension->load([], $container);
+
+        $this->assertSame(
+            NullJsonRpcCallLogger::class,
+            (string) $container->getAlias(JsonRpcCallLoggerInterface::class),
+        );
+    }
+
+    public function testCallLoggerSwitchesToRealImplWhenLoggingEnabled(): void
+    {
+        $container = new ContainerBuilder();
+        $extension = new OVJsonRPCAPIExtension();
+
+        $extension->load([['logging' => ['enabled' => true]]], $container);
+
+        $this->assertSame(
+            JsonRpcCallLogger::class,
+            (string) $container->getAlias(JsonRpcCallLoggerInterface::class),
+        );
+    }
+
+    public function testLoggerAliasDefaultsToFrameworkLogger(): void
+    {
+        $container = new ContainerBuilder();
+        $extension = new OVJsonRPCAPIExtension();
+
+        $extension->load([], $container);
+
+        $this->assertSame('logger', (string) $container->getAlias('ov_json_rpc_api.logger'));
+    }
+
+    public function testLoggerServiceConfigOverridesLoggerAlias(): void
+    {
+        $container = new ContainerBuilder();
+        $extension = new OVJsonRPCAPIExtension();
+
+        $extension->load([
+            [
+                'logging' => [
+                    'enabled' => true,
+                    'logger_service' => 'app.custom_psr3_logger',
+                ],
+            ],
+        ], $container);
+
+        $this->assertSame('app.custom_psr3_logger', (string) $container->getAlias('ov_json_rpc_api.logger'));
+    }
+
+    public function testLoggerServiceConfigAppliesEvenWhenLoggingDisabled(): void
+    {
+        $container = new ContainerBuilder();
+        $extension = new OVJsonRPCAPIExtension();
+
+        $extension->load([
+            [
+                'logging' => [
+                    'enabled' => false,
+                    'logger_service' => 'app.custom_psr3_logger',
+                ],
+            ],
+        ], $container);
+
+        $this->assertSame('app.custom_psr3_logger', (string) $container->getAlias('ov_json_rpc_api.logger'));
+        $this->assertSame(
+            NullJsonRpcCallLogger::class,
+            (string) $container->getAlias(JsonRpcCallLoggerInterface::class),
+            'Null call logger must still win — kill-switch sits above PSR-3 swap',
+        );
+    }
+
+    public function testCallLoggerServiceConfigOverridesCallLogger(): void
+    {
+        $container = new ContainerBuilder();
+        $extension = new OVJsonRPCAPIExtension();
+
+        $extension->load([
+            [
+                'logging' => [
+                    'enabled' => true,
+                    'call_logger_service' => 'app.custom_call_logger',
+                ],
+            ],
+        ], $container);
+
+        $this->assertSame(
+            'app.custom_call_logger',
+            (string) $container->getAlias(JsonRpcCallLoggerInterface::class),
+        );
+    }
+
+    public function testCallLoggerServiceIsIgnoredWhenLoggingDisabled(): void
+    {
+        $container = new ContainerBuilder();
+        $extension = new OVJsonRPCAPIExtension();
+
+        $extension->load([
+            [
+                'logging' => [
+                    'enabled' => false,
+                    'call_logger_service' => 'app.custom_call_logger',
+                ],
+            ],
+        ], $container);
+
+        $this->assertSame(
+            NullJsonRpcCallLogger::class,
+            (string) $container->getAlias(JsonRpcCallLoggerInterface::class),
+            'enabled=false is a kill-switch that beats call_logger_service',
+        );
+    }
+
+    public function testBothOverridesCanCoexist(): void
+    {
+        $container = new ContainerBuilder();
+        $extension = new OVJsonRPCAPIExtension();
+
+        $extension->load([
+            [
+                'logging' => [
+                    'enabled' => true,
+                    'logger_service' => 'app.custom_psr3_logger',
+                    'call_logger_service' => 'app.custom_call_logger',
+                ],
+            ],
+        ], $container);
+
+        $this->assertSame('app.custom_psr3_logger', (string) $container->getAlias('ov_json_rpc_api.logger'));
+        $this->assertSame(
+            'app.custom_call_logger',
+            (string) $container->getAlias(JsonRpcCallLoggerInterface::class),
+        );
     }
 }
