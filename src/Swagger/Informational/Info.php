@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OV\JsonRPCAPIBundle\Swagger\Informational;
 
 final readonly class Info

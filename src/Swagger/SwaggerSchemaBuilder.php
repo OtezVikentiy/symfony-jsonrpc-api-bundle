@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OV\JsonRPCAPIBundle\Swagger;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\SwaggerArrayProperty;
@@ -63,7 +65,7 @@ final class SwaggerSchemaBuilder
 
         $authTokenName = $item['auth_token_name'];
 
-        [$tags, $paths] = $this->generateApis($item['api_version']);
+        [$tags, $paths] = $this->generateApis((int) $item['api_version']);
 
         $this->addJsonRpcErrorResponseSchema();
 
@@ -260,13 +262,13 @@ final class SwaggerSchemaBuilder
 
         $schemaProperty = new SchemaProperty(name: $property->getName());
         if (!is_null($default)) {
-            $schemaProperty->setDefault($default);
+            $schemaProperty->setDefault((string) $default);
         }
         if (!is_null($example)) {
-            $schemaProperty->setExample($example);
+            $schemaProperty->setExample((string) $example);
         }
         if (!is_null($format)) {
-            $schemaProperty->setFormat($format);
+            $schemaProperty->setFormat((string) $format);
         }
 
         $propertyType = $property->getType();

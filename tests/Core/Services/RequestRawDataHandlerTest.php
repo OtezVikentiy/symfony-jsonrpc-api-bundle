@@ -5,6 +5,7 @@ namespace OV\JsonRPCAPIBundle\Tests\Core\Services;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
 use OV\JsonRPCAPIBundle\Core\Services\RequestRawDataHandler;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\HeaderBag;
 use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -69,6 +70,7 @@ final class RequestRawDataHandlerTest extends TestCase
         $request = $this->createMock(Request::class);
         $request->method('getMethod')->willReturn(Request::METHOD_POST);
         $request->request = new InputBag([]);
+        $request->headers = new HeaderBag(['Content-Type' => 'application/json']);
         $request->method('getContent')->willReturn('{"jsonrpc":"2.0","method":"test","id":"1"}');
 
         $data = $this->handler->prepareData($request);
@@ -83,6 +85,7 @@ final class RequestRawDataHandlerTest extends TestCase
         $request = $this->createMock(Request::class);
         $request->method('getMethod')->willReturn(Request::METHOD_PUT);
         $request->request = new InputBag([]);
+        $request->headers = new HeaderBag(['Content-Type' => 'application/json']);
         $request->method('getContent')->willReturn('{"jsonrpc":"2.0","method":"update","id":"1"}');
 
         $data = $this->handler->prepareData($request);
@@ -95,6 +98,7 @@ final class RequestRawDataHandlerTest extends TestCase
         $request = $this->createMock(Request::class);
         $request->method('getMethod')->willReturn(Request::METHOD_PATCH);
         $request->request = new InputBag([]);
+        $request->headers = new HeaderBag(['Content-Type' => 'application/json']);
         $request->method('getContent')->willReturn('{"jsonrpc":"2.0","method":"patch_method","id":"1"}');
 
         $data = $this->handler->prepareData($request);
@@ -107,6 +111,7 @@ final class RequestRawDataHandlerTest extends TestCase
         $request = $this->createMock(Request::class);
         $request->method('getMethod')->willReturn(Request::METHOD_DELETE);
         $request->request = new InputBag([]);
+        $request->headers = new HeaderBag(['Content-Type' => 'application/json']);
         $request->method('getContent')->willReturn('{"jsonrpc":"2.0","method":"delete_item","id":"1"}');
 
         $data = $this->handler->prepareData($request);
@@ -119,6 +124,7 @@ final class RequestRawDataHandlerTest extends TestCase
         $request = $this->createMock(Request::class);
         $request->method('getMethod')->willReturn(Request::METHOD_POST);
         $request->request = new InputBag([]);
+        $request->headers = new HeaderBag(['Content-Type' => 'application/json']);
         $request->method('getContent')->willReturn('{"jsonrpc": "2.0", "method": "foobar, "params": "bar", "baz]');
 
         $this->expectException(JRPCException::class);
@@ -138,21 +144,22 @@ final class RequestRawDataHandlerTest extends TestCase
         $this->handler->prepareData($request);
     }
 
-    public function testPrepareDataMergesRequestAndJsonData(): void
+    public function testPrepareDataIgnoresFormEncodedRequestData(): void
     {
         $request = $this->createMock(Request::class);
         $request->method('getMethod')->willReturn(Request::METHOD_POST);
         $request->request = new InputBag(['extra_field' => 'value']);
+        $request->headers = new HeaderBag(['Content-Type' => 'application/json']);
         $request->method('getContent')->willReturn('{"jsonrpc":"2.0","method":"test"}');
 
         $data = $this->handler->prepareData($request);
 
         $this->assertEquals('2.0', $data['jsonrpc']);
         $this->assertEquals('test', $data['method']);
-        $this->assertEquals('value', $data['extra_field']);
+        $this->assertArrayNotHasKey('extra_field', $data);
     }
 
-    public function testPrepareDataWithEmptyPostContent(): void
+    public function testPrepareDataWithEmptyPostContentReturnsEmptyArray(): void
     {
         $request = $this->createMock(Request::class);
         $request->method('getMethod')->willReturn(Request::METHOD_POST);
@@ -161,7 +168,6 @@ final class RequestRawDataHandlerTest extends TestCase
 
         $data = $this->handler->prepareData($request);
 
-        $this->assertEquals('2.0', $data['jsonrpc']);
-        $this->assertEquals('test', $data['method']);
+        $this->assertSame([], $data);
     }
 }

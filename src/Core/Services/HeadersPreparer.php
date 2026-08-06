@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OV\JsonRPCAPIBundle\Core\Services;
 
 use Symfony\Component\HttpFoundation\RequestStack;

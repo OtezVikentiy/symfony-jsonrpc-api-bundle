@@ -5,6 +5,7 @@ namespace OV\JsonRPCAPIBundle\Tests\Security;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
 use OV\JsonRPCAPIBundle\Core\Services\RequestRawDataHandler;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\HeaderBag;
 use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -61,6 +62,7 @@ final class PayloadLimitTest extends TestCase
     {
         $request = $this->createMock(Request::class);
         $request->request = new InputBag([]);
+        $request->headers = new HeaderBag(['Content-Type' => 'application/json']);
         $request->method('getMethod')->willReturn(Request::METHOD_POST);
         $request->method('getContent')->willReturn($content);
 

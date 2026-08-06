@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ServiceLocator;
+use Symfony\Component\HttpFoundation\HeaderBag;
 use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Serializer\DataCollector\SerializerDataCollector;
@@ -131,6 +132,8 @@ abstract class AbstractControllerTestCase extends TestCase
     {
         $request = $this->createMock(Request::class);
         $request->request = new InputBag([]);
+        $request->headers = new HeaderBag(['Content-Type' => 'application/json']);
+        $request->query = new InputBag([]);
         $request
             ->expects($this->any())
             ->method('getMethod')

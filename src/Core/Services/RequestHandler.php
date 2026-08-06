@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OV\JsonRPCAPIBundle\Core\Services;
 
 use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
@@ -21,10 +23,15 @@ use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use InvalidArgumentException;
+use ReflectionClass;
 use Throwable;
+use TypeError;
 
 final readonly class RequestHandler
 {
+    private const INVALID_TYPE_MESSAGE_FORMAT = '[%s] - This value should be of type %s';
+
     public function __construct(
         private Security $security,
         private MethodSpecCollection $specCollection,
@@ -193,12 +200,21 @@ final readonly class RequestHandler
             $constructorParams[] = $baseRequest->getParams()[$requiredParameter['name']] ?? ($requiredParameter['defaultValue'] ?? null);
         }
 
-        return new $requestClass(...$constructorParams);
+        try {
+            return new $requestClass(...$constructorParams);
+        } catch (InvalidArgumentException|TypeError $e) {
+            throw new JRPCException(
+                'Invalid params.',
+                JRPCException::INVALID_PARAMS,
+                $e->getMessage(),
+            );
+        }
     }
 
     private function hydrateRequest(mixed $requestInstance, MethodSpec $methodSpec, BaseRequest $baseRequest): mixed
     {
         $tracksProvided = $requestInstance instanceof PartialRequestInterface;
+        $invalidTypeErrors = [];
 
         foreach ($methodSpec->getAllParameters() as $allParameter) {
             $name = $allParameter['name'];
@@ -231,19 +247,49 @@ final readonly class RequestHandler
                         sprintf('Array parameter "%s" size %d exceeds limit %d.', $name, count($value), $this->maxArrayParamSize),
                     );
                 }
+                $adderFailed = false;
+
                 if (class_exists($allParameter['type'])) {
                     foreach ($value as $elem) {
-                        $elemVal = $this->prepareParametersFromClass($allParameter['type'], $elem);
+                        try {
+                            $elemVal = $this->prepareParametersFromClass($allParameter['type'], $elem);
+                        } catch (InvalidArgumentException|TypeError) {
+                            $invalidTypeErrors[] = sprintf(
+                                self::INVALID_TYPE_MESSAGE_FORMAT,
+                                $name,
+                                $allParameter['type'],
+                            );
+                            $adderFailed = true;
+                            continue;
+                        }
 
-                        $requestInstance->$requestAdder($elemVal);
+                        try {
+                            $requestInstance->$requestAdder($elemVal);
+                        } catch (InvalidArgumentException|TypeError) {
+                            $invalidTypeErrors[] = sprintf(
+                                self::INVALID_TYPE_MESSAGE_FORMAT,
+                                $name,
+                                $allParameter['type'],
+                            );
+                            $adderFailed = true;
+                        }
                     }
                 } else {
                     foreach ($value as $elem) {
-                        $requestInstance->$requestAdder($elem);
+                        try {
+                            $requestInstance->$requestAdder($elem);
+                        } catch (InvalidArgumentException|TypeError) {
+                            $invalidTypeErrors[] = sprintf(
+                                self::INVALID_TYPE_MESSAGE_FORMAT,
+                                $name,
+                                $allParameter['type'],
+                            );
+                            $adderFailed = true;
+                        }
                     }
                 }
 
-                if ($tracksProvided && $wasProvided) {
+                if ($tracksProvided && $wasProvided && !$adderFailed) {
                     $requestInstance->markProvided($name);
                 }
 
@@ -254,7 +300,16 @@ final readonly class RequestHandler
             if (!is_null($requestSetter)) {
                 if (class_exists($allParameter['type'])) {
                     if ($value !== null) {
-                        $value = $this->prepareParametersFromClass($allParameter['type'], $value);
+                        try {
+                            $value = $this->prepareParametersFromClass($allParameter['type'], $value);
+                        } catch (InvalidArgumentException|TypeError) {
+                            $invalidTypeErrors[] = sprintf(
+                                self::INVALID_TYPE_MESSAGE_FORMAT,
+                                $name,
+                                $allParameter['type'],
+                            );
+                            continue;
+                        }
                     }
                 }
 
@@ -262,12 +317,29 @@ final readonly class RequestHandler
                     $value = $baseRequest->getParams();
                 }
 
-                $requestInstance->$requestSetter($value);
+                try {
+                    $requestInstance->$requestSetter($value);
+                } catch (InvalidArgumentException|TypeError) {
+                    $invalidTypeErrors[] = sprintf(
+                        self::INVALID_TYPE_MESSAGE_FORMAT,
+                        $name,
+                        $allParameter['type'],
+                    );
+                    continue;
+                }
 
                 if ($tracksProvided && $wasProvided) {
                     $requestInstance->markProvided($name);
                 }
             }
+        }
+
+        if (!empty($invalidTypeErrors)) {
+            throw new JRPCException(
+                'Invalid params.',
+                JRPCException::INVALID_PARAMS,
+                implode(PHP_EOL, $invalidTypeErrors),
+            );
         }
 
         return $requestInstance;
@@ -284,13 +356,21 @@ final readonly class RequestHandler
         }
 
         if (is_string($values)) {
-            return new $class($values);
+            try {
+                return new $class($values);
+            } catch (InvalidArgumentException|TypeError $e) {
+                throw new JRPCException(
+                    'Invalid params.',
+                    JRPCException::INVALID_PARAMS,
+                    $e->getMessage(),
+                );
+            }
         }
 
         $parametersClass = new $class();
         $tracksProvided = $parametersClass instanceof PartialRequestInterface;
 
-        $classReflection = new \ReflectionClass($class);
+        $classReflection = new ReflectionClass($class);
         $methods = $classReflection->getMethods();
         $methodsIdx = [];
         foreach ($methods as $method) {
@@ -314,8 +394,8 @@ final readonly class RequestHandler
 
             try {
                 $parametersClass->$setterName($value);
-            } catch (\InvalidArgumentException|\TypeError $e) {
-                $invalidTypeErrors[] = sprintf('[%s] - This value should be of type %s', $name, $setterArgumentType);
+            } catch (InvalidArgumentException|TypeError) {
+                $invalidTypeErrors[] = sprintf(self::INVALID_TYPE_MESSAGE_FORMAT, $name, $setterArgumentType);
                 continue;
             }
 
