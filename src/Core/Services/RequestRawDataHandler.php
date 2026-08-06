@@ -82,7 +82,10 @@ final class RequestRawDataHandler
         }
 
         if (!is_array($jsonData)) {
-            throw new JRPCException('Parse error.', JRPCException::PARSE_ERROR);
+            // Well-formed JSON that is not a Request object (e.g. a bare
+            // number, string or boolean) is an Invalid Request per spec
+            // section 5.1, not a parse failure.
+            throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
         }
 
         return $jsonData;
