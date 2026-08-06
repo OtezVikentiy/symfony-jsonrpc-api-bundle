@@ -6,6 +6,7 @@ use OV\JsonRPCAPIBundle\Core\JRPCException;
 use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
 use OV\JsonRPCAPIBundle\Core\Response\JsonResponse;
 use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
+use OV\JsonRPCAPIBundle\Core\Services\ErrorSanitizer;
 use OV\JsonRPCAPIBundle\Core\Services\HeadersPreparer;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler\SingleBatchStrategy;
@@ -47,7 +48,7 @@ final class RequestHandlerTest extends TestCase
         $validator->method('validate')->willReturn($violationList);
 
         $headersPreparer = new HeadersPreparer(['*']);
-        $responseService = new ResponseService($headersPreparer);
+        $responseService = new ResponseService($headersPreparer, new ErrorSanitizer());
 
         if (is_null($container)) {
             $container = $this->createMock(Container::class);

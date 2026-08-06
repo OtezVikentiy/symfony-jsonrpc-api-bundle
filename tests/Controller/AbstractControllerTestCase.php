@@ -7,6 +7,7 @@ use OV\JsonRPCAPIBundle\Controller\ApiController;
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
 use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
+use OV\JsonRPCAPIBundle\Core\Services\ErrorSanitizer;
 use OV\JsonRPCAPIBundle\Core\Services\HeadersPreparer;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 use OV\JsonRPCAPIBundle\Core\Services\RequestRawDataHandler;
@@ -96,7 +97,10 @@ abstract class AbstractControllerTestCase extends TestCase
 
     private function prepareResponseService(): void
     {
-        $this->responseService = new ResponseService($this->headersPreparer);
+        $this->responseService = new ResponseService(
+            $this->headersPreparer,
+            new ErrorSanitizer(exposeInternalErrors: false),
+        );
     }
 
     private function prepareRequestRawDataHandler(): void

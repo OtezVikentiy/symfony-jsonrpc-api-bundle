@@ -6,6 +6,7 @@ use OV\JsonRPCAPIBundle\Core\Response\BaseResponse;
 use OV\JsonRPCAPIBundle\Core\Response\ErrorResponse;
 use OV\JsonRPCAPIBundle\Core\Response\JsonResponse;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
+use OV\JsonRPCAPIBundle\Core\Services\ErrorSanitizer;
 use OV\JsonRPCAPIBundle\Core\Services\HeadersPreparer;
 use OV\JsonRPCAPIBundle\Core\Services\ResponseService;
 use PHPUnit\Framework\TestCase;
@@ -19,7 +20,7 @@ final class ResponseServiceTest extends TestCase
     protected function setUp(): void
     {
         $headersPreparer = new HeadersPreparer(['*']);
-        $this->responseService = new ResponseService($headersPreparer);
+        $this->responseService = new ResponseService($headersPreparer, new ErrorSanitizer());
     }
 
     public function testPrepareJsonResponseWithBaseResponse(): void
@@ -68,7 +69,7 @@ final class ResponseServiceTest extends TestCase
         $stack->push($request);
 
         $headersPreparer = new HeadersPreparer(['https://a.com', 'https://b.com'], $stack);
-        $responseService = new ResponseService($headersPreparer);
+        $responseService = new ResponseService($headersPreparer, new ErrorSanitizer());
 
         $baseResponse = new BaseResponse(result: null, id: '1');
         $response = $responseService->prepareJsonResponse($baseResponse);

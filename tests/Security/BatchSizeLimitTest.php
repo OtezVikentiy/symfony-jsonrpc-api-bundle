@@ -5,6 +5,7 @@ namespace OV\JsonRPCAPIBundle\Tests\Security;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
 use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
 use OV\JsonRPCAPIBundle\Core\Response\JsonResponse;
+use OV\JsonRPCAPIBundle\Core\Services\ErrorSanitizer;
 use OV\JsonRPCAPIBundle\Core\Services\HeadersPreparer;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler\MultiBatchStrategy;
@@ -62,7 +63,7 @@ final class BatchSizeLimitTest extends TestCase
         $validator->method('validate')->willReturn(new ConstraintViolationList());
 
         $headersPreparer = new HeadersPreparer(['*']);
-        $responseService = new ResponseService($headersPreparer);
+        $responseService = new ResponseService($headersPreparer, new ErrorSanitizer());
 
         return new RequestHandler(
             $security,

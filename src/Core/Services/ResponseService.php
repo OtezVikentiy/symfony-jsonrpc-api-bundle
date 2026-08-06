@@ -13,7 +13,7 @@ final readonly class ResponseService
 {
     public function __construct(
         private HeadersPreparer $headersPreparer,
-        private ?ErrorSanitizer $errorSanitizer = null,
+        private ErrorSanitizer $errorSanitizer,
     ) {
     }
 
@@ -26,8 +26,6 @@ final readonly class ResponseService
 
     public function prepareErrorResponse(Throwable $error, mixed $id): JsonResponse
     {
-        $sanitized = $this->errorSanitizer?->sanitize($error) ?? $error;
-
-        return $this->prepareJsonResponse(new ErrorResponse(error: $sanitized, id: $id));
+        return $this->prepareJsonResponse(new ErrorResponse(error: $this->errorSanitizer->sanitize($error), id: $id));
     }
 }
