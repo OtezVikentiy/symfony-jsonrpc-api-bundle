@@ -17,6 +17,16 @@ use Throwable;
 
 final readonly class ErrorResponse implements OvResponseInterface, BaseJsonResponseInterface
 {
+    private const STANDARD_CODES = [
+        JRPCException::PARSE_ERROR,
+        JRPCException::INVALID_REQUEST,
+        JRPCException::METHOD_NOT_FOUND,
+        JRPCException::INVALID_PARAMS,
+        JRPCException::INTERNAL_ERROR,
+    ];
+    private const SERVER_ERROR_RANGE_MAX = -32000;
+    private const SERVER_ERROR_RANGE_MIN = -32099;
+
     public function __construct(
         private JRPCException|Throwable $error,
         private readonly mixed $id = null,
@@ -34,9 +44,22 @@ final readonly class ErrorResponse implements OvResponseInterface, BaseJsonRespo
     public function getError(): array
     {
         return [
-            'code' => $this->error->getCode(),
+            'code' => $this->normalizeCode($this->error->getCode()),
             'message' => $this->error->getMessage(),
         ];
+    }
+
+    private function normalizeCode(int $code): int
+    {
+        if (in_array($code, self::STANDARD_CODES, true)) {
+            return $code;
+        }
+
+        if ($code >= self::SERVER_ERROR_RANGE_MIN && $code <= self::SERVER_ERROR_RANGE_MAX) {
+            return $code;
+        }
+
+        return JRPCException::INTERNAL_ERROR;
     }
 
     /** @noinspection PhpUnused */

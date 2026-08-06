@@ -28,7 +28,7 @@ final class ErrorResponseTest extends TestCase
 
         $error = $response->getError();
 
-        $this->assertEquals(500, $error['code']);
+        $this->assertEquals(JRPCException::INTERNAL_ERROR, $error['code']);
         $this->assertEquals('Something went wrong', $error['message']);
     }
 
