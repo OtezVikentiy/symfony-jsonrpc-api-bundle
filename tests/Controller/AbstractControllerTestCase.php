@@ -47,6 +47,7 @@ abstract class AbstractControllerTestCase extends TestCase
     protected bool $allowExtraFields = false;
     protected bool $useRealValidator = false;
     protected ?JsonRpcCallLoggerInterface $callLoggerOverride = null;
+    protected bool $isGranted = true;
 
     protected function tearDown(): void
     {
@@ -256,7 +257,7 @@ abstract class AbstractControllerTestCase extends TestCase
         $security
             ->expects($this->any())
             ->method('isGranted')
-            ->willReturn(true);
+            ->willReturn($this->isGranted);
 
         $this->security = $security;
     }

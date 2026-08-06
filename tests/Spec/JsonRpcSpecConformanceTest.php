@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace OV\JsonRPCAPIBundle\Tests\Spec;
 
+use OV\JsonRPCAPIBundle\Core\JRPCException;
+use OV\JsonRPCAPIBundle\Core\Request\BaseRequest;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
@@ -90,34 +92,28 @@ final class JsonRpcSpecConformanceTest extends AbstractControllerTestCase
 
     public function testNotificationForUnknownMethodProducesNoResponse(): void
     {
-        $this->markTestIncomplete(
-            'Deviation from spec 4.1 ("The Server MUST NOT reply to a Notification"): '
-            . 'RequestHandler::processBatch() catch block builds and returns an error '
-            . 'response for every exception regardless of $baseRequest->hasId(), so a '
-            . 'notification for an unknown method still gets a Method not found reply. '
-            . 'Fix belongs in src/Core/Services/RequestHandler.php (catch block around '
-            . 'the match() that resolves $id), which is mid-edit by another task in this '
-            . 'tranche and is out of scope here. Tracked for the next tranche.'
-        );
+        $this->assertSame('', $this->call('{"jsonrpc":"2.0","method":"does_not_exist"}'));
     }
 
     public function testNotificationWithInvalidParamsProducesNoResponse(): void
     {
-        $this->markTestIncomplete(
-            'Same root cause as testNotificationForUnknownMethodProducesNoResponse(): the '
-            . 'catch block in RequestHandler::processBatch() does not suppress error '
-            . 'responses for notifications, violating spec 4.1. Tracked for the next tranche.'
+        $this->assertSame(
+            '',
+            $this->call('{"jsonrpc":"2.0","method":"subtract2","params":{"minuend":"a","subtrahend":1}}')
         );
     }
 
     public function testNotificationInBatchThatFailsProducesNoEntry(): void
     {
-        $this->markTestIncomplete(
-            'Same root cause as testNotificationForUnknownMethodProducesNoResponse(): a '
-            . 'failing notification inside a batch still produces an error entry because '
-            . 'RequestHandler::processBatch() replies to it, violating spec 4.1 ("...including '
-            . 'those that are within a batch request"). Tracked for the next tranche.'
+        $decoded = json_decode(
+            $this->call('[{"jsonrpc":"2.0","method":"does_not_exist"},{"jsonrpc":"2.0","method":"subtract","params":[42,23],"id":"2"}]'),
+            true
         );
+
+        $this->assertIsList($decoded, 'the failing notification must not add an entry, leaving a single-element array');
+        $this->assertCount(1, $decoded);
+        $this->assertSame(19, $decoded[0]['result']['result']);
+        $this->assertSame('2', $decoded[0]['id']);
     }
 
     // ---- §4 id: a present id (even null) means it is a Request, not a Notification ----
@@ -260,17 +256,57 @@ final class JsonRpcSpecConformanceTest extends AbstractControllerTestCase
 
     public function testNullParamsIsRejected(): void
     {
-        $this->markTestIncomplete(
-            'Deviation from spec 4 ("If present, parameters for the rpc call MUST be '
-            . 'provided as a Structured value" — Array or Object; null is neither): '
-            . 'BaseRequest::__construct() guards params with isset($data[\'params\']), which '
-            . 'is false for an explicit JSON null, so the "params must be array" check at '
-            . 'BaseRequest.php:36 is skipped and params:null is silently treated as "no '
-            . 'params" instead of being rejected. Fix belongs in '
-            . 'src/Core/Request/BaseRequest.php (isset() should be array_key_exists()), '
-            . 'which is mid-edit by another task in this tranche and is out of scope here. '
-            . 'Tracked for the next tranche.'
-        );
+        $this->expectException(JRPCException::class);
+        $this->expectExceptionCode(JRPCException::INVALID_REQUEST);
+
+        new BaseRequest([
+            'jsonrpc' => '2.0',
+            'method' => 'test',
+            'params' => null,
+        ]);
+    }
+
+    public function testMissingParamsIsAccepted(): void
+    {
+        $request = new BaseRequest([
+            'jsonrpc' => '2.0',
+            'method' => 'test',
+        ]);
+
+        $this->assertSame([], $request->getParams());
+    }
+
+    public function testEmptyArrayParamsIsAccepted(): void
+    {
+        $request = new BaseRequest([
+            'jsonrpc' => '2.0',
+            'method' => 'test',
+            'params' => [],
+        ]);
+
+        $this->assertSame([], $request->getParams());
+    }
+
+    public function testPositionalParamsIsAccepted(): void
+    {
+        $request = new BaseRequest([
+            'jsonrpc' => '2.0',
+            'method' => 'test',
+            'params' => [1, 2, 3],
+        ]);
+
+        $this->assertSame([1, 2, 3], $request->getParams());
+    }
+
+    public function testNamedParamsIsAccepted(): void
+    {
+        $request = new BaseRequest([
+            'jsonrpc' => '2.0',
+            'method' => 'test',
+            'params' => ['a' => 1],
+        ]);
+
+        $this->assertSame(['a' => 1], $request->getParams());
     }
 
     // ---- §5 Response object shape ----

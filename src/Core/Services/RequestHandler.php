@@ -11,7 +11,6 @@ use OV\JsonRPCAPIBundle\Core\Request\BaseRequest;
 use OV\JsonRPCAPIBundle\Core\Request\PartialRequestInterface;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
 use OV\JsonRPCAPIBundle\Core\Response\BaseResponse;
-use OV\JsonRPCAPIBundle\Core\Response\JsonResponse;
 use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
 use OV\JsonRPCAPIBundle\Core\Response\PlainResponseInterface;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler\HandleBatchInterface;
@@ -33,6 +32,7 @@ final readonly class RequestHandler
 {
     private const INVALID_TYPE_MESSAGE_FORMAT = '[%s] - This value should be of type %s';
     private const FINALLY_FAILURE_MESSAGE = 'JSON-RPC post-response stage failed';
+    private const ACCESS_DENIED_MESSAGE = 'Access denied.';
 
     public function __construct(
         private Security $security,
@@ -89,10 +89,7 @@ final readonly class RequestHandler
                 throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
             }
 
-            $response = $this->checkRoles($methodSpec);
-            if (!is_null($response)) {
-                return $response;
-            }
+            $this->checkRoles($methodSpec);
 
             $requestClass = $methodSpec->getRequest();
             $requestInstance = null;
@@ -130,6 +127,11 @@ final readonly class RequestHandler
             };
 
             $response = $this->responseService->prepareErrorResponse($e, $id);
+
+            if (isset($baseRequest) && !$baseRequest->hasId()) {
+                return null;
+            }
+
             return $response;
         } finally {
             try {
@@ -467,23 +469,21 @@ final readonly class RequestHandler
         }
     }
 
-    private function checkRoles(MethodSpec $methodSpec): ?JsonResponse
+    /**
+     * @throws JRPCException
+     */
+    private function checkRoles(MethodSpec $methodSpec): void
     {
-        if (!empty($methodSpec->getRoles())) {
-            $allowed = false;
+        if (empty($methodSpec->getRoles())) {
+            return;
+        }
 
-            foreach ($methodSpec->getRoles() as $role) {
-                if ($this->security->isGranted($role)) {
-                    $allowed = true;
-                    break;
-                }
-            }
-
-            if (!$allowed) {
-                return new JsonResponse(data: 'Access not allowed', status: 403, headers: $this->headersPreparer->prepareHeaders());
+        foreach ($methodSpec->getRoles() as $role) {
+            if ($this->security->isGranted($role)) {
+                return;
             }
         }
 
-        return null;
+        throw new JRPCException(self::ACCESS_DENIED_MESSAGE, JRPCException::SERVER_ERROR);
     }
 }

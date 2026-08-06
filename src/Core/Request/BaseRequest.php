@@ -33,7 +33,7 @@ final class BaseRequest
         if (!isset($data['method']) || !is_string($data['method']) || $data['method'] === '') {
             throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
         }
-        if (isset($data['params']) && !is_array($data['params'])) {
+        if (array_key_exists('params', $data) && !is_array($data['params'])) {
             throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
         }
 

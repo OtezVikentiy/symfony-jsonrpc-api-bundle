@@ -214,7 +214,10 @@ final class RequestHandlerTest extends TestCase
         $result = $handler->processBatch($batch, 1, 'POST');
 
         $this->assertInstanceOf(JsonResponse::class, $result);
-        $this->assertEquals(403, $result->getStatusCode());
+        $this->assertEquals(200, $result->getStatusCode());
+        $content = json_decode($result->getContent(), true);
+        $this->assertEquals(JRPCException::SERVER_ERROR, $content['error']['code']);
+        $this->assertEquals('1', $content['id']);
     }
 
     public function testProcessBatchRolesAllowed(): void
