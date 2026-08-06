@@ -12,6 +12,7 @@ final class RequestRawDataHandler
 {
     private const CONTENT_TYPE_JSON = 'application/json';
     private const CONTENT_TYPE_SEPARATOR = ';';
+    private const SERVER_QUERY_STRING_KEY = 'QUERY_STRING';
 
     public function __construct(
         private readonly int $maxPayloadBytes = 1048576,
@@ -32,7 +33,27 @@ final class RequestRawDataHandler
     public function prepareData(Request $request): array
     {
         if ($request->getMethod() === Request::METHOD_GET) {
-            return $request->query->all();
+            $queryString = (string) $request->server->get(self::SERVER_QUERY_STRING_KEY);
+
+            if (strlen($queryString) > $this->maxPayloadBytes) {
+                throw new JRPCException(
+                    'Invalid Request.',
+                    JRPCException::INVALID_REQUEST,
+                    sprintf('Query string size exceeds limit of %d bytes.', $this->maxPayloadBytes),
+                );
+            }
+
+            $queryData = $request->query->all();
+
+            if ($this->arrayDepth($queryData) > $this->maxJsonDepth) {
+                throw new JRPCException(
+                    'Invalid Request.',
+                    JRPCException::INVALID_REQUEST,
+                    sprintf('Query nesting depth exceeds limit of %d.', $this->maxJsonDepth),
+                );
+            }
+
+            return $queryData;
         }
 
         if (!in_array($request->getMethod(), [Request::METHOD_POST, Request::METHOD_DELETE, Request::METHOD_PUT, Request::METHOD_PATCH], true)) {
@@ -65,6 +86,24 @@ final class RequestRawDataHandler
         }
 
         return $jsonData;
+    }
+
+    private function arrayDepth(array $data): int
+    {
+        $maxDepth = 1;
+
+        foreach ($data as $value) {
+            if (!is_array($value)) {
+                continue;
+            }
+
+            $depth = $this->arrayDepth($value) + 1;
+            if ($depth > $maxDepth) {
+                $maxDepth = $depth;
+            }
+        }
+
+        return $maxDepth;
     }
 
     /**

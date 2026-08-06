@@ -23,6 +23,7 @@ use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Psr\Log\LoggerInterface;
 use InvalidArgumentException;
 use ReflectionClass;
 use Throwable;
@@ -31,6 +32,7 @@ use TypeError;
 final readonly class RequestHandler
 {
     private const INVALID_TYPE_MESSAGE_FORMAT = '[%s] - This value should be of type %s';
+    private const FINALLY_FAILURE_MESSAGE = 'JSON-RPC post-response stage failed';
 
     public function __construct(
         private Security $security,
@@ -45,6 +47,7 @@ final readonly class RequestHandler
         private int $maxBatchSize = 50,
         private int $maxDtoDepth = 10,
         private int $maxArrayParamSize = 1000,
+        private ?LoggerInterface $logger = null,
     ) {
     }
 
@@ -68,12 +71,16 @@ final readonly class RequestHandler
     }
 
     public function processBatch(
-        array $batch,
+        mixed $batch,
         int $version,
         string $methodType,
     ): ?OvResponseInterface {
-        $call = $this->callLogger->logRequest($batch);
+        $call = $this->callLogger->logRequest(is_array($batch) ? $batch : []);
         try {
+            if (!is_array($batch)) {
+                throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
+            }
+
             $baseRequest = new BaseRequest($batch);
 
             $methodSpec = $this->specCollection->getMethodSpec($version, $baseRequest->getMethod());
@@ -118,23 +125,27 @@ final readonly class RequestHandler
         } catch (JRPCException|Throwable $e) {
             match (true) {
                 isset($baseRequest) && $baseRequest->getId() !== null => $id = $baseRequest->getId(),
-                isset($batch['id']) => $id = $batch['id'],
+                is_array($batch) && isset($batch['id']) => $id = $batch['id'],
                 default => $id = null,
             };
 
             $response = $this->responseService->prepareErrorResponse($e, $id);
             return $response;
         } finally {
-            $loggedResponse = ($response ?? null) instanceof OvResponseInterface ? $response : null;
-            $this->callLogger->logResponse($call, $loggedResponse);
-            if (
-                isset($methodSpec)
-                && isset($processor)
-                && isset($processorClass)
-                && $methodSpec->isPostProcessorExists()
-                && $processor instanceof PostProcessorInterface
-            ) {
-                $this->runPostProcessors($processor, $processorClass, $requestInstance ?? null, $response ?? null);
+            try {
+                $loggedResponse = ($response ?? null) instanceof OvResponseInterface ? $response : null;
+                $this->callLogger->logResponse($call, $loggedResponse);
+                if (
+                    isset($methodSpec)
+                    && isset($processor)
+                    && isset($processorClass)
+                    && $methodSpec->isPostProcessorExists()
+                    && $processor instanceof PostProcessorInterface
+                ) {
+                    $this->runPostProcessors($processor, $processorClass, $requestInstance ?? null, $response ?? null);
+                }
+            } catch (Throwable $finallyFailure) {
+                $this->logger?->error(self::FINALLY_FAILURE_MESSAGE, ['exception' => $finallyFailure]);
             }
         }
 

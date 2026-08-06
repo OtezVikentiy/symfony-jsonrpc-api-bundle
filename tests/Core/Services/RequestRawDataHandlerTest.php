@@ -8,6 +8,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\HeaderBag;
 use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\ServerBag;
 
 final class RequestRawDataHandlerTest extends TestCase
 {
@@ -58,6 +59,7 @@ final class RequestRawDataHandlerTest extends TestCase
             'jsonrpc' => '2.0',
             'method' => 'test',
         ]);
+        $request->server = new ServerBag(['QUERY_STRING' => 'jsonrpc=2.0&method=test']);
 
         $data = $this->handler->prepareData($request);
 

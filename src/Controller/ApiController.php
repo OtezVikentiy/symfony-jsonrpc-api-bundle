@@ -60,11 +60,19 @@ final class ApiController extends AbstractController
             return $errResp;
         }
 
-        return $requestHandler->applyStrategy(
-            BatchStrategyFactory::createBatchStrategy($data),
-            $data,
-            $requestRawDataHandler->getVersion($request),
-            $request->getMethod()
-        );
+        try {
+            return $requestHandler->applyStrategy(
+                BatchStrategyFactory::createBatchStrategy($data),
+                $data,
+                $requestRawDataHandler->getVersion($request),
+                $request->getMethod()
+            );
+        } catch (Throwable $e) {
+            $call = $callLogger->logRawRequest((string) $request->getContent());
+            $errResp = $responseService->prepareErrorResponse($e, $data['id'] ?? null);
+            $callLogger->logResponse($call, $errResp);
+
+            return $errResp;
+        }
     }
 }
