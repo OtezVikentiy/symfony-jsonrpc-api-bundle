@@ -20,6 +20,7 @@ final class BaseRequest
     private string $method;
     private array $params = [];
     private mixed $id = null;
+    private bool $hasId = false;
 
     /**
      * @throws JRPCException
@@ -42,7 +43,12 @@ final class BaseRequest
         if (!empty($data['params'])) {
             $this->params = $data['params'];
         }
-        if (isset($data['id'])) {
+        if (array_key_exists('id', $data)) {
+            if (!$this->isValidId($data['id'])) {
+                throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
+            }
+
+            $this->hasId = true;
             $this->id = $data['id'];
         }
     }
@@ -66,5 +72,15 @@ final class BaseRequest
     public function getId()
     {
         return $this->id;
+    }
+
+    public function hasId(): bool
+    {
+        return $this->hasId;
+    }
+
+    private function isValidId(mixed $id): bool
+    {
+        return $id === null || is_string($id) || is_int($id) || is_float($id);
     }
 }

@@ -14,7 +14,7 @@ final class SingleBatchStrategy implements HandleBatchInterface
         $response = $batchProcessor($batch, $version, $methodType);
 
         if (is_null($response)) {
-            return new JsonResponse($response);
+            return new JsonResponse(data: '', json: true);
         }
 
         return $response;

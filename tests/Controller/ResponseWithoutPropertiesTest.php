@@ -39,7 +39,9 @@ final class ResponseWithoutPropertiesTest extends AbstractControllerTestCase
             ),
         );
 
-        $responseData = '{}';
+        // Spec 4.1: "The Server MUST NOT reply to a Notification." An empty body, not
+        // '{}', is the correct "no response" shape for a notification.
+        $responseData = '';
 
         $result = $this->executeControllerTest($data, $methodSpec);
 

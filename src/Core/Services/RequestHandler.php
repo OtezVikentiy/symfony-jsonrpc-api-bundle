@@ -118,13 +118,13 @@ final readonly class RequestHandler
                 return $response;
             }
 
-            if (!is_null($baseRequest->getId()) || (!$this->strictNotifications && !empty((array)$response))) {
+            if ($baseRequest->hasId() || (!$this->strictNotifications && !empty((array)$response))) {
                 $response = $this->responseService->prepareJsonResponse(new BaseResponse($response, $baseRequest->getId()));
                 return $response;
             }
         } catch (JRPCException|Throwable $e) {
             match (true) {
-                isset($baseRequest) && $baseRequest->getId() !== null => $id = $baseRequest->getId(),
+                isset($baseRequest) && $baseRequest->hasId() => $id = $baseRequest->getId(),
                 is_array($batch) && isset($batch['id']) => $id = $batch['id'],
                 default => $id = null,
             };
