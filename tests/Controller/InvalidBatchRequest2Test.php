@@ -36,12 +36,30 @@ final class InvalidBatchRequest2Test extends AbstractControllerTestCase
         );
 
         $responseData = [
-            'jsonrpc' => '2.0',
-            'error' => [
-                'code' => -32600,
-                'message' => 'Invalid Request.'
+            [
+                'jsonrpc' => '2.0',
+                'error' => [
+                    'code' => -32600,
+                    'message' => 'Invalid Request.'
+                ],
+                'id' => null,
             ],
-            'id' => null,
+            [
+                'jsonrpc' => '2.0',
+                'error' => [
+                    'code' => -32600,
+                    'message' => 'Invalid Request.'
+                ],
+                'id' => null,
+            ],
+            [
+                'jsonrpc' => '2.0',
+                'error' => [
+                    'code' => -32600,
+                    'message' => 'Invalid Request.'
+                ],
+                'id' => null,
+            ],
         ];
 
         $this->setValidateMethodExpectation('never');

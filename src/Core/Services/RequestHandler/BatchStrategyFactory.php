@@ -13,10 +13,6 @@ final class BatchStrategyFactory
 
     private static function isBatch(array $data): bool
     {
-        return is_array($data)
-            && array_key_exists(0, $data)
-            && is_array($data[0])
-            && array_key_exists('jsonrpc', $data[0])
-            && array_key_exists('method', $data[0]);
+        return $data !== [] && array_is_list($data);
     }
 }
