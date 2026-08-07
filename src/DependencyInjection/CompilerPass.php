@@ -31,6 +31,7 @@ use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
 final class CompilerPass implements CompilerPassInterface
 {
     private const CALL_METHOD = 'call';
+    private const GETTER_PREFIXES = ['get', 'is'];
 
     public function __construct(
         private readonly NameConverterInterface $nameConverter,
@@ -225,34 +226,32 @@ final class CompilerPass implements CompilerPassInterface
             $validators              = $this->getValidatorsForRequest($methodRequestReflection);
             $allParameters           = $this->getProperties($methodRequestReflection->getProperties() ?? []);
             $requiredParameters      = $this->getProperties($methodRequestReflection->getConstructor()?->getParameters() ?? []);
-            $requestMethods          = $methodRequestReflection->getMethods();
 
-            foreach ($requestMethods as $requestSingleMethod) {
-                $name = $requestSingleMethod->getName();
-                if (str_starts_with($name, 'set')) {
-                    $name = $requestSingleMethod->getParameters()[0]?->getName() ?? null;
-                    if (!is_null($name)) {
-                        $requestSetters[$name] = $requestSingleMethod->getName();
-                    }
-                } elseif (str_starts_with($name, 'add')) {
-                    $name = $requestSingleMethod->getParameters()[0]?->getName() ?? null;
-                    if (!is_null($name)) {
-                        $requestAdders[$name] = $requestSingleMethod->getName();
+            foreach ($allParameters as $index => $allParameter) {
+                $propertyName = $allParameter['name'];
 
-                        unset($requestSetters[$name]);
+                $getter = $this->resolveGetter($methodRequestReflection, $propertyName);
+                if ($getter === null) {
+                    throw new Exception(
+                        sprintf(
+                            'Property %s of class %s has no accessible getter (expected one of getX, isX, or x)',
+                            $propertyName,
+                            $methodRequestReflection->getName(),
+                        ),
+                    );
+                }
+                $requestGetters[$propertyName] = $getter;
 
-                        foreach ($allParameters as $k => $allParameter) {
-                            if (str_contains($allParameter['name'], $name)) {
-                                $allParameters[$k]['type'] = $requestSingleMethod->getParameters()[0]?->getType()?->getName();
-                            }
-                        }
-                    }
-                } elseif (str_starts_with($name, 'get') || str_starts_with($name, 'is')) {
-                    foreach ($allParameters as $k => $allParameter) {
-                        if (str_contains(mb_strtolower($name), mb_strtolower($allParameter['name']))) {
-                            $requestGetters[$allParameter['name']] = $name;
-                        }
-                    }
+                $setter = $this->resolveMethod($methodRequestReflection, 'set' . ucfirst($propertyName));
+                if ($setter !== null) {
+                    $requestSetters[$propertyName] = $setter;
+                }
+
+                $adder = $this->resolveAdder($methodRequestReflection, $propertyName);
+                if ($adder !== null) {
+                    [$adderKey, $adderMethod, $adderElementType] = $adder;
+                    $requestAdders[$adderKey] = $adderMethod;
+                    $allParameters[$index]['type'] = $adderElementType;
                 }
             }
         }
@@ -266,6 +265,65 @@ final class CompilerPass implements CompilerPassInterface
             'validators' => $validators,
             'requestClass' => $methodRequestReflection?->getName() ?? null,
         ];
+    }
+
+    /**
+     * Finds the property's getter by exact name, trying `getX` then `isX`
+     * then the bare accessor `x` (needed for a boolean property such as
+     * `$isActive` whose getter is `isActive()`).
+     */
+    private function resolveGetter(ReflectionClass $reflection, string $propertyName): ?string
+    {
+        $candidates = [];
+        foreach (self::GETTER_PREFIXES as $prefix) {
+            $candidates[] = $prefix . ucfirst($propertyName);
+        }
+        $candidates[] = $propertyName;
+
+        foreach ($candidates as $candidate) {
+            $resolved = $this->resolveMethod($reflection, $candidate);
+            if ($resolved !== null) {
+                return $resolved;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * A property holding a collection is expected to be named as the plural
+     * of the adder's own argument, e.g. property `$tokens` is filled element
+     * by element through `addToken(Token $token)`. Returns the adder's key
+     * (the singular form used by RequestHandler to look the adder up), its
+     * method name, and the element type taken from the adder's own parameter,
+     * or null when the property has no matching adder.
+     *
+     * @return array{0: string, 1: string, 2: ?string}|null
+     */
+    private function resolveAdder(ReflectionClass $reflection, string $propertyName): ?array
+    {
+        if (mb_strlen($propertyName) < 2) {
+            return null;
+        }
+
+        $singularName = mb_substr($propertyName, 0, -1);
+        $adder        = $this->resolveMethod($reflection, 'add' . ucfirst($singularName));
+        if ($adder === null) {
+            return null;
+        }
+
+        $adderElementType = $reflection->getMethod($adder)->getParameters()[0]?->getType()?->getName();
+
+        return [$singularName, $adder, $adderElementType];
+    }
+
+    private function resolveMethod(ReflectionClass $reflection, string $methodName): ?string
+    {
+        if ($reflection->hasMethod($methodName) && $reflection->getMethod($methodName)->isPublic()) {
+            return $reflection->getMethod($methodName)->getName();
+        }
+
+        return null;
     }
 
     private function detectPlainResponse(ReflectionClass $methodReflectionClass): bool
