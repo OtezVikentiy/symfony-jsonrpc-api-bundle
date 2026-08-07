@@ -19,8 +19,7 @@
 composer require lexik/jwt-authentication-bundle
 ```
 
-Установка и настройка выполняется по инструкции бандла `lexik/jwt-authentication-bundle`.
-Специальных настроек для совместной работы с `otezvikentiy/json-rpc-api` не требуется — всё работает из коробки.
+Установка и настройка выполняется по инструкции бандла `lexik/jwt-authentication-bundle`. Для серверных клиентов (backend-to-backend, curl, мобильные приложения) специальных настроек для совместной работы с `otezvikentiy/json-rpc-api` не требуется. Для браузерных клиентов на другом origin'е — см. раздел «CORS preflight» ниже, там требуется явная настройка.
 
 ## Пример конфигурации
 
@@ -47,3 +46,17 @@ security:
 ```
 
 После настройки JWT-токен передаётся в заголовке `Authorization: Bearer <token>`.
+
+## Браузерные клиенты и CORS preflight
+
+`Authorization` — не [CORS-safelisted заголовок](https://developer.mozilla.org/en-US/docs/Glossary/CORS-safelisted_request_header): браузер на cross-origin запросе с этим заголовком сначала отправит preflight `OPTIONS`. Бандл отвечает на preflight сам (см. [cors.md](../cors.md)), но `Access-Control-Allow-Headers` по умолчанию содержит только `Content-Type` — если не добавить `Authorization` в `cors_allowed_headers`, preflight его не разрешит, и браузер заблокирует реальный запрос с JWT ещё до отправки на сервер:
+
+```yaml
+# config/packages/ov_json_rpc_api.yaml
+ov_json_rpc_api:
+    cors_allowed_headers:
+        - 'Content-Type'
+        - 'Authorization'
+```
+
+Same-origin запросы (фронтенд и API на одном origin'е) preflight не вызывают — эта настройка нужна только когда клиент и API разнесены по origin'ам.

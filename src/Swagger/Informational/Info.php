@@ -1,7 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OV\JsonRPCAPIBundle\Swagger\Informational;
 
+/**
+ * @internal
+ */
 final readonly class Info
 {
     public function __construct(
@@ -28,7 +33,7 @@ final readonly class Info
                 'name' => $this->contact->getName(),
                 'url' => $this->contact->getUrl(),
                 'email' => $this->contact->getEmail(),
-            ], fn($v) => $v !== '' && $v !== null);
+            ], fn ($v) => $v !== '');
 
             if (!empty($contactArray)) {
                 $result['contact'] = $contactArray;
@@ -39,7 +44,7 @@ final readonly class Info
             $licenseArray = array_filter([
                 'name' => $this->license->getName(),
                 'url' => $this->license->getUrl(),
-            ], fn($v) => $v !== '' && $v !== null);
+            ], fn ($v) => $v !== '');
 
             if (!empty($licenseArray)) {
                 $result['license'] = $licenseArray;

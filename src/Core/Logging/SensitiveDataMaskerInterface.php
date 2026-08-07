@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 /*
  * This file is part of the OtezVikentiy Json RPC API package.
  *
@@ -14,6 +16,7 @@ interface SensitiveDataMaskerInterface
 {
     /**
      * @param array<mixed, mixed> $data
+     *
      * @return array<mixed, mixed>
      */
     public function mask(array $data): array;

@@ -2,7 +2,6 @@
 
 namespace OV\JsonRPCAPIBundle\Tests\Command;
 
-use Doctrine\Common\Annotations\AnnotationReader;
 use Exception;
 use OV\JsonRPCAPIBundle\Command\SwaggerGenerate;
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
@@ -103,21 +102,14 @@ class SwaggerGenerateTest extends TestCase
 
     private function prepareMethodSpecCollection(): MethodSpecCollection
     {
-        $annotationReader = new AnnotationReader();
-
         $methodSpecCollection = new MethodSpecCollection();
         foreach ($this->getMethodSpecs() as $methodSpec) {
             $class = $methodSpec->getMethodClass();
             $methodReflectionClass = new ReflectionClass(new $class());
-            $classAnnotation = $annotationReader->getClassAnnotation($methodReflectionClass, JsonRPCAPI::class);
             $methodName = null;
-            if (!is_null($classAnnotation)) {
-                $methodName = $classAnnotation->getMethodName();
-            } else {
-                $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
-                foreach ($attributes as $attribute) {
-                    if ($attribute->getName() === JsonRPCAPI::class) $methodName = $attribute->getArguments()['methodName'];
-                }
+            $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
+            foreach ($attributes as $attribute) {
+                if ($attribute->getName() === JsonRPCAPI::class) $methodName = $attribute->getArguments()['methodName'];
             }
 
             if (is_null($methodName)) throw new Exception('Could not define method name');

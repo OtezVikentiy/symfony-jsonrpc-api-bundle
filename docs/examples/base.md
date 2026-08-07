@@ -56,7 +56,7 @@ class Request
 
 ## Response
 
-Класс Response описывает структуру ответа. Все свойства с getter-методами автоматически сериализуются в JSON.
+Класс Response описывает структуру ответа. В JSON попадает то, что класс открывает: свойство с публичным геттером (`getX()`, `isX()` или сам аксессор `x()`) **или** само публичное свойство — например, promoted-параметр конструктора. Приватное или protected свойство без публичного геттера в ответ не попадёт: именно так закрыта утечка, при которой Reflection читал приватные поля наравне с остальными.
 
 > Для `bool`-свойств используйте префикс `is` (например, `isSuccess()`), для остальных — `get`.
 
@@ -111,7 +111,7 @@ class Response
 
 ## Метод API
 
-Класс метода помечается атрибутом `#[JsonRPCAPI]` и содержит метод `call()`, в который передаётся объект Request.
+Класс метода должен **реализовывать `ApiMethodInterface`** и быть помечен атрибутом `#[JsonRPCAPI]`. Оба условия обязательны: бандл регистрирует только классы, реализующие интерфейс (тег `ov.rpc.method` вешается автоматически через `#[AutoconfigureTag]` на самом интерфейсе), а атрибут описывает метаданные метода. Класс без интерфейса не зарегистрируется вовсе — запрос к нему вернёт `-32601 Method not found`, даже если атрибут указан верно. Класс содержит метод `call()`, в который передаётся объект Request.
 
 Версия API определяется автоматически из пространства имён (`App\RPC\V1` -> версия 1).
 При необходимости можно указать версию явно: `#[JsonRPCAPI(methodName: 'getProduct', type: 'POST', version: 1)]`.
@@ -123,11 +123,12 @@ class Response
 namespace App\RPC\V1;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use App\RPC\V1\GetProduct\Request;
 use App\RPC\V1\GetProduct\Response;
 
 #[JsonRPCAPI(methodName: 'getProduct', type: 'POST')]
-class GetProductMethod
+class GetProductMethod implements ApiMethodInterface
 {
     public function call(Request $request): Response
     {
@@ -157,7 +158,7 @@ curl -X POST http://localhost/api/v1 \
         "title": "Iphone 15",
         "price": 2000
     },
-    "id": "1"
+    "id": 1
 }
 ```
 

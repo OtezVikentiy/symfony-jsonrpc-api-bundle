@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OV\JsonRPCAPIBundle\Core\Services;
 
 use OV\JsonRPCAPIBundle\Core\JRPCException;
@@ -12,6 +14,8 @@ use Throwable;
  * JRPCException is treated as a deliberate API contract message and passed through.
  * Other Throwables get a generic message client-side while the full exception is logged
  * server-side. Set expose_internal_errors=true to bypass sanitization in non-prod.
+ *
+ * @internal
  */
 final readonly class ErrorSanitizer
 {

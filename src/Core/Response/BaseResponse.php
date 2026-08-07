@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 /*
  * This file is part of the OtezVikentiy Json RPC API package.
  *
@@ -10,11 +12,14 @@
 
 namespace OV\JsonRPCAPIBundle\Core\Response;
 
-use ReflectionClass;
-use ReflectionException;
+use OV\JsonRPCAPIBundle\Core\JRPCException;
+use OV\JsonRPCAPIBundle\Core\Serialization\SerialisesPublicSurface;
+use SplObjectStorage;
 
 final readonly class BaseResponse implements OvResponseInterface, BaseJsonResponseInterface
 {
+    use SerialisesPublicSurface;
+
     public function __construct(
         private mixed $result,
         private mixed $id = null,
@@ -40,43 +45,15 @@ final readonly class BaseResponse implements OvResponseInterface, BaseJsonRespon
         return $this->id;
     }
 
+    /**
+     * @throws JRPCException
+     */
     public function toArray(): array
     {
         return [
             'jsonrpc' => $this->jsonrpc,
-            'result' => $this->normalizeValue($this->result),
+            'result' => $this->normaliseValue($this->result, new SplObjectStorage()),
             'id' => $this->id,
         ];
-    }
-
-    private function normalizeValue(mixed $value): mixed
-    {
-        if (is_object($value)) {
-            return $this->objectToArray($value);
-        }
-
-        if (is_array($value)) {
-            return array_map(fn(mixed $v) => $this->normalizeValue($v), $value);
-        }
-
-        return $value;
-    }
-
-    private function objectToArray(object $object): array
-    {
-        $result = [];
-        $reflection = new ReflectionClass($object);
-
-        foreach ($reflection->getProperties() as $property) {
-            if (!$property->isInitialized($object)) {
-                continue;
-            }
-
-            $name = $property->getName();
-            $value = $property->getValue($object);
-            $result[$name] = $this->normalizeValue($value);
-        }
-
-        return $result;
     }
 }

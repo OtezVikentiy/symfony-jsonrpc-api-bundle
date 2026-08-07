@@ -6,6 +6,7 @@ use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Validator\Constraints as Assert;
 
 final class MethodSpecTest extends TestCase
 {
@@ -210,5 +211,49 @@ final class MethodSpecTest extends TestCase
     {
         $spec = $this->createMethodSpec();
         $this->assertNull($spec->getGroup());
+    }
+
+    public function testGetCompiledValidatorsBuildsTypeConstraintForNonNullableField(): void
+    {
+        $spec = $this->createMethodSpec(['validators' => ['id' => ['allowsNull' => false, 'type' => 'int']]]);
+
+        $compiled = $spec->getCompiledValidators();
+
+        $this->assertInstanceOf(Assert\Type::class, $compiled['id']);
+        $this->assertEquals('int', $compiled['id']->type);
+    }
+
+    public function testGetCompiledValidatorsBuildsOptionalAtLeastOneOfForNullableField(): void
+    {
+        $spec = $this->createMethodSpec(['validators' => ['id' => ['allowsNull' => true, 'type' => 'int']]]);
+
+        $compiled = $spec->getCompiledValidators();
+
+        $this->assertInstanceOf(Assert\Optional::class, $compiled['id']);
+    }
+
+    public function testGetCompiledValidatorsReturnsSameInstancesAcrossCalls(): void
+    {
+        $spec = $this->createMethodSpec(['validators' => ['id' => ['allowsNull' => false, 'type' => 'int']]]);
+
+        $first = $spec->getCompiledValidators();
+        $second = $spec->getCompiledValidators();
+
+        $this->assertSame($first['id'], $second['id']);
+    }
+
+    public function testGetCompiledValidatorsCoversEveryConfiguredField(): void
+    {
+        $validators = [
+            'id' => ['allowsNull' => false, 'type' => 'int'],
+            'title' => ['allowsNull' => true, 'type' => 'string'],
+        ];
+        $spec = $this->createMethodSpec(['validators' => $validators]);
+
+        $compiled = $spec->getCompiledValidators();
+
+        $this->assertCount(2, $compiled);
+        $this->assertArrayHasKey('id', $compiled);
+        $this->assertArrayHasKey('title', $compiled);
     }
 }

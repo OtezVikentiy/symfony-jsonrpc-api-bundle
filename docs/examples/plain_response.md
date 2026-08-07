@@ -93,13 +93,14 @@ class ErrorResponse
 namespace App\RPC\V1;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use App\RPC\V1\GetProductDocument\Request;
 use App\RPC\V1\GetProductDocument\PlainResponse;
 use App\RPC\V1\GetProductDocument\ErrorResponse;
 use App\Repository\ProductRepository;
 
 #[JsonRPCAPI(methodName: 'getProductDocument', type: 'POST')]
-class GetProductDocumentMethod
+class GetProductDocumentMethod implements ApiMethodInterface
 {
     public function __construct(
         private readonly ProductRepository $productRepository
@@ -122,6 +123,8 @@ class GetProductDocumentMethod
 ```
 
 > **Как это работает внутри бандла:** в `RequestHandler::processBatch()` после вызова `call()` проверяется, реализует ли ответ `PlainResponseInterface`. Если да — ответ отдаётся напрямую с CORS-заголовками. Если нет — оборачивается в JSON-RPC 2.0 формат.
+>
+> **Исключение: внутри batch.** Batch-ответ — это JSON-массив объектов, и бинарное тело в него не помещается: раньше такой элемент ломал структуру всего ответа. С 5.0 plain-ответ, возвращённый из элемента batch-запроса, даёт `-32603` с пояснением `Plain responses are not supported inside a batch request.` Вызывайте методы с бинарным ответом одиночным запросом.
 
 ## Примеры Content-Type
 

@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 /*
  * This file is part of the OtezVikentiy Json RPC API package.
  *
@@ -15,28 +17,40 @@ use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 use OV\JsonRPCAPIBundle\Core\PostProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\PreProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\Response\PlainResponseInterface;
+use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use ReflectionClass;
 use ReflectionException;
+use ReflectionNamedType;
+use ReflectionProperty;
 use ReflectionUnionType;
 use RuntimeException;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
+use Symfony\Component\DependencyInjection\Compiler\ServiceLocatorTagPass;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
+use Symfony\Component\String\Inflector\EnglishInflector;
+use Symfony\Component\String\Inflector\InflectorInterface;
 
+/**
+ * @internal
+ */
 final class CompilerPass implements CompilerPassInterface
 {
     private const CALL_METHOD = 'call';
+    private const GETTER_PREFIXES = ['get', 'is'];
 
     public function __construct(
         private readonly NameConverterInterface $nameConverter,
+        private readonly InflectorInterface $inflector = new EnglishInflector(),
     ) {
     }
 
     /**
      * @noinspection PhpUnused
+     *
      * @throws ReflectionException
      * @throws Exception
      */
@@ -48,14 +62,22 @@ final class CompilerPass implements CompilerPassInterface
         );
 
         $methods = $container->findTaggedServiceIds('ov.rpc.method');
+        $processorReferences = [];
 
         foreach ($methods as $method => $tags) {
             $methodDefinition = $container->findDefinition($method);
-            $className        = $methodDefinition->getClass();
+            $className = $methodDefinition->getClass();
 
-            $methodDefinition->setPublic(true);
+            if ($className === null || !class_exists($className)) {
+                throw new RuntimeException(
+                    sprintf('Service %s tagged ov.rpc.method has no resolvable class.', $method),
+                );
+            }
+
             $methodDefinition->setAutowired(true);
             $methodDefinition->setAutoconfigured(true);
+
+            $processorReferences[$className] = new Reference($method);
 
             $methodReflectionClass = new ReflectionClass($className);
 
@@ -80,9 +102,10 @@ final class CompilerPass implements CompilerPassInterface
             $plainResponse = $this->detectPlainResponse($methodReflectionClass);
             [$preProcessorExists, $postProcessorExists] = $this->detectProcessors($methodReflectionClass);
 
-            $methodAlias            = $this->getMethodAlias($metadata['methodName'], $methodReflectionClass->getNamespaceName() . '\\' ?? '');
+            $methodAlias = $this->getMethodAlias($metadata['methodName'], $methodReflectionClass->getNamespaceName() . '\\');
+            $serviceIdSuffix = sprintf('%d_%s', $version, $methodAlias);
 
-            $requestMetadataId = uniqid('OV_JSON_RPC_API_REQ_' . $methodAlias, true);
+            $requestMetadataId = 'OV_JSON_RPC_API_REQ_' . $serviceIdSuffix;
             $container->register($requestMetadataId, RequestMetadata::class)
                 ->setArguments([
                     $requestAnalysis['requestClass'],
@@ -94,7 +117,7 @@ final class CompilerPass implements CompilerPassInterface
                     $requestAnalysis['validators'],
                 ])->setPublic(false);
 
-            $swaggerMetadataId = uniqid('OV_JSON_RPC_API_SWG_' . $methodAlias, true);
+            $swaggerMetadataId = 'OV_JSON_RPC_API_SWG_' . $serviceIdSuffix;
             $container->register($swaggerMetadataId, SwaggerMetadata::class)
                 ->setArguments([
                     $metadata['summary'],
@@ -104,8 +127,8 @@ final class CompilerPass implements CompilerPassInterface
                     $metadata['group'],
                 ])->setPublic(false);
 
-            $methodSpecDefinitionId = uniqid('OV_JSON_RPC_API_' . $methodAlias, true);
-            $methodSpec             = $container->register($methodSpecDefinitionId, MethodSpec::class);
+            $methodSpecDefinitionId = 'OV_JSON_RPC_API_' . $serviceIdSuffix;
+            $methodSpec = $container->register($methodSpecDefinitionId, MethodSpec::class);
 
             $methodSpec->setArguments([
                 $methodReflectionClass->getName(),
@@ -131,6 +154,13 @@ final class CompilerPass implements CompilerPassInterface
                     '$methodName' => $metadata['methodName'],
                     '$methodSpec' => new Reference($methodSpecDefinitionId),
                 ],
+            );
+        }
+
+        if ($container->hasDefinition(RequestHandler::class)) {
+            $container->getDefinition(RequestHandler::class)->setArgument(
+                '$processorLocator',
+                ServiceLocatorTagPass::register($container, $processorReferences),
             );
         }
     }
@@ -166,7 +196,7 @@ final class CompilerPass implements CompilerPassInterface
         }
 
         $namespace = $reflectionClass->getNamespaceName();
-        if (preg_match('/\\\\(V[0-9]+)(?:\\\\|$)/', $namespace, $matches) === 0) {
+        if (preg_match('/\\\\(V[0-9]+)(?:\\\\|$)/', $namespace, $matches) !== 1) {
             throw new RuntimeException(
                 sprintf(
                     'Version for API endpoint %s is not defined. Either use the version parameter in the
@@ -177,9 +207,9 @@ final class CompilerPass implements CompilerPassInterface
             );
         }
 
-        $version = (int)preg_replace('/[A-Za-z]+/', '', $matches[1]);
+        $version = (int) preg_replace('/[A-Za-z]+/', '', $matches[1]);
 
-        if (empty($version) || $version == 0) {
+        if (empty($version)) {
             throw new RuntimeException(
                 sprintf(
                     'Version for API endpoint %s is not defined or zero. Either use the version parameter in the
@@ -198,14 +228,14 @@ final class CompilerPass implements CompilerPassInterface
      */
     private function analyzeRequestClass(ReflectionClass $methodReflectionClass, string $className): array
     {
-        $allParameters           = [];
-        $requiredParameters      = [];
-        $requestGetters          = [];
-        $requestSetters          = [];
-        $requestAdders           = [];
-        $validators              = [];
+        $allParameters = [];
+        $requiredParameters = [];
+        $requestGetters = [];
+        $requestSetters = [];
+        $requestAdders = [];
+        $validators = [];
         $methodRequestReflection = null;
-        $callParameters          = $methodReflectionClass->getMethod('call')->getParameters();
+        $callParameters = $methodReflectionClass->getMethod('call')->getParameters();
 
         if (count($callParameters) > 1) {
             throw new RuntimeException(
@@ -219,38 +249,41 @@ final class CompilerPass implements CompilerPassInterface
 
         if (!empty($callParameters[0])) {
             $callParameter = $callParameters[0];
-            $methodRequestReflection = new ReflectionClass($callParameter->getType()->getName());
-            $validators              = $this->getValidatorsForRequest($methodRequestReflection);
-            $allParameters           = $this->getProperties($methodRequestReflection->getProperties() ?? []);
-            $requiredParameters      = $this->getProperties($methodRequestReflection->getConstructor()?->getParameters() ?? []);
-            $requestMethods          = $methodRequestReflection->getMethods();
+            $callParameterType = $callParameter->getType();
+            if (!$callParameterType instanceof ReflectionNamedType || !class_exists($callParameterType->getName())) {
+                throw new RuntimeException(
+                    sprintf(
+                        'Parameter of method %s::%s has an unsupported or missing type',
+                        $className,
+                        self::CALL_METHOD,
+                    ),
+                );
+            }
+            $methodRequestReflection = new ReflectionClass($callParameterType->getName());
+            $validators = $this->getValidatorsForRequest($methodRequestReflection);
+            $allParameters = $this->getProperties($methodRequestReflection->getProperties());
+            $requiredParameters = $this->getProperties($methodRequestReflection->getConstructor()?->getParameters() ?? []);
 
-            foreach ($requestMethods as $requestSingleMethod) {
-                $name = $requestSingleMethod->getName();
-                if (str_starts_with($name, 'set')) {
-                    $name = $requestSingleMethod->getParameters()[0]?->getName() ?? null;
-                    if (!is_null($name)) {
-                        $requestSetters[$name] = $requestSingleMethod->getName();
-                    }
-                } elseif (str_starts_with($name, 'add')) {
-                    $name = $requestSingleMethod->getParameters()[0]?->getName() ?? null;
-                    if (!is_null($name)) {
-                        $requestAdders[$name] = $requestSingleMethod->getName();
+            foreach ($allParameters as $index => $allParameter) {
+                $propertyName = $allParameter['name'];
 
-                        unset($requestSetters[$name]);
+                // getValidatorsForRequest(), two lines up, walks the same properties through the
+                // same resolver and refuses any that has no accessible getter - naming the three
+                // forms it looked for. A second check here could never fire, and the message it
+                // carried was the worse of the two: it spelled the candidates literally, as
+                // "getX, isX, or x", rather than for the property at hand.
+                $requestGetters[$propertyName] = (string) $this->resolveGetter($methodRequestReflection, $propertyName);
 
-                        foreach ($allParameters as $k => $allParameter) {
-                            if (str_contains($allParameter['name'], $name)) {
-                                $allParameters[$k]['type'] = $requestSingleMethod->getParameters()[0]?->getType()?->getName();
-                            }
-                        }
-                    }
-                } elseif (str_starts_with($name, 'get') || str_starts_with($name, 'is')) {
-                    foreach ($allParameters as $k => $allParameter) {
-                        if (str_contains(mb_strtolower($name), mb_strtolower($allParameter['name']))) {
-                            $requestGetters[$allParameter['name']] = $name;
-                        }
-                    }
+                $setter = $this->resolveMethod($methodRequestReflection, 'set' . ucfirst($propertyName));
+                if ($setter !== null) {
+                    $requestSetters[$propertyName] = $setter;
+                }
+
+                $adder = $this->resolveAdder($methodRequestReflection, $propertyName);
+                if ($adder !== null) {
+                    [$adderMethod, $adderElementType] = $adder;
+                    $requestAdders[$propertyName] = $adderMethod;
+                    $allParameters[$index]['type'] = $adderElementType;
                 }
             }
         }
@@ -266,17 +299,96 @@ final class CompilerPass implements CompilerPassInterface
         ];
     }
 
+    /**
+     * Finds the property's getter by exact name, trying `getX` then `isX`
+     * then the bare accessor `x` (needed for a boolean property such as
+     * `$isActive` whose getter is `isActive()`).
+     */
+    private function resolveGetter(ReflectionClass $reflection, string $propertyName): ?string
+    {
+        $candidates = [];
+        foreach (self::GETTER_PREFIXES as $prefix) {
+            $candidates[] = $prefix . ucfirst($propertyName);
+        }
+        $candidates[] = $propertyName;
+
+        foreach ($candidates as $candidate) {
+            $resolved = $this->resolveMethod($reflection, $candidate);
+            if ($resolved !== null) {
+                return $resolved;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * A property holding a collection is expected to be named as the plural
+     * of the adder's own argument, e.g. property `$tokens` is filled element
+     * by element through `addToken(Token $token)`. The singular form is
+     * derived with an English inflector rather than by dropping the last
+     * character, so irregular plurals resolve correctly: `$children` to
+     * `addChild(Child $child)`, `$people` to `addPerson(Person $person)`.
+     * Returns the adder's method name and the element type taken from its
+     * own parameter, or null when the property has no matching adder.
+     *
+     * @return array{0: string, 1: ?string}|null
+     */
+    private function resolveAdder(ReflectionClass $reflection, string $propertyName): ?array
+    {
+        foreach ($this->inflector->singularize($propertyName) as $singularName) {
+            $adder = $this->resolveMethod($reflection, 'add' . ucfirst($singularName));
+            if ($adder !== null) {
+                $adderParameterType = $reflection->getMethod($adder)->getParameters()[0]->getType();
+                $adderElementType = $adderParameterType instanceof ReflectionNamedType ? $adderParameterType->getName() : null;
+
+                return [$adder, $adderElementType];
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveMethod(ReflectionClass $reflection, string $methodName): ?string
+    {
+        if ($reflection->hasMethod($methodName) && $reflection->getMethod($methodName)->isPublic()) {
+            return $reflection->getMethod($methodName)->getName();
+        }
+
+        return null;
+    }
+
+    /**
+     * Decides whether call() can return a response that must bypass JSON-RPC wrapping.
+     *
+     * Both shapes of return type are examined. Only unions used to be, so the simplest way to write
+     * such a method - `public function call(Request $r): Png` with a single named type - was never
+     * recognised, and the binary response was quietly serialised into JSON as an object with
+     * `content`, `statusCode` and `charset` members. No error, no warning; the caller received a
+     * JSON envelope where a file was expected. The documented example happens to use a union, which
+     * is why this went unnoticed, and every test set the resulting flag by hand rather than letting
+     * this method produce it.
+     */
     private function detectPlainResponse(ReflectionClass $methodReflectionClass): bool
     {
         $callResponseType = $methodReflectionClass->getMethod('call')->getReturnType();
-        if ($callResponseType instanceof ReflectionUnionType) {
-            foreach ($callResponseType->getTypes() as $type) {
-                $responseTypeReflection = new ReflectionClass($type->getName());
-                foreach ($responseTypeReflection->getInterfaces() as $interface) {
-                    if ($interface->getName() === PlainResponseInterface::class) {
-                        return true;
-                    }
-                }
+
+        $candidates = $callResponseType instanceof ReflectionUnionType
+            ? $callResponseType->getTypes()
+            : [$callResponseType];
+
+        foreach ($candidates as $type) {
+            if (!$type instanceof ReflectionNamedType) {
+                continue;
+            }
+
+            $typeName = $type->getName();
+            if (!class_exists($typeName) && !interface_exists($typeName)) {
+                continue;
+            }
+
+            if (is_a($typeName, PlainResponseInterface::class, true)) {
+                return true;
             }
         }
 
@@ -311,19 +423,30 @@ final class CompilerPass implements CompilerPassInterface
         $return = [];
 
         foreach ($properties as $property) {
+            // Properties are vetted by getValidatorsForRequest() before this runs, but constructor
+            // parameters arrive here unvetted - and a DTO may well declare `private int $limit`
+            // while its constructor takes a bare `$limit`. Reading getName() off the null that
+            // getType() returns for those aborted the container build with "Call to a member
+            // function getName() on null": no parameter named, no class named, nothing to act on.
+            $type = $property->getType();
+
+            if (!$type instanceof ReflectionNamedType) {
+                throw new Exception(
+                    sprintf(
+                        'Parameter %s of class %s %s; only a single named type is supported.',
+                        $property->getName(),
+                        $property->getDeclaringClass()?->getName() ?? 'unknown',
+                        $type === null ? 'has no declared type' : sprintf('has type %s, which is not a single named type', (string) $type),
+                    ),
+                );
+            }
+
             $propData = [
                 'name' => $property->getName(),
-                'type' => $property->getType()->getName(),
+                'type' => $type->getName(),
             ];
 
-            if ($property instanceof \ReflectionProperty) {
-                $method = 'hasDefaultValue';
-            } elseif ($property instanceof \ReflectionParameter) {
-                $method = 'isDefaultValueAvailable';
-            } else {
-                $return[] = $propData;
-                continue;
-            }
+            $method = $property instanceof ReflectionProperty ? 'hasDefaultValue' : 'isDefaultValueAvailable';
 
             if ($property->$method()) {
                 $propData['defaultValue'] = $property->getDefaultValue();
@@ -331,6 +454,7 @@ final class CompilerPass implements CompilerPassInterface
 
             $return[] = $propData;
         }
+
         return $return;
     }
 
@@ -341,14 +465,37 @@ final class CompilerPass implements CompilerPassInterface
     {
         $validatorsIdx = [];
 
-        $methods    = $requestReflection->getMethods();
+        $methods = $requestReflection->getMethods();
         $properties = $requestReflection->getProperties();
 
         $propertiesIdx = [];
         foreach ($properties as $property) {
+            $propertyType = $property->getType();
+
+            if ($propertyType === null) {
+                throw new Exception(
+                    sprintf(
+                        'Property %s of class %s has no declared type',
+                        $property->getName(),
+                        $requestReflection->getName(),
+                    ),
+                );
+            }
+
+            if (!$propertyType instanceof ReflectionNamedType) {
+                throw new Exception(
+                    sprintf(
+                        'Property %s of class %s has type %s, which is not supported; only a single named type is supported.',
+                        $property->getName(),
+                        $requestReflection->getName(),
+                        (string) $propertyType,
+                    ),
+                );
+            }
+
             $propertiesIdx[$property->getName()] = [
-                'type' => $property->getType()->getName(),
-                'allowsNull' => $property->getType()->allowsNull() || $property->hasDefaultValue(),
+                'type' => $propertyType->getName(),
+                'allowsNull' => $propertyType->allowsNull() || $property->hasDefaultValue(),
             ];
         }
 
@@ -358,18 +505,44 @@ final class CompilerPass implements CompilerPassInterface
         }
 
         foreach ($propertiesIdx as $name => $typeData) {
-            if ($typeData['type'] === 'bool' || $typeData['type'] === 'boolean') {
-                $getter = $methodsIdx['is' . ucfirst($name)];
-            } else {
-                $getter = $methodsIdx['get' . ucfirst($name)];
+            // Same candidate list as resolveGetter(), and for a reason: this loop runs first, so a
+            // single rigid name here decided the outcome no matter what resolveGetter() would have
+            // accepted. A boolean $isActive whose getter is isActive() aborted the build demanding
+            // isIsActive(), and the bare accessor the other resolver documents was unreachable in
+            // practice. One rule for what counts as a getter, applied in both places.
+            $getterName = $this->resolveGetter($requestReflection, $name);
+
+            if ($getterName === null || !isset($methodsIdx[$getterName])) {
+                throw new Exception(
+                    sprintf(
+                        'Property %s of class %s has no accessible getter (expected one of get%s, is%s, or %s)',
+                        $name,
+                        $requestReflection->getName(),
+                        ucfirst($name),
+                        ucfirst($name),
+                        $name,
+                    ),
+                );
             }
-            $setter = $methodsIdx['set' . ucfirst($name)];
+            $getter = $methodsIdx[$getterName];
+
+            $setterName = 'set' . ucfirst($name);
+            if (!isset($methodsIdx[$setterName])) {
+                throw new Exception(
+                    sprintf(
+                        'Property %s of class %s has no method %s',
+                        $name,
+                        $requestReflection->getName(),
+                        $setterName,
+                    ),
+                );
+            }
+            $setter = $methodsIdx[$setterName];
             $setterParamType = $setter->getParameters()[0]->getType();
             if ($setterParamType === null) {
                 continue;
             }
-            $setterTypeMismatch = $setterParamType->getName() !== $typeData['type'];
-            if ($setterTypeMismatch) {
+            if (!$setterParamType instanceof ReflectionNamedType || $setterParamType->getName() !== $typeData['type']) {
                 throw new Exception(
                     sprintf(
                         'Property %s of method %s has invalid data type in setter %s',
@@ -379,8 +552,8 @@ final class CompilerPass implements CompilerPassInterface
                     ),
                 );
             }
-            $getterTypeMismatch = $getter->getReturnType()->getName() !== $typeData['type'];
-            if ($getterTypeMismatch) {
+            $getterReturnType = $getter->getReturnType();
+            if (!$getterReturnType instanceof ReflectionNamedType || $getterReturnType->getName() !== $typeData['type']) {
                 throw new Exception(
                     sprintf(
                         'Property %s of method %s has invalid data type in getter %s',

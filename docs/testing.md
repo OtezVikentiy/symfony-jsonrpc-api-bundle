@@ -8,7 +8,7 @@
 ./vendor/bin/phpunit tests/
 ```
 
-Все 327+ тестов должны быть зелёными. Если упало после `composer update` — это потенциальный регресс, заведите issue.
+Весь набор тестов бандла должен быть зелёным (используйте `--testdox` или `--colors` для наглядности; точное число тестов растёт от релиза к релизу — не полагайтесь на него как на инвариант). Если упало после `composer update` — это потенциальный регресс, заведите issue.
 
 ### Coverage
 
@@ -53,7 +53,15 @@ PHPUnit исключает `tests/Fixtures` — это обычные класс
 
 ## Паттерн интеграционного теста через `AbstractControllerTestCase`
 
-`tests/Controller/AbstractControllerTestCase.php` собирает минимальный controller-стек (RequestHandler, RequestRawDataHandler, ResponseService, замоканный Security, замоканный ValidatorInterface или реальный, замоканный Container). Для теста нужно описать `MethodSpec` руками и передать `executeControllerTest($payload, $methodSpec)`:
+`tests/Controller/AbstractControllerTestCase.php` собирает минимальный controller-стек (RequestHandler, RequestRawDataHandler, ResponseService, замоканный Security, замоканный ValidatorInterface или реальный, два замоканных `ServiceLocator` — под RPC-методы и под процессоры). В 4.x на этом месте был замоканный `Container`; начиная с 5.0 бандл контейнер не инжектит — см. [upgrade-5.0.md](./upgrade-5.0.md), п. 17.
+
+> ⚠️ **Этого класса нет в установленном пакете.** `.gitattributes` помечает `/tests` как `export-ignore`, а `OV\JsonRPCAPIBundle\Tests\` объявлен в `autoload-dev` — то есть в `vendor/` каталог `tests/` не попадает и неймспейс не автозагружается. Наследоваться от `AbstractControllerTestCase` из своего проекта **нельзя**, будет `Class not found`. Ниже показано, как выглядит харнесс, — **скопируйте его в свой проект** под своим неймспейсом. Если копировать не хочется, берите [рецепт через `KernelTestCase`](#интеграционный-тест-через-kerneltestcase) — он работает без копирования и не зависит от внутренностей бандла.
+
+> **Этот харнесс опирается на внутренности осознанно.** С 5.0 `@internal` помечены и классы стека (`RequestHandler`, `RequestRawDataHandler`, `ResponseService`, `HeadersPreparer`), и метаданные метода (`MethodSpec`, `RequestMetadata`, `SwaggerMetadata`), которые ниже описываются руками. Их сигнатуры могут поменяться в минорном релизе 5.x. Копируйте харнесс, если вам нужна скорость и полный контроль над стеком, но будьте готовы поправить его при обновлении — это размен, а не бесплатная скорость. Тест через `KernelTestCase` (ниже) от этого свободен: там и стек, и `MethodSpec` собирает контейнер.
+>
+> Отдельно про ручной `MethodSpec`: он должен совпадать с тем, что генерирует `CompilerPass`, иначе тест проверяет конфигурацию, которой в проде не существует. Легко забыть, что для свойства со значением по умолчанию компилятор кладёт `defaultValue` в `allParameters` и ставит `allowsNull: true` в `validators`, а для коллекции с аддером переписывает `type` на тип **элемента**. Расхождение здесь даёт зелёный тест при сломанном проде.
+
+Для теста нужно описать `MethodSpec` руками и передать `executeControllerTest($payload, $methodSpec)`:
 
 ```php
 namespace App\Tests\RPC;
@@ -61,7 +69,7 @@ namespace App\Tests\RPC;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
-use OV\JsonRPCAPIBundle\Tests\Controller\AbstractControllerTestCase;
+use App\Tests\RPC\Support\AbstractControllerTestCase;   // ваша копия харнесса, см. предупреждение выше
 use App\RPC\V1\GetProduct\Request;
 use App\RPC\V1\GetProductMethod;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -168,7 +176,9 @@ public function testProcessorsRunInOrder(): void
 
 ## Тестирование с реальной БД
 
-Если RPC-метод обращается к БД через Doctrine — используйте `KernelTestCase` для интеграционного теста с реальным контейнером:
+## Интеграционный тест через `KernelTestCase`
+
+Этот путь ничего не требует от бандла, кроме публичного контракта: контейнер сам собирает стек и `MethodSpec`, копировать нечего, и правки внутренностей в минорных релизах его не задевают. Он же нужен, если RPC-метод обращается к БД через Doctrine:
 
 ```php
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -210,7 +220,9 @@ final class CreateUserMethodTest extends KernelTestCase
 
 ## CI
 
-Минимальный workflow для GitHub Actions:
+Сам бандл собирается через `.github/workflows/ci.yml`: матрица PHP 8.2/8.3/8.4 × Symfony `^6.4`/`^7.0`, отдельный job на lowest-разрешённые зависимости, coverage-gate (минимум 90% line coverage), `composer validate --strict` + `composer audit` по расписанию (еженедельно, чтобы новая security-advisory всплыла даже без коммитов), и non-blocking канарейка на Symfony 8. Смотрите файл целиком как референс, если настраиваете CI для проекта, использующего бандл.
+
+Минимальный workflow для вашего собственного проекта, чтобы просто гонять тесты, использующие бандл:
 
 ```yaml
 name: tests

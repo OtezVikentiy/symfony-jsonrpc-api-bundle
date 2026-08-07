@@ -5,6 +5,7 @@ namespace OV\JsonRPCAPIBundle\Tests\DependencyInjection;
 use OV\JsonRPCAPIBundle\DependencyInjection\Configuration;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\Definition\Processor;
 
 final class ConfigurationTest extends TestCase
@@ -48,6 +49,83 @@ final class ConfigurationTest extends TestCase
         ]);
 
         $this->assertEquals(['https://example.com', 'https://app.example.com'], $config['access_control_allow_origin_list']);
+    }
+
+    /**
+     * The wildcard is checked before any named origin, so it wins outright: such a list reads as a
+     * whitelist and behaves as its opposite, and nothing about the running application shows the
+     * difference. Compilation is the only moment this is cheap to notice.
+     */
+    public function testWildcardMixedWithNamedOriginsIsRejected(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+
+        (new Processor())->processConfiguration(new Configuration(), [
+            ['access_control_allow_origin_list' => ['https://app.example.com', '*']],
+        ]);
+    }
+
+    /**
+     * Every child of `info` and of `info.contact` declares a default, but a node the configuration
+     * omits produces no key at all unless it says addDefaultsIfNotSet(). The OpenAPI generator reads
+     * `info.title` and `info.contact.name` unguarded, so leaving the block out - which the schema
+     * permits, and which any project not publishing contact details would do - aborted
+     * ov:swagger:generate with a TypeError rather than generating with the defaults.
+     */
+    public function testSwaggerInfoDefaultsApplyWhenTheBlockIsOmitted(): void
+    {
+        $config = (new Processor())->processConfiguration(new Configuration(), [
+            ['swagger' => ['api_v1' => ['api_version' => '1']]],
+        ]);
+
+        $info = $config['swagger']['api_v1']['info'];
+
+        $this->assertSame('title', $info['title']);
+        $this->assertSame('name', $info['contact']['name']);
+        $this->assertSame('email', $info['contact']['email']);
+    }
+
+    public function testSwaggerContactDefaultsApplyWhenOnlyContactIsOmitted(): void
+    {
+        $config = (new Processor())->processConfiguration(new Configuration(), [
+            ['swagger' => ['api_v1' => ['api_version' => '1', 'info' => ['title' => 'Mine']]]],
+        ]);
+
+        $info = $config['swagger']['api_v1']['info'];
+
+        $this->assertSame('Mine', $info['title'], 'an explicit value must survive');
+        $this->assertSame('name', $info['contact']['name']);
+    }
+
+    public function testWildcardOnItsOwnIsStillAllowed(): void
+    {
+        $config = (new Processor())->processConfiguration(new Configuration(), [
+            ['access_control_allow_origin_list' => ['*']],
+        ]);
+
+        $this->assertEquals(['*'], $config['access_control_allow_origin_list']);
+    }
+
+    public function testCorsAllowedHeadersDefaultsToContentTypeOnly(): void
+    {
+        $configuration = new Configuration();
+        $processor = new Processor();
+
+        $config = $processor->processConfiguration($configuration, []);
+
+        $this->assertSame(['Content-Type'], $config['cors_allowed_headers']);
+    }
+
+    public function testCorsAllowedHeadersCanBeOverridden(): void
+    {
+        $configuration = new Configuration();
+        $processor = new Processor();
+
+        $config = $processor->processConfiguration($configuration, [
+            ['cors_allowed_headers' => ['Content-Type', 'X-AUTH-TOKEN']],
+        ]);
+
+        $this->assertSame(['Content-Type', 'X-AUTH-TOKEN'], $config['cors_allowed_headers']);
     }
 
     public function testProcessWithSwaggerConfig(): void
@@ -149,7 +227,7 @@ final class ConfigurationTest extends TestCase
         $config = $processor->processConfiguration($configuration, []);
 
         $this->assertFalse($config['expose_internal_errors']);
-        $this->assertTrue($config['cors_strict']);
+        $this->assertArrayNotHasKey('cors_strict', $config);
         $this->assertSame(1048576, $config['max_payload_bytes']);
         $this->assertSame(64, $config['max_json_depth']);
         $this->assertSame(50, $config['max_batch_size']);
@@ -194,7 +272,6 @@ final class ConfigurationTest extends TestCase
         $config = $processor->processConfiguration($configuration, [
             [
                 'expose_internal_errors' => true,
-                'cors_strict' => false,
                 'max_payload_bytes' => 2048,
                 'max_json_depth' => 32,
                 'max_batch_size' => 5,
@@ -204,11 +281,144 @@ final class ConfigurationTest extends TestCase
         ]);
 
         $this->assertTrue($config['expose_internal_errors']);
-        $this->assertFalse($config['cors_strict']);
         $this->assertSame(2048, $config['max_payload_bytes']);
         $this->assertSame(32, $config['max_json_depth']);
         $this->assertSame(5, $config['max_batch_size']);
         $this->assertSame(3, $config['max_dto_depth']);
         $this->assertSame(100, $config['max_array_param_size']);
+    }
+
+    public function testLoggingMaskingKeyPatternsDefaultToANonEmptySecretCoveringSet(): void
+    {
+        $configuration = new Configuration();
+        $processor = new Processor();
+
+        $config = $processor->processConfiguration($configuration, []);
+
+        $patterns = $config['logging']['masking']['key_patterns'];
+        $this->assertNotEmpty($patterns, 'flipping logging.enabled=true must not log secrets by default');
+
+        // Every default pattern must itself be a valid, usable regex.
+        foreach ($patterns as $pattern) {
+            $this->assertNotFalse(@preg_match($pattern, ''), sprintf('default pattern "%s" must be a valid regex', $pattern));
+        }
+
+        $this->assertMatchesRegularExpression($patterns[array_search('~password~i', $patterns, true)], 'user_password');
+    }
+
+    /**
+     * Aligns with the canonical set from ~/engineering-playbook/PLAYBOOK.md §7.3
+     * (SecretRedactingProcessor: password|api_key|token|jwt|secret|cookie|cert).
+     */
+    public function testLoggingMaskingKeyPatternsCoverPlaybookCanonicalSet(): void
+    {
+        $configuration = new Configuration();
+        $processor = new Processor();
+
+        $config = $processor->processConfiguration($configuration, []);
+
+        $patterns = $config['logging']['masking']['key_patterns'];
+        $keysExpectedToMatch = [
+            'password' => 'user_password',
+            'api_key' => 'api_key',
+            'token' => 'access_token',
+            'jwt' => 'jwt',
+            'secret' => 'client_secret',
+            'cookie' => 'cookie',
+            'cert' => 'client_cert',
+        ];
+
+        foreach ($keysExpectedToMatch as $label => $key) {
+            $matched = false;
+            foreach ($patterns as $pattern) {
+                if (preg_match($pattern, $key) === 1) {
+                    $matched = true;
+                    break;
+                }
+            }
+            $this->assertTrue($matched, sprintf('playbook canonical field "%s" (example key "%s") must be covered by a default pattern', $label, $key));
+        }
+    }
+
+    /**
+     * `^cookie$` and `^pwd$` only match a key literally equal to "cookie"/"pwd" — real payloads carry
+     * session cookies and passwords under compound names like `session_cookie` or `user_pwd`. Anchoring
+     * those two (while every other default pattern is unanchored) left exactly those field names leaking
+     * unmasked. Every pattern here must be unanchored so compound field names are still covered.
+     */
+    public function testLoggingMaskingKeyPatternsMatchCompoundFieldNamesUnanchored(): void
+    {
+        $configuration = new Configuration();
+        $processor = new Processor();
+
+        $config = $processor->processConfiguration($configuration, []);
+
+        $patterns = $config['logging']['masking']['key_patterns'];
+        $keysThatMustMatch = [
+            'session_cookie',
+            'auth_cookie',
+            'user_pwd',
+            'pwd_hash',
+            'client_cert',
+            'refreshToken',
+            'userPassword',
+        ];
+
+        foreach ($keysThatMustMatch as $key) {
+            $matched = false;
+            foreach ($patterns as $pattern) {
+                if (preg_match($pattern, $key) === 1) {
+                    $matched = true;
+                    break;
+                }
+            }
+            $this->assertTrue($matched, sprintf('compound field name "%s" must be covered by a default pattern', $key));
+        }
+    }
+
+    public function testLoggingMaxBodyLengthDefaultsToNonZero(): void
+    {
+        $configuration = new Configuration();
+        $processor = new Processor();
+
+        $config = $processor->processConfiguration($configuration, []);
+
+        $this->assertGreaterThan(0, $config['logging']['max_body_length'], 'unbounded logging by default reintroduces the leak this config guards against');
+    }
+
+    public function testInvalidMaskingKeyPatternFailsContainerBuild(): void
+    {
+        $configuration = new Configuration();
+        $processor = new Processor();
+
+        $this->expectException(InvalidConfigurationException::class);
+
+        $processor->processConfiguration($configuration, [
+            [
+                'logging' => [
+                    'masking' => [
+                        'key_patterns' => ['~^password$~i', 'not a valid regex('],
+                    ],
+                ],
+            ],
+        ]);
+    }
+
+    public function testValidMaskingKeyPatternsAreAccepted(): void
+    {
+        $configuration = new Configuration();
+        $processor = new Processor();
+
+        $config = $processor->processConfiguration($configuration, [
+            [
+                'logging' => [
+                    'masking' => [
+                        'key_patterns' => ['~^custom_secret$~i'],
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->assertSame(['~^custom_secret$~i'], $config['logging']['masking']['key_patterns']);
     }
 }

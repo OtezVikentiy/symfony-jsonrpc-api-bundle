@@ -82,10 +82,10 @@ products:
   type: array
   items:
     type: object
-    $ref: '#/components/schemas/App_RPC_V1_GetProducts_Product'
+    $ref: '#/components/schemas/App.RPC.V1.GetProducts.Product'
 ```
 
-Бандл автоматически проанализирует свойства класса `Product` и создаст отдельную схему в `components/schemas`.
+Бандл автоматически проанализирует свойства класса `Product` и создаст отдельную схему в `components/schemas`. Имя схемы — это полное имя класса (`App\RPC\V1\GetProducts\Product`) с `\` заменённым на `.`: `schemaNameFromClassName()` строит имя из FQCN целиком, а не из короткого имени класса. Это намеренно многословно: до 5.0 схема называлась просто `Product`, и если в проекте было два разных DTO с одинаковым коротким именем (частый случай — `App\RPC\V1\GetProduct\Response` и `App\RPC\V1\GetProducts\Response` оба называются `Response`), они собирались в одну и ту же запись `components/schemas`, тихо затирая друг друга. Схема, названная по полному имени класса, никогда не сталкивается с другой при добавлении нового DTO.
 
 ## Комбинирование атрибутов
 

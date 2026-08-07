@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 /*
  * This file is part of the OtezVikentiy Json RPC API package.
  *
@@ -12,23 +14,38 @@ namespace OV\JsonRPCAPIBundle\DependencyInjection;
 
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
+use Symfony\Component\Validator\Constraint;
+use Symfony\Component\Validator\Constraints as Assert;
 
-readonly class MethodSpec
+/**
+ * @internal not final: CompilerPass registers this as a lazy service on PHP 8.3+,
+ * and Symfony's native lazy ghost proxies require a non-final class to extend.
+ */
+class MethodSpec
 {
+    /** @var array<string, Constraint> */
+    private array $compiledValidators;
+
+    /**
+     * @param class-string $methodClass
+     */
     public function __construct(
-        private string $methodClass,
-        private string $requestType,
-        private string $methodName,
-        private RequestMetadata $requestMetadata,
-        private SwaggerMetadata $swaggerMetadata,
-        private array $roles = [],
-        private bool $plainResponse = false,
-        private bool $preProcessorExists = false,
-        private bool $postProcessorExists = false,
-        private bool $allowExtraFields = false,
+        private readonly string $methodClass,
+        private readonly string $requestType,
+        private readonly string $methodName,
+        private readonly RequestMetadata $requestMetadata,
+        private readonly SwaggerMetadata $swaggerMetadata,
+        private readonly array $roles = [],
+        private readonly bool $plainResponse = false,
+        private readonly bool $preProcessorExists = false,
+        private readonly bool $postProcessorExists = false,
+        private readonly bool $allowExtraFields = false,
     ) {
     }
 
+    /**
+     * @return class-string
+     */
     public function getMethodClass(): string
     {
         return $this->methodClass;
@@ -117,6 +134,38 @@ readonly class MethodSpec
     public function getValidators(): array
     {
         return $this->requestMetadata->getValidators();
+    }
+
+    /**
+     * Symfony constraints are immutable and expensive to construct via reflection,
+     * so the compiled set is built once per method spec and reused across requests.
+     *
+     * @return array<string, Constraint>
+     */
+    public function getCompiledValidators(): array
+    {
+        return $this->compiledValidators ??= $this->compileValidators();
+    }
+
+    /**
+     * @return array<string, Constraint>
+     */
+    private function compileValidators(): array
+    {
+        $compiled = [];
+        foreach ($this->requestMetadata->getValidators() as $field => $validatorItem) {
+            $compiled[$field] = $validatorItem['allowsNull'] === false
+                ? new Assert\Type($validatorItem['type'])
+                : new Assert\Optional([
+                    new Assert\AtLeastOneOf([
+                        new Assert\Type($validatorItem['type']),
+                        new Assert\Blank(),
+                        new Assert\IsNull(),
+                    ]),
+                ]);
+        }
+
+        return $compiled;
     }
 
     public function getRoles(): array

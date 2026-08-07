@@ -1,8 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 
-readonly class SwaggerMetadata
+/**
+ * @internal
+ */
+final readonly class SwaggerMetadata
 {
     public function __construct(
         private string $summary,

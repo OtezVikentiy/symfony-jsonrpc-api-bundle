@@ -1,7 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OV\JsonRPCAPIBundle\Swagger;
 
+/**
+ * @internal
+ */
 final readonly class Path
 {
     public function __construct(
@@ -30,9 +35,13 @@ final readonly class Path
         $data = [
             'summary' => $this->summary,
             'description' => $this->description,
-            'requestBody' => $this->requestBody->toArray(),
-            'responses' => $responses,
         ];
+
+        if ($this->requestBody !== null) {
+            $data['requestBody'] = $this->requestBody->toArray();
+        }
+
+        $data['responses'] = $responses;
 
         if (!empty($this->tags)) {
             $data['tags'] = $this->tags;

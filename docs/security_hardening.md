@@ -13,20 +13,26 @@
 | `max_array_param_size` | `1000` | DoS через массивы с десятками тысяч элементов | Bulk-операции (`addX()` адеры) — 5000+ | Узкие API — 100 |
 | `strict_notifications` | `true` | Отступление от спека → неожиданное поведение клиентов | (обычно не нужно) | Только если ваши клиенты ждут ответы на notifications |
 | `expose_internal_errors` | `false` | Утечка стек-трейсов, путей файлов, кредов БД | **никогда в prod** | `true` только в dev/тестовом окружении |
-| `cors_strict` | `true` | Невалидный `Access-Control-Allow-Origin` для multi-origin | (обычно не нужно) | Только для legacy backwards-compat |
+
+CORS всегда строгий начиная с 5.0 — ключ `cors_strict` удалён, легаси comma-joined режима больше не существует ни при каком значении (см. [docs/cors.md](./cors.md)). Заголовки, которые preflight разрешает клиенту слать, настраиваются ключом `cors_allowed_headers` (default `['Content-Type']`) — расширьте список, если ваш фронтенд шлёт кастомные заголовки авторизации (например, `X-AUTH-TOKEN`).
+
+Дополнительно, без отдельного конфиг-ключа: с версии 5.0 запросы с телом (POST/PUT/PATCH/DELETE) обязаны иметь заголовок `Content-Type: application/json`. Form-encoded (`application/x-www-form-urlencoded`) и `multipart/form-data` отклоняются с `-32600 Invalid Request` до попытки прочитать тело. Это закрывает CSRF-вектор: form-encoded — «simple request» по CORS-спеке, и без этой проверки сторонняя HTML-форма могла вызывать RPC-методы от имени залогиненного пользователя без preflight. Это также закрывает обход `max_payload_bytes` — раньше проверка размера смотрела только на «сырое» тело запроса, которое PHP не заполняет для form-encoded данных.
+
+> **Граница этой защиты: методы, объявленные как `#[JsonRPCAPI(type: 'GET')]`.** Проверка Content-Type применяется к запросам с телом. GET-запрос тела не имеет — payload берётся из query string, — поэтому на GET-методы она не распространяется и распространяться не может. Сторонняя страница может вызвать GET-метод вашего API через `<img>`, `<script>` или простую навигацию, с куками пользователя и без preflight. **Методы с `type: 'GET'` обязаны быть идемпотентными и не иметь побочных эффектов.** Всё, что изменяет состояние, объявляйте POST/PUT/PATCH/DELETE — тогда Content-Type-гейт работает.
+>
+> Смежное: заголовок `X-HTTP-Method-Override: GET` на POST-запросе Symfony учитывает без opt-in, и такой запрос уходит в GET-ветку — тело игнорируется, payload берётся из query string. Выигрыша это не даёт (заголовок не входит в CORS-safelist, значит требует preflight; а клиент, умеющий ставить заголовки, мог бы просто послать GET), но знать об этом стоит: формулировка «запрос с телом обязан иметь `application/json`» обходится в том смысле, что тело просто перестаёт читаться.
 
 ## Что включается «по умолчанию» в 4.0
 
-Если установить бандл и не задать ни один из новых ключей, бандл работает в **production-safe** режиме: лимиты включены, ошибки санитизированы, CORS строгий, notifications strict.
+Если установить бандл и не задать ни один из новых ключей, бандл работает в **production-safe** режиме: лимиты включены, ошибки санитизированы, CORS строгий (без опции ослабить), notifications strict.
 
-Чтобы вернуть поведение 3.x (не рекомендуется):
+Чтобы вернуть большую часть поведения 3.x (не рекомендуется; CORS-строгость с 5.0 отключить нельзя ни при каком конфиге):
 
 ```yaml
 # config/packages/ov_json_rpc_api.yaml
 ov_json_rpc_api:
     strict_notifications: false
     expose_internal_errors: true
-    cors_strict: false
     max_payload_bytes: 10485760    # 10 MiB
     max_batch_size: 1000
     max_dto_depth: 50
@@ -56,14 +62,14 @@ public function call(MyRequest $request): Response
 
 ## CORS
 
-При `cors_strict: true` (дефолт):
+Поведение всегда строгое (начиная с 5.0 переключателя не существует):
 
 - `access_control_allow_origin_list: ['*']` → `Access-Control-Allow-Origin: *` (без `Vary`).
 - `access_control_allow_origin_list: ['https://a.com', 'https://b.com']` → если `Origin` заголовок запроса попадает в список, эхо origin'а + `Vary: Origin`. Иначе CORS-заголовок не отдаётся.
 
-Это исправляет баг 3.x, где multi-origin список конкатенировался через `, `, что нарушает CORS-спек (только один origin или `*`).
+Это исправляет баг 3.x, где multi-origin список конкатенировался через `, `, что нарушает CORS-спек (только один origin или `*`). Легаси-режим 3.x (`cors_strict: false` в 4.x) с 5.0 удалён без замены.
 
-При `cors_strict: false` (legacy) поведение 3.x восстанавливается — список склеивается через `, `. Используйте только если вы знаете, что ваши клиенты как-то с этим работали.
+С версии 5.0 бандл также сам отвечает на preflight (`OPTIONS`) — заголовки `Access-Control-Allow-Methods`, `Access-Control-Allow-Headers` (из `cors_allowed_headers`) и `Access-Control-Max-Age` формируются без стороннего CORS-бандла или reverse-proxy.
 
 См. также [docs/cors.md](./cors.md).
 
@@ -77,9 +83,13 @@ PHP читает тело HTTP-запроса в память до того, к�
 2. `client_max_body_size` в nginx или эквивалент в Apache.
 3. `max_payload_bytes` бандла — финальная проверка перед декодированием.
 
+Иначе говоря: **`max_payload_bytes` ограничивает обработку, а не буферизацию.** Он не даёт бандлу разбирать слишком большой документ, но к моменту проверки тело уже прочитано в память. Если вас беспокоит именно memory exhaustion — потолок задаётся пунктами 1 и 2, а не этим ключом.
+
 ### `max_json_depth`
 
 `json_decode` нативно поддерживает параметр `$depth`. Бандл использует `JSON_THROW_ON_ERROR` и ловит `JsonException` → `PARSE_ERROR` (-32700).
+
+**Асимметрия GET vs POST.** На POST-ветке `max_json_depth` действует полностью — вплоть до заявленного лимита (по умолчанию 64, максимум 512 по схеме конфигурации). На GET-ветке параметры приходят через query string, которую PHP сам разбирает в `$_GET` до того, как бандл получает управление, и глубина этого разбора ограничена директивой `max_input_nesting_level` в `php.ini` (по умолчанию **64**). Бандл проверяет `max_json_depth` и на GET-запросах тоже, но поднять эффективный лимит выше `max_input_nesting_level` конфигом бандла нельзя — PHP молча обрежет более глубокую структуру раньше, чем бандл её увидит. Если вашему API нужна глубина больше 64 для GET-запросов, поднимайте `max_input_nesting_level` в `php.ini` (или используйте POST для таких вызовов, где лимит бандла honours полностью).
 
 ### `max_batch_size`
 
@@ -114,8 +124,8 @@ monolog:
 
 - [ ] `expose_internal_errors: false`
 - [ ] `strict_notifications: true`
-- [ ] `cors_strict: true`
 - [ ] `access_control_allow_origin_list` — конкретные origin'ы, не `['*']` (если API не публичный read-only)
+- [ ] `cors_allowed_headers` включает все кастомные заголовки, которые реально шлёт ваш фронтенд (иначе preflight не пропустит запрос)
 - [ ] `max_payload_bytes` соответствует реальным нуждам, синхронизирован с nginx/php.ini
 - [ ] LoggerInterface настроен и хранит логи в надёжном месте
 - [ ] Rate-limiting на уровне middleware/reverse proxy (бандл сам по себе rate-limiting не делает)

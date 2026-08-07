@@ -1,7 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OV\JsonRPCAPIBundle\Swagger;
 
+/**
+ * @internal
+ */
 final class SchemaProperty
 {
     public function __construct(
@@ -93,10 +98,10 @@ final class SchemaProperty
             }
 
             return $arr;
-        } else {
-            return [
-                '$ref' => '#/components/schemas/' . $this->ref,
-            ];
         }
+
+        return [
+            '$ref' => '#/components/schemas/' . $this->ref,
+        ];
     }
 }

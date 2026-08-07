@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 /*
  * This file is part of the OtezVikentiy Json RPC API package.
  *
@@ -18,6 +20,7 @@ final readonly class JsonRpcLogEntry
         public string $body,
         public string $contextId,
         public array $meta = [],
+        public bool $isErrorResponse = false,
     ) {
     }
 }

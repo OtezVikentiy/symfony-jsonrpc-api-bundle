@@ -1,0 +1,40 @@
+parameters:
+    level: 9
+    paths:
+        - src
+
+    ignoreErrors:
+        # Symfony's Config Definition Builder fluent API returns the generic
+        # NodeParentInterface from end(), not the concrete NodeBuilder that
+        # actually comes back at runtime. Without the phpstan-symfony
+        # extension (a dependency this bundle does not otherwise need),
+        # PHPStan has no way to know that chaining another *Node() call
+        # after end() is valid. Scoped to the one line where PHPStan reports
+        # it (further calls in the same chain fall back to mixed and go
+        # unchecked, so only one occurrence is ever reported here) rather
+        # than a generated baseline.
+        -
+            message: '#^Call to an undefined method Symfony\\Component\\Config\\Definition\\Builder\\NodeParentInterface::\w+\(\)\.$#'
+            path: src/DependencyInjection/Configuration.php
+            count: 1
+
+        # These two identifiers are level 6+'s "add array-shape docblocks
+        # everywhere" checks. At level 9 they account for 104 of the 132
+        # findings in src/ (88 missingType.iterableValue, 16
+        # missingType.generics), none of them bugs — every one is a request
+        # to add an `array<string, X>`/`ReflectionClass<T>` annotation on an
+        # existing, already-correct signature. Closing them properly means
+        # threading precise shapes through most of the 65 files in src/,
+        # which is a typing-completeness project on its own, not a fix for
+        # this release's perimeter work. Disabled by identifier rather than
+        # by level so every *other* level 9 check keeps running - level 7-9
+        # is exactly what caught the real bugs this task fixed (nullable/
+        # union-type crashes, mixed propagating into typed parameters), and
+        # dropping the level to silence the annotation noise would have
+        # silently dropped those checks too.
+        -
+            identifier: missingType.iterableValue
+            path: src
+        -
+            identifier: missingType.generics
+            path: src

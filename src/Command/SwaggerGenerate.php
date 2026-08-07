@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OV\JsonRPCAPIBundle\Command;
 
 use OV\JsonRPCAPIBundle\Swagger\SwaggerSchemaBuilder;
@@ -24,6 +26,7 @@ final class SwaggerGenerate extends Command
 
     /**
      * @throws ReflectionException
+     *
      * @noinspection PhpUnused
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -49,7 +52,7 @@ final class SwaggerGenerate extends Command
                 continue;
             }
 
-            $target = $resolvedDir . DIRECTORY_SEPARATOR . $name . '.yaml';
+            $target = $resolvedDir . DIRECTORY_SEPARATOR . basename((string) $name) . '.yaml';
             file_put_contents($target, $yaml);
         }
 

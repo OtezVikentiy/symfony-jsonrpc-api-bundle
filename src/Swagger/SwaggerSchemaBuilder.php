@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OV\JsonRPCAPIBundle\Swagger;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\SwaggerArrayProperty;
@@ -12,10 +14,16 @@ use OV\JsonRPCAPIBundle\Swagger\Informational\License;
 use OV\JsonRPCAPIBundle\Swagger\Informational\Openapi;
 use ReflectionClass;
 use ReflectionException;
+use ReflectionNamedType;
 use ReflectionProperty;
+use ReflectionType;
 use ReflectionUnionType;
+use RuntimeException;
 use Symfony\Component\Yaml\Yaml;
 
+/**
+ * @internal
+ */
 final class SwaggerSchemaBuilder
 {
     private array $components = [];
@@ -63,7 +71,7 @@ final class SwaggerSchemaBuilder
 
         $authTokenName = $item['auth_token_name'];
 
-        [$tags, $paths] = $this->generateApis($item['api_version']);
+        [$tags, $paths] = $this->generateApis((int) $item['api_version']);
 
         $this->addJsonRpcErrorResponseSchema();
 
@@ -103,7 +111,7 @@ final class SwaggerSchemaBuilder
                     continue;
                 }
 
-                foreach ($method->getTags() as $tag) {
+                foreach ($method->getTags() ?? [] as $tag) {
                     $tags[$tag] = ['name' => $tag];
                 }
 
@@ -166,6 +174,9 @@ final class SwaggerSchemaBuilder
                 $methodRef = new ReflectionClass($method->getMethodClass());
                 $callMethod = $methodRef->getMethod('call');
                 $returnType = $callMethod->getReturnType();
+                if ($returnType === null) {
+                    continue;
+                }
 
                 $responseClassName = $this->resolveResponseClassName($returnType);
                 if ($responseClassName === null) {
@@ -176,14 +187,14 @@ final class SwaggerSchemaBuilder
                 $responseProperties = $responseClassRef->getProperties();
                 $requiredPropertiesOfResponse = $this->getRequiredPropertiesList($responseClassRef);
 
-                $responseSchemaName = $responseClassRef->getShortName();
-                $responseSchema = new Schema(sprintf('%sResponse', $responseSchemaName));
+                $responseSchemaName = sprintf('%sResponse', $name);
+                $responseSchema = new Schema($responseSchemaName);
                 $jsonrpcResp = $this->jsonrpcProperty();
                 $responseSchema->addProperty($jsonrpcResp);
                 $responseSchema->addRequired($jsonrpcResp);
 
                 foreach ($responseProperties as $responseProperty) {
-                    $this->processProperty($responseProperty, $responseSchema, in_array($responseProperty->getName(), $requiredPropertiesOfResponse));
+                    $this->processProperty($responseProperty, $responseSchema, in_array($responseProperty->getName(), $requiredPropertiesOfResponse, true));
                 }
 
                 if ($addIdToGlobalRequest) {
@@ -194,7 +205,7 @@ final class SwaggerSchemaBuilder
 
                 $this->components[] = $responseSchema;
 
-                $response = new Response('200', sprintf('%sResponse', $responseSchemaName));
+                $response = new Response('200', $responseSchemaName);
 
                 $pathName = '/' . $this->camelToSnake($method->getMethodName(), '_');
                 if ($method->getGroup() !== null) {
@@ -207,7 +218,7 @@ final class SwaggerSchemaBuilder
                     summary: $method->getSummary(),
                     description: $method->getDescription(),
                     requestBody: $requestBody,
-                    tags: $method->getTags(),
+                    tags: $method->getTags() ?? [],
                     responses: [$response],
                 );
                 $paths[] = $path;
@@ -217,10 +228,16 @@ final class SwaggerSchemaBuilder
         return [array_values($tags), $paths];
     }
 
-    private function resolveResponseClassName(\ReflectionType $returnType): ?string
+    /**
+     * @return class-string|null
+     */
+    private function resolveResponseClassName(ReflectionType $returnType): ?string
     {
         if ($returnType instanceof ReflectionUnionType) {
             foreach ($returnType->getTypes() as $type) {
+                if (!$type instanceof ReflectionNamedType) {
+                    continue;
+                }
                 $typeName = $type->getName();
                 if (!class_exists($typeName)) {
                     continue;
@@ -230,15 +247,22 @@ final class SwaggerSchemaBuilder
                     return $typeName;
                 }
             }
+
+            return null;
+        }
+
+        if (!$returnType instanceof ReflectionNamedType) {
             return null;
         }
 
         $typeName = $returnType->getName();
-        if (class_exists($typeName)) {
-            $typeReflection = new ReflectionClass($typeName);
-            if ($typeReflection->implementsInterface(PlainResponseInterface::class)) {
-                return null;
-            }
+        if (!class_exists($typeName)) {
+            return null;
+        }
+
+        $typeReflection = new ReflectionClass($typeName);
+        if ($typeReflection->implementsInterface(PlainResponseInterface::class)) {
+            return null;
         }
 
         return $typeName;
@@ -260,33 +284,36 @@ final class SwaggerSchemaBuilder
 
         $schemaProperty = new SchemaProperty(name: $property->getName());
         if (!is_null($default)) {
-            $schemaProperty->setDefault($default);
+            $schemaProperty->setDefault((string) $default);
         }
         if (!is_null($example)) {
-            $schemaProperty->setExample($example);
+            $schemaProperty->setExample((string) $example);
         }
         if (!is_null($format)) {
-            $schemaProperty->setFormat($format);
+            $schemaProperty->setFormat((string) $format);
         }
 
         $propertyType = $property->getType();
-        if ($propertyType === null) {
+        if (!$propertyType instanceof ReflectionNamedType) {
             $schemaProperty->setType('string');
             $schema->addPropertyWithRequired($schemaProperty, $required);
+
             return;
         }
 
         $type = $propertyType->getName();
         $type = $this->normalizeType($type);
 
-        if (!in_array($type, ['array', 'boolean', 'integer', 'number', 'object', 'string'])) {
-            $this->processObjectProperty($property->getType()->getName(), $schemaProperty, $schema, $required);
+        if (!in_array($type, ['array', 'boolean', 'integer', 'number', 'object', 'string'], true)) {
+            $this->processObjectProperty($propertyType->getName(), $schemaProperty, $schema, $required);
+
             return;
         }
 
         if ($type !== 'array') {
             $schemaProperty->setType($type);
             $schema->addPropertyWithRequired($schemaProperty, $required);
+
             return;
         }
 
@@ -300,11 +327,12 @@ final class SwaggerSchemaBuilder
                         ->setType($type)
                         ->setItems(new SchemaItem(type: $attributeType));
                     $schema->addPropertyWithRequired($schemaProperty, $required);
-                    return;
-                } else {
-                    $this->processObjectProperty($attributeType, $schemaProperty, $schema, $required, true);
+
                     return;
                 }
+                $this->processObjectProperty($attributeType, $schemaProperty, $schema, $required, true);
+
+                return;
             }
         }
 
@@ -319,40 +347,50 @@ final class SwaggerSchemaBuilder
         bool $required,
         bool $schemaItem = false
     ): void {
-        $shortName = (new ReflectionClass($name))->getShortName();
+        if (!class_exists($name)) {
+            throw new RuntimeException(sprintf('Class %s referenced in a Swagger schema does not exist.', $name));
+        }
+
+        $schemaName = $this->schemaNameFromClassName($name);
 
         if (isset($this->processedClasses[$name])) {
             if ($schemaItem) {
                 $schemaProperty
                     ->setType('array')
-                    ->setItems(new SchemaItem(type: 'object', ref: $shortName));
+                    ->setItems(new SchemaItem(type: 'object', ref: $schemaName));
             } else {
-                $schemaProperty->setRef($shortName);
+                $schemaProperty->setRef($schemaName);
             }
             $schema->addPropertyWithRequired($schemaProperty, $required);
+
             return;
         }
         $this->processedClasses[$name] = true;
 
-        $innerSchema = new Schema($shortName);
+        $innerSchema = new Schema($schemaName);
         $reflection = new ReflectionClass($name);
         $requiredPropertiesOfResponse = $this->getRequiredPropertiesList($reflection);
         foreach ($reflection->getProperties() as $reflectionProperty) {
             $this->processProperty(
                 $reflectionProperty,
                 $innerSchema,
-                in_array($reflectionProperty->getName(), $requiredPropertiesOfResponse)
+                in_array($reflectionProperty->getName(), $requiredPropertiesOfResponse, true)
             );
         }
         $this->components[] = $innerSchema;
         if ($schemaItem) {
             $schemaProperty
                 ->setType('array')
-                ->setItems(new SchemaItem(type: 'object', ref: $shortName));
+                ->setItems(new SchemaItem(type: 'object', ref: $schemaName));
         } else {
-            $schemaProperty->setRef($shortName);
+            $schemaProperty->setRef($schemaName);
         }
         $schema->addPropertyWithRequired($schemaProperty, $required);
+    }
+
+    private function schemaNameFromClassName(string $className): string
+    {
+        return str_replace('\\', '.', $className);
     }
 
     private function addJsonRpcErrorResponseSchema(): void
@@ -388,6 +426,7 @@ final class SwaggerSchemaBuilder
                 $requiredPropertiesOfResponse[] = $parameter->getName();
             }
         }
+
         return $requiredPropertiesOfResponse;
     }
 
@@ -401,9 +440,11 @@ final class SwaggerSchemaBuilder
         };
     }
 
-    private function camelToSnake(string $string, string $us = "-"): string
+    private function camelToSnake(string $string, string $us = '-'): string
     {
-        return strtolower(preg_replace('/(?<=\d)(?=[A-Za-z])|(?<=[A-Za-z])(?=\d)|(?<=[a-z])(?=[A-Z])/', $us, $string));
+        $converted = preg_replace('/(?<=\d)(?=[A-Za-z])|(?<=[A-Za-z])(?=\d)|(?<=[a-z])(?=[A-Z])/', $us, $string);
+
+        return strtolower($converted ?? $string);
     }
 
     private function jsonrpcProperty(): SchemaProperty

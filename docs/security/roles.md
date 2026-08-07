@@ -9,7 +9,13 @@
 1. **Глобальный** — через `security.yaml` Symfony (ограничение доступа к URL `/api/v1`, `/api/v2` и т.д.)
 2. **На уровне метода** — через параметр `roles` в атрибуте `#[JsonRPCAPI]` (ограничение доступа к конкретному JSON-RPC методу)
 
-При отсутствии нужной роли бандл возвращает HTTP 403 с телом `"Access not allowed"`.
+При отсутствии нужной роли бандл возвращает обычный JSON-RPC error-объект с кодом `-32000` и HTTP-статусом 200 — **не** HTTP 403:
+
+```json
+{"jsonrpc": "2.0", "error": {"code": -32000, "message": "Access denied."}, "id": "1"}
+```
+
+Подробнее о формате — [troubleshooting.md](../troubleshooting.md#access-denied--32000).
 
 ---
 
@@ -38,6 +44,7 @@ security:
 
 namespace App\RPC\V1;
 
+use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 
 #[JsonRPCAPI(
@@ -45,31 +52,37 @@ use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
     type: 'POST',
     roles: ['ROLE_ADMIN']
 )]
-class GetUsersMethod
+class GetUsersMethod implements ApiMethodInterface
 {
     // Доступ только для ROLE_ADMIN
 }
 ```
 
 ```php
+use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
+use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+
 #[JsonRPCAPI(
     methodName: 'GetAdminUsers',
     type: 'POST',
     roles: ['ROLE_SUPER_ADMIN']
 )]
-class GetAdminUsersMethod
+class GetAdminUsersMethod implements ApiMethodInterface
 {
     // Доступ только для ROLE_SUPER_ADMIN
 }
 ```
 
 ```php
+use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
+use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+
 #[JsonRPCAPI(
     methodName: 'CreateUser',
     type: 'POST',
     roles: ['ROLE_SUPER_ADMIN', 'ROLE_ADMIN']
 )]
-class CreateUserMethod
+class CreateUserMethod implements ApiMethodInterface
 {
     // Доступ для ROLE_SUPER_ADMIN ИЛИ ROLE_ADMIN
 }
@@ -85,6 +98,7 @@ class CreateUserMethod
 
 namespace App\RPC\V2;
 
+use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 
 #[JsonRPCAPI(
@@ -92,7 +106,7 @@ use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
     type: 'POST',
     roles: ['ROLE_OPERATIONIST', 'ROLE_INSURANCE']
 )]
-class GetClientsMethod
+class GetClientsMethod implements ApiMethodInterface
 {
     // Доступ через /api/v2 для операционистов и страховщиков
 }
@@ -104,6 +118,7 @@ class GetClientsMethod
 
 namespace App\RPC\V2;
 
+use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 
 #[JsonRPCAPI(
@@ -111,7 +126,7 @@ use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
     type: 'POST',
     roles: ['ROLE_INSURANCE']
 )]
-class GetInsuranceListMethod
+class GetInsuranceListMethod implements ApiMethodInterface
 {
     // Доступ через /api/v2 только для страховщиков
 }
@@ -122,8 +137,11 @@ class GetInsuranceListMethod
 Если параметр `roles` не указан или передан пустой массив, доступ к методу не ограничен (на уровне бандла). Ограничения `security.yaml` всё ещё применяются.
 
 ```php
+use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
+use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+
 #[JsonRPCAPI(methodName: 'publicMethod', type: 'POST')]
-class PublicMethod
+class PublicMethod implements ApiMethodInterface
 {
     // Доступ для всех авторизованных пользователей (в зависимости от security.yaml)
 }

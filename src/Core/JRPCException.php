@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 /*
  * This file is part of the OtezVikentiy Json RPC API package.
  *
@@ -32,14 +34,14 @@ final class JRPCException extends Exception
         ?Throwable $previous = null
     ) {
         if (
-            !in_array($code, [self::PARSE_ERROR, self::INVALID_REQUEST, self::METHOD_NOT_FOUND, self::INVALID_PARAMS, self::INTERNAL_ERROR])
+            !in_array($code, [self::PARSE_ERROR, self::INVALID_REQUEST, self::METHOD_NOT_FOUND, self::INVALID_PARAMS, self::INTERNAL_ERROR], true)
             && ($code > self::SERVER_ERROR || $code < -32099)
         ) {
             throw new Exception(sprintf('Undefined code %s for JsonRPCAPIException.', $code));
         }
 
         $message = empty($this->additionalInfo) ? $message : $message . sprintf(' Additional info: %s', $this->additionalInfo);
-        
+
         parent::__construct($message, $code, $previous);
     }
 }

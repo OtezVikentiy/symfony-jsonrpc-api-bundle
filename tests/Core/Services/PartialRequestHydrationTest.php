@@ -14,6 +14,7 @@ use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
 use OV\JsonRPCAPIBundle\Core\Request\PartialRequestInterface;
 use OV\JsonRPCAPIBundle\Core\Request\PartialUpdateRequest;
 use OV\JsonRPCAPIBundle\Core\Request\TracksProvidedFieldsTrait;
+use OV\JsonRPCAPIBundle\Core\Services\ErrorSanitizer;
 use OV\JsonRPCAPIBundle\Core\Services\HeadersPreparer;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 use OV\JsonRPCAPIBundle\Core\Services\ResponseService;
@@ -23,7 +24,7 @@ use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\DependencyInjection\Container;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -185,11 +186,11 @@ final class PartialRequestHydrationTest extends TestCase
         $validator->method('validate')->willReturn(new ConstraintViolationList());
 
         $headersPreparer = new HeadersPreparer(['*']);
-        $responseService = new ResponseService($headersPreparer);
+        $responseService = new ResponseService($headersPreparer, new ErrorSanitizer());
 
-        $container = $this->createMock(Container::class);
+        $container = $this->createMock(ServiceLocator::class);
         $container->method('get')->willReturnMap([
-            [PartialRequestHydrationTestMethod::class, 1, $this->methodInstance],
+            [PartialRequestHydrationTestMethod::class, $this->methodInstance],
         ]);
 
         return new RequestHandler(

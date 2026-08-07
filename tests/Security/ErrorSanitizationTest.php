@@ -72,15 +72,6 @@ final class ErrorSanitizationTest extends TestCase
         $this->assertStringContainsString('debug-only details', $payload['error']['message']);
     }
 
-    public function testMissingSanitizerLeavesErrorUntouched(): void
-    {
-        $service = new ResponseService(new HeadersPreparer(['*']));
-
-        $response = $service->prepareErrorResponse(new RuntimeException('raw'), id: 1);
-
-        $payload = json_decode($response->getContent(), true);
-        $this->assertStringContainsString('raw', $payload['error']['message']);
-    }
 }
 
 final class InMemoryLogger extends AbstractLogger

@@ -12,7 +12,7 @@
 
 Если вы хотите удобно получать данные запроса в виде массива, наследуйте Request от `JsonRpcRequest` — это даст доступ к методу `toArray()`.
 
-Метод `addCategory()` позволяет принимать массив категорий поэлементно (pattern "adder").
+Метод `addCategory()` позволяет принимать массив категорий поэлементно (pattern "adder"). Бандл ищет аддер по свойству `categories`, склоняя его в единственное число через `Symfony\Component\String\Inflector\EnglishInflector` (`categories` → `category` → `addCategory`), а не простым отбрасыванием последней буквы — поэтому неправильные множественные формы вроде `children` (→ `addChild`) или `people` (→ `addPerson`) тоже резолвятся верно.
 
 ```php
 <?php
@@ -128,13 +128,14 @@ class Response
 namespace App\RPC\V1;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use App\RPC\V1\GetProducts\Request;
 use App\RPC\V1\GetProducts\Response;
 use App\RPC\V1\GetProducts\Product as ApiProductDto;
 use App\Repository\ProductRepository;
 
 #[JsonRPCAPI(methodName: 'getProducts', type: 'POST')]
-class GetProductsMethod
+class GetProductsMethod implements ApiMethodInterface
 {
     public function __construct(
         private readonly ProductRepository $productRepository,
@@ -183,7 +184,7 @@ curl -X POST http://localhost/api/v1 \
             {"title": "Iphone 15", "price": 2000}
         ]
     },
-    "id": "1"
+    "id": 1
 }
 ```
 

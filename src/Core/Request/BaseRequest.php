@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 /*
  * This file is part of the OtezVikentiy Json RPC API package.
  *
@@ -18,6 +20,7 @@ final class BaseRequest
     private string $method;
     private array $params = [];
     private mixed $id = null;
+    private bool $hasId = false;
 
     /**
      * @throws JRPCException
@@ -30,17 +33,22 @@ final class BaseRequest
         if (!isset($data['method']) || !is_string($data['method']) || $data['method'] === '') {
             throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
         }
-        if (isset($data['params']) && !is_array($data['params'])) {
+        if (array_key_exists('params', $data) && !is_array($data['params'])) {
             throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
         }
 
         $this->jsonrpc = $data['jsonrpc'];
-        $this->method  = $data['method'];
+        $this->method = $data['method'];
 
         if (!empty($data['params'])) {
             $this->params = $data['params'];
         }
-        if (isset($data['id'])) {
+        if (array_key_exists('id', $data)) {
+            if (!self::isValidId($data['id'])) {
+                throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
+            }
+
+            $this->hasId = true;
             $this->id = $data['id'];
         }
     }
@@ -61,8 +69,27 @@ final class BaseRequest
         return $this->params;
     }
 
-    public function getId()
+    public function getId(): mixed
     {
         return $this->id;
+    }
+
+    public function hasId(): bool
+    {
+        return $this->hasId;
+    }
+
+    /**
+     * Spec section 4: an id is a String, a Number or Null - never a boolean, an array or an object.
+     *
+     * Public and static because the error paths need it too. Section 5 requires the id of a Response
+     * to echo the request's, and to be Null when the request was malformed enough that no id could
+     * be established - so a value this method rejects must never be copied into a Response, and the
+     * places that build one from a raw decoded payload have to ask the same question this
+     * constructor asks.
+     */
+    public static function isValidId(mixed $id): bool
+    {
+        return $id === null || is_string($id) || is_int($id) || is_float($id);
     }
 }

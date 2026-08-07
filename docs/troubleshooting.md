@@ -13,39 +13,51 @@
 
 **Возможные причины:**
 
-### 1. Класс не обнаруживается автоматически
+### 1. Класс не реализует `ApiMethodInterface`
 
-Убедитесь что класс метода лежит в директории, которая сканируется Symfony (обычно `src/`), и что в `config/services.yaml` есть:
-
-```yaml
-_instanceof:
-    OV\JsonRPCAPIBundle\Core\ApiMethodInterface:
-        tags: ['ov.rpc.method']
-```
-
-### 2. Нет атрибута `#[JsonRPCAPI]`
-
-Каждый метод API должен быть помечен атрибутом:
+Это самая частая причина. Бандл регистрирует только сервисы, помеченные тегом `ov.rpc.method` (`CompilerPass::process()` перебирает `$container->findTaggedServiceIds('ov.rpc.method')`). Этот тег вешается автоматически через `#[AutoconfigureTag('ov.rpc.method')]` на самом интерфейсе `ApiMethodInterface` — но только если класс метода **реализует** этот интерфейс. Атрибут `#[JsonRPCAPI]` сам по себе ничего не регистрирует, он лишь описывает метаданные уже зарегистрированного класса.
 
 ```php
+use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 
 #[JsonRPCAPI(methodName: 'getProduct', type: 'POST')]
-class GetProductMethod
+class GetProductMethod implements ApiMethodInterface // <-- без этого класс не зарегистрируется
 {
     public function call(Request $request): Response { /* ... */ }
 }
 ```
 
-### 3. Неправильное имя метода в запросе
+Добавлять `_instanceof: OV\JsonRPCAPIBundle\Core\ApiMethodInterface: tags: ['ov.rpc.method']` в свой `config/services.yaml` **не нужно и не поможет** — эквивалентная конфигурация уже зарегистрирована самим бандлом (`OVJsonRPCAPIExtension::load()` вызывает `$container->registerForAutoconfiguration(ApiMethodInterface::class)->addTag('ov.rpc.method')`). Если класс не реализует интерфейс, лишняя запись в вашем `services.yaml` ничего не изменит.
+
+### 2. Класс лежит вне сканируемой директории
+
+Убедитесь, что класс метода лежит в директории, которую сканирует Symfony (обычно `src/`) — если он не найден автозагрузчиком, тег `ApiMethodInterface` применить не к чему.
+
+### 3. Нет атрибута `#[JsonRPCAPI]`
+
+Каждый зарегистрированный метод API должен быть помечен атрибутом — без него `CompilerPass` пропустит класс (`extractAttributeMetadata()` вернёт `null`), даже если интерфейс реализован:
+
+```php
+use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
+use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+
+#[JsonRPCAPI(methodName: 'getProduct', type: 'POST')]
+class GetProductMethod implements ApiMethodInterface
+{
+    public function call(Request $request): Response { /* ... */ }
+}
+```
+
+### 4. Неправильное имя метода в запросе
 
 Имя метода в JSON-запросе (`"method": "getProduct"`) должно точно совпадать с `methodName` в атрибуте. Регистр имеет значение.
 
-### 4. Несовпадение версии API
+### 5. Несовпадение версии API
 
 Запрос на `/api/v2`, а метод зарегистрирован для версии 1 (namespace `App\RPC\V1\...`). Либо измените URL, либо укажите `version: 2` в атрибуте.
 
-### 5. Несовпадение HTTP-метода
+### 6. Несовпадение HTTP-метода
 
 Запрос отправлен через GET, а атрибут указывает `type: 'POST'`. HTTP-метод запроса должен совпадать с `type` в атрибуте.
 
@@ -115,14 +127,14 @@ ov_json_rpc_api:
 
 ---
 
-## 403 Access not allowed
+## Access denied (-32000)
 
-**Ответ:**
-```
-HTTP 403 — "Access not allowed"
+**Ответ:** HTTP 200 с обычным JSON-RPC error-объектом — **не** HTTP 403:
+```json
+{"jsonrpc": "2.0", "error": {"code": -32000, "message": "Access denied."}, "id": "1"}
 ```
 
-**Причина:** У текущего пользователя нет ни одной из ролей, указанных в `roles` атрибута.
+**Причина:** У текущего пользователя нет ни одной из ролей, указанных в `roles` атрибута. `RequestHandler::checkRoles()` бросает `JRPCException` с кодом `SERVER_ERROR` (`-32000`), поэтому отказ по правам проходит через тот же путь, что и любая другая ошибка метода, и всегда возвращается как корректный JSON-RPC объект с правильным `id` — в том числе внутри batch-запроса. Если вы мониторите долю HTTP 403 как прокси для отказов по ролям — читайте `error.code === -32000` вместо HTTP-статуса.
 
 **Решения:**
 
@@ -160,5 +172,6 @@ HTTP 403 — "Access not allowed"
 
 **Причина:** Тело запроса содержит невалидный JSON. Проверьте:
 - Правильность синтаксиса JSON (кавычки, запятые, скобки)
-- Заголовок `Content-Type: application/json`
 - Кодировка UTF-8
+
+> Заголовок `Content-Type: application/json` — это отдельная проверка, которая идёт **до** попытки распарсить тело. Если он не указан или указан неверно (например, `application/x-www-form-urlencoded` при отправке формой), бандл вернёт не `-32700 Parse error`, а `-32600 Invalid Request` с `additionalInfo: "Content-Type must be application/json."`, даже если тело содержит валидный JSON.

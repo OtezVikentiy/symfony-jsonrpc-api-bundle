@@ -7,6 +7,8 @@ use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
 use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
 use OV\JsonRPCAPIBundle\DependencyInjection\OVJsonRPCAPIExtension;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
+use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 final class OVJsonRPCAPIExtensionTest extends TestCase
@@ -16,6 +18,21 @@ final class OVJsonRPCAPIExtensionTest extends TestCase
         $extension = new OVJsonRPCAPIExtension();
 
         $this->assertSame('ov_json_rpc_api', $extension->getAlias());
+    }
+
+    public function testContainerIsNotAliasedForConsumerAutowiring(): void
+    {
+        $container = new ContainerBuilder();
+        $extension = new OVJsonRPCAPIExtension();
+
+        $extension->load([], $container);
+
+        $this->assertFalse(
+            $container->hasAlias(Container::class),
+            'The bundle must not alias the DI Container to @service_container: any consumer service '
+                . 'autowiring Container would receive the whole application container instead of the '
+                . 'narrow ServiceLocator this bundle needs internally.',
+        );
     }
 
     public function testLoadRegistersDefaultParameters(): void
@@ -28,7 +45,8 @@ final class OVJsonRPCAPIExtensionTest extends TestCase
         $this->assertTrue($container->getParameter('ov_json_rpc_api.strict_notifications'));
         $this->assertFalse($container->getParameter('ov_json_rpc_api.allow_extra_fields'));
         $this->assertFalse($container->getParameter('ov_json_rpc_api.expose_internal_errors'));
-        $this->assertTrue($container->getParameter('ov_json_rpc_api.cors_strict'));
+        $this->assertFalse($container->hasParameter('ov_json_rpc_api.cors_strict'));
+        $this->assertSame(['Content-Type'], $container->getParameter('ov_json_rpc_api.cors_allowed_headers'));
         $this->assertSame(1048576, $container->getParameter('ov_json_rpc_api.max_payload_bytes'));
         $this->assertSame(64, $container->getParameter('ov_json_rpc_api.max_json_depth'));
         $this->assertSame(50, $container->getParameter('ov_json_rpc_api.max_batch_size'));
@@ -46,14 +64,14 @@ final class OVJsonRPCAPIExtensionTest extends TestCase
                 'strict_notifications' => false,
                 'max_batch_size' => 10,
                 'access_control_allow_origin_list' => ['https://api.example.com'],
-                'cors_strict' => false,
+                'cors_allowed_headers' => ['Content-Type', 'X-AUTH-TOKEN'],
             ],
         ], $container);
 
         $this->assertFalse($container->getParameter('ov_json_rpc_api.strict_notifications'));
         $this->assertSame(10, $container->getParameter('ov_json_rpc_api.max_batch_size'));
         $this->assertSame(['https://api.example.com'], $container->getParameter('ov_json_rpc_api.access_control_allow_origin_list'));
-        $this->assertFalse($container->getParameter('ov_json_rpc_api.cors_strict'));
+        $this->assertSame(['Content-Type', 'X-AUTH-TOKEN'], $container->getParameter('ov_json_rpc_api.cors_allowed_headers'));
     }
 
     public function testLoadRegistersAutoconfigurationForApiMethodInterface(): void
@@ -183,6 +201,35 @@ final class OVJsonRPCAPIExtensionTest extends TestCase
             (string) $container->getAlias(JsonRpcCallLoggerInterface::class),
             'enabled=false is a kill-switch that beats call_logger_service',
         );
+    }
+
+    public function testLoadRegistersNonEmptyDefaultMaskingPatternsAndNonZeroMaxBodyLength(): void
+    {
+        $container = new ContainerBuilder();
+        $extension = new OVJsonRPCAPIExtension();
+
+        $extension->load([], $container);
+
+        $this->assertNotEmpty($container->getParameter('ov_json_rpc_api.logging.masking.key_patterns'));
+        $this->assertGreaterThan(0, $container->getParameter('ov_json_rpc_api.logging.max_body_length'));
+    }
+
+    public function testLoadFailsContainerBuildOnInvalidMaskingRegex(): void
+    {
+        $container = new ContainerBuilder();
+        $extension = new OVJsonRPCAPIExtension();
+
+        $this->expectException(InvalidConfigurationException::class);
+
+        $extension->load([
+            [
+                'logging' => [
+                    'masking' => [
+                        'key_patterns' => ['not a valid regex('],
+                    ],
+                ],
+            ],
+        ], $container);
     }
 
     public function testBothOverridesCanCoexist(): void

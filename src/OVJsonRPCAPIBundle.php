@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 /*
  * This file is part of the OtezVikentiy Json RPC API package.
  *
@@ -20,7 +22,7 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 final class OVJsonRPCAPIBundle extends AbstractBundle
 {
     /** @noinspection PhpUnused */
-    public function getContainerExtension(): ?ExtensionInterface
+    public function getContainerExtension(): ExtensionInterface
     {
         return new OVJsonRPCAPIExtension();
     }

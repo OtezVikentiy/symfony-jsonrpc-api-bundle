@@ -1,19 +1,25 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OV\JsonRPCAPIBundle\Core\Services;
 
 use OV\JsonRPCAPIBundle\Core\Response\BaseJsonResponseInterface;
+use OV\JsonRPCAPIBundle\Core\Response\CorsPreflightResponse;
 use OV\JsonRPCAPIBundle\Core\Response\ErrorResponse;
 use OV\JsonRPCAPIBundle\Core\Response\JsonResponse;
 use Symfony\Component\HttpFoundation\JsonResponse as SymfonyJsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
+/**
+ * @internal
+ */
 final readonly class ResponseService
 {
     public function __construct(
         private HeadersPreparer $headersPreparer,
-        private ?ErrorSanitizer $errorSanitizer = null,
+        private ErrorSanitizer $errorSanitizer,
     ) {
     }
 
@@ -26,8 +32,18 @@ final readonly class ResponseService
 
     public function prepareErrorResponse(Throwable $error, mixed $id): JsonResponse
     {
-        $sanitized = $this->errorSanitizer?->sanitize($error) ?? $error;
+        return $this->prepareJsonResponse(new ErrorResponse(error: $this->errorSanitizer->sanitize($error), id: $id));
+    }
 
-        return $this->prepareJsonResponse(new ErrorResponse(error: $sanitized, id: $id));
+    /**
+     * @param string[] $allowedMethods methods actually declared on the preflighted route
+     */
+    public function preparePreflightResponse(array $allowedMethods): CorsPreflightResponse
+    {
+        return new CorsPreflightResponse(
+            '',
+            Response::HTTP_NO_CONTENT,
+            $this->headersPreparer->preparePreflightHeaders($allowedMethods),
+        );
     }
 }

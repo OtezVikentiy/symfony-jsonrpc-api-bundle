@@ -164,6 +164,7 @@ trait RpcPostProcessorTrait
 namespace App\RPC\V1;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use OV\JsonRPCAPIBundle\Core\PreProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\PostProcessorInterface;
 use App\RPC\V1\GetProduct\Request;
@@ -172,7 +173,7 @@ use App\RPC\RpcPreProcessorTrait;
 use App\RPC\RpcPostProcessorTrait;
 
 #[JsonRPCAPI(methodName: 'getProduct', type: 'POST')]
-class GetProductMethod implements PreProcessorInterface, PostProcessorInterface
+class GetProductMethod implements ApiMethodInterface, PreProcessorInterface, PostProcessorInterface
 {
     use RpcPreProcessorTrait;
     use RpcPostProcessorTrait;

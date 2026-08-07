@@ -1,7 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OV\JsonRPCAPIBundle\Swagger\Informational;
 
+/**
+ * @internal
+ */
 final readonly class Contact
 {
     public function __construct(

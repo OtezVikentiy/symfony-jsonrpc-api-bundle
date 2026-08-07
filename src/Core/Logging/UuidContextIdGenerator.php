@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 /*
  * This file is part of the OtezVikentiy Json RPC API package.
  *
@@ -13,13 +15,13 @@ namespace OV\JsonRPCAPIBundle\Core\Logging;
 final class UuidContextIdGenerator implements ContextIdGeneratorInterface
 {
     /**
-     * @throws \Random\RandomException when the OS CSPRNG is unavailable (extremely rare runtime failure).
+     * @throws \Random\RandomException when the OS CSPRNG is unavailable (extremely rare runtime failure)
      */
     public function generate(): string
     {
         $data = random_bytes(16);
-        $data[6] = chr((ord($data[6]) & 0x0f) | 0x40); // version 4
-        $data[8] = chr((ord($data[8]) & 0x3f) | 0x80); // variant 10x
+        $data[6] = chr((ord($data[6]) & 0x0F) | 0x40); // version 4
+        $data[8] = chr((ord($data[8]) & 0x3F) | 0x80); // variant 10x
 
         return vsprintf(
             '%s%s-%s-%s-%s-%s%s%s',

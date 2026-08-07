@@ -51,7 +51,7 @@ final class BatchStrategyFactoryTest extends TestCase
         $this->assertInstanceOf(SingleBatchStrategy::class, $strategy);
     }
 
-    public function testArrayWithoutJsonrpcReturnsSingleStrategy(): void
+    public function testListWithoutJsonrpcIsStillABatch(): void
     {
         $data = [
             ['foo' => 'bar'],
@@ -59,10 +59,10 @@ final class BatchStrategyFactoryTest extends TestCase
 
         $strategy = BatchStrategyFactory::createBatchStrategy($data);
 
-        $this->assertInstanceOf(SingleBatchStrategy::class, $strategy);
+        $this->assertInstanceOf(MultiBatchStrategy::class, $strategy);
     }
 
-    public function testArrayWithoutMethodReturnsSingleStrategy(): void
+    public function testListWithoutMethodIsStillABatch(): void
     {
         $data = [
             ['jsonrpc' => '2.0'],
@@ -70,16 +70,16 @@ final class BatchStrategyFactoryTest extends TestCase
 
         $strategy = BatchStrategyFactory::createBatchStrategy($data);
 
-        $this->assertInstanceOf(SingleBatchStrategy::class, $strategy);
+        $this->assertInstanceOf(MultiBatchStrategy::class, $strategy);
     }
 
-    public function testNonArrayFirstElementReturnsSingleStrategy(): void
+    public function testListWithScalarFirstElementIsStillABatch(): void
     {
         $data = ['some_string'];
 
         $strategy = BatchStrategyFactory::createBatchStrategy($data);
 
-        $this->assertInstanceOf(SingleBatchStrategy::class, $strategy);
+        $this->assertInstanceOf(MultiBatchStrategy::class, $strategy);
     }
 
     public function testBatchWithSingleItemReturnsMultiStrategy(): void

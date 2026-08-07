@@ -2,10 +2,10 @@
 
 [Русская версия](./README.md)
 
-[![PHP Version](https://img.shields.io/badge/php-%3E%3D8.2-8892BF.svg)](https://php.net/)
-[![Symfony Version](https://img.shields.io/badge/symfony-%3E%3D6.4-000000.svg)](https://symfony.com/)
+[![PHP Version](https://img.shields.io/badge/php-8.2%20--%208.5-8892BF.svg)](https://php.net/)
+[![Symfony Version](https://img.shields.io/badge/symfony-%5E6.4%20%7C%7C%20%5E7.0%20%7C%7C%20%5E8.0-000000.svg)](https://symfony.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-4.2-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
+[![Version](https://img.shields.io/badge/version-5.0-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
 [![Coverage](https://img.shields.io/badge/coverage-91%25-brightgreen.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
 
 A Symfony bundle for fast and convenient creation of JSON-RPC 2.0 API applications.
@@ -31,8 +31,8 @@ GitHub: https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle
 
 ## Requirements
 
-- PHP >= 8.2
-- Symfony >= 6.4
+- PHP 8.2 – 8.5
+- Symfony ^6.4 || ^7.0 || ^8.0
 
 ---
 
@@ -261,6 +261,7 @@ Classes marked with the `#[JsonRPCAPI]` attribute are automatically discovered a
 | [JsonRpcRequest Base Class](./docs/json_rpc_request.md) | `toArray()` method, recursive serialization |
 | [Partial updates (JSON Merge Patch)](./docs/partial_updates.md) | `PartialRequestInterface`, `wasProvided()`, RFC 7396 semantics |
 | [Troubleshooting / FAQ](./docs/troubleshooting.md) | Common problems and their solutions |
+| [**Upgrade Guide 4.x → 5.0**](./docs/upgrade-5.0.en.md) | **Every BC-breaking change in 5.0, what breaks and what to do about it** |
 | [CHANGELOG](./CHANGELOG.md) | Version history |
 
 ---
@@ -461,13 +462,13 @@ Restrict method access by roles via the `roles` attribute:
     type: 'POST',
     roles: ['ROLE_ADMIN', 'ROLE_SUPER_ADMIN']
 )]
-class DeleteUserMethod
+class DeleteUserMethod implements ApiMethodInterface
 {
     public function call(Request $request): Response { /* ... */ }
 }
 ```
 
-Returns HTTP 403 if the user lacks the required role.
+If the user lacks the required role, the bundle returns a normal JSON-RPC error object with code `-32000` and HTTP status 200 — **not** HTTP 403: `{"jsonrpc": "2.0", "error": {"code": -32000, "message": "Access denied."}, "id": ...}`.
 
 ### Authentication
 
@@ -505,8 +506,8 @@ See [docs/testing.md](./docs/testing.md) for guidance on writing tests for your 
 
 | Parameter | Default | Description |
 |-----------|:-------:|-------------|
-| `access_control_allow_origin_list` | `[]` | Allowed CORS origins. Use `['*']` for wildcard, or list exact origins for matching against the request `Origin` header. |
-| `cors_strict` | `true` | When `true`, origins not in the whitelist receive no CORS header. When `false`, falls back to the legacy comma-joined header (non-compliant; for backwards compatibility only). |
+| `access_control_allow_origin_list` | `[]` | Allowed CORS origins. Use `['*']` for wildcard, or list exact origins for matching against the request `Origin` header. Origins outside the list receive no CORS header at all — the legacy comma-joined fallback no longer exists. |
+| `cors_allowed_headers` | `['Content-Type']` | Headers allowed in the CORS preflight response (`Access-Control-Allow-Headers`). The bundle handles `OPTIONS` preflight requests itself. |
 | `strict_notifications` | `true` | Strict JSON-RPC 2.0 Notification compliance. When `true` — server does not respond to notifications (per spec). When `false` — server returns a response even for notifications if the result is non-empty (legacy 3.x behaviour). |
 | `allow_extra_fields` | `false` | When `false`, request params containing fields not declared on the Request DTO are rejected with `INVALID_PARAMS`. Can be overridden per-method via the `#[JsonRPCAPI(allowExtraFields: true)]` attribute. |
 | `expose_internal_errors` | `false` | When `false` (production-safe), uncaught non-`JRPCException` throwables are replaced with a generic `Internal error.` payload and the original is sent to the logger. Set to `true` only in dev to expose raw exception messages. |
@@ -515,6 +516,16 @@ See [docs/testing.md](./docs/testing.md) for guidance on writing tests for your 
 | `max_batch_size` | `50` | Maximum number of requests allowed in a single JSON-RPC batch. Larger batches return a single `INVALID_REQUEST` error. |
 | `max_dto_depth` | `10` | Maximum recursion depth when hydrating nested Request DTO objects. Prevents stack/memory exhaustion via deeply nested payloads. |
 | `max_array_param_size` | `1000` | Maximum element count for array parameters bound through `addX()` adders. |
+| `logging.enabled` | `false` | Request and response logging. Everything else under `logging.*` applies only when this is `true`. |
+| `logging.request_level` | `'info'` | PSR-3 level for the incoming request entry. |
+| `logging.response_level` | `'info'` | PSR-3 level for a successful response entry. |
+| `logging.error_response_level` | `'warning'` | PSR-3 level for an error response entry. |
+| `logging.max_body_length` | `8192` | Truncation of request and response bodies in the log, in characters. `0` disables truncation. **The 4.x default was `0`.** |
+| `logging.skip_plain_responses` | `true` | Do not log the body of `PlainResponseInterface` responses (files, streams). |
+| `logging.logger_service` | `null` | Service id of the PSR-3 logger `JsonRpcCallLogger` writes to. |
+| `logging.call_logger_service` | `null` | Service id replacing the `JsonRpcCallLoggerInterface` implementation outright. |
+| `logging.masking.placeholder` | `'***'` | What replaces the value of a masked field. |
+| `logging.masking.key_patterns` | 29 patterns | Regular expressions for field and header names whose values are masked (`password`, `token`, `secret`, `authorization`, `jwt` and others). **The 4.x default was `[]`, meaning no masking at all.** Supplying your own list replaces the defaults rather than adding to them. An invalid expression fails container compilation. |
 | `swagger` | — | Swagger configuration per API version. |
 | `swagger.*.api_version` | `'1'` | API version number. |
 | `swagger.*.base_path` | — | Production server URL. |
@@ -522,7 +533,7 @@ See [docs/testing.md](./docs/testing.md) for guidance on writing tests for your 
 | `swagger.*.base_path_variables` | `[]` | Variables for base_path substitution. |
 | `swagger.*.test_path_variables` | `[]` | Variables for test_path substitution. |
 | `swagger.*.auth_token_name` | — | Authorization token header name. |
-| `swagger.*.auth_token_test_value` | — | Test token value. |
+| `swagger.*.auth_token_test_value` | — | Test token value. **Currently unused:** only `auth_token_name` reaches the OpenAPI security scheme; the value is substituted nowhere. Kept so existing configs keep compiling. |
 | `swagger.*.info` | — | API information (title, description, contact, license). |
 
 > **Security hardening:** see [docs/security_hardening.md](./docs/security_hardening.md) for recommended values, rationale, and tuning tips for high-volume APIs.
@@ -542,6 +553,7 @@ See [docs/testing.md](./docs/testing.md) for guidance on writing tests for your 
 | `roles` | array | no | `[]` | Required roles for access |
 | `ignoreInSwagger` | bool | no | `false` | Exclude method from Swagger documentation |
 | `group` | ?string | no | `null` | Swagger path group (e.g., `'products'` -> `/products/get_product`) |
+| `allowExtraFields` | bool | no | `false` | Accept fields in `params` that the Request DTO does not declare. Overrides the global `allow_extra_fields` for this method and applies at every nesting level. |
 
 ---
 
@@ -557,6 +569,10 @@ See [docs/testing.md](./docs/testing.md) for guidance on writing tests for your 
 | `-32000` | `SERVER_ERROR` | Server error |
 
 ---
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the development setup, test requirements, and PR expectations. To report a vulnerability, see [SECURITY.md](./SECURITY.md) — please do not open a public issue.
 
 ## License
 

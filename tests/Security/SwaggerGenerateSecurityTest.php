@@ -65,13 +65,28 @@ final class SwaggerGenerateSecurityTest extends TestCase
         $this->assertSame(Command::FAILURE, $exit);
     }
 
-    private function buildCommandTester(string $path): CommandTester
+    public function testSanitizesConfigKeyUsedAsFileName(): void
+    {
+        $tester = $this->buildCommandTester($this->sandboxDir, '../../../../../../tmp/ovrpc-swagger-escape');
+
+        $exit = $tester->execute([]);
+
+        try {
+            $this->assertSame(Command::SUCCESS, $exit);
+            $this->assertFileDoesNotExist('/tmp/ovrpc-swagger-escape.yaml');
+            $this->assertFileExists($this->sandboxDir . '/ovrpc-swagger-escape.yaml');
+        } finally {
+            @unlink('/tmp/ovrpc-swagger-escape.yaml');
+        }
+    }
+
+    private function buildCommandTester(string $path, string $configKey = 'api_v1'): CommandTester
     {
         $application = new Application();
         $application->add(new SwaggerGenerate(
             $path,
             [
-                'api_v1' => [
+                $configKey => [
                     'api_version' => '1',
                     'base_path' => 'https://api.example.com',
                     'base_path_description' => 'prod',

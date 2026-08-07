@@ -1,7 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OV\JsonRPCAPIBundle\Swagger;
 
+/**
+ * @internal
+ */
 final readonly class RequestBody
 {
     public function __construct(
@@ -15,9 +20,9 @@ final readonly class RequestBody
         return [
             'application/json' => [
                 'schema' => [
-                    '$ref' => sprintf('#/components/schemas/%s', $this->contentRef)
-                ]
-            ]
+                    '$ref' => sprintf('#/components/schemas/%s', $this->contentRef),
+                ],
+            ],
         ];
     }
 
@@ -25,7 +30,7 @@ final readonly class RequestBody
     {
         return [
             'description' => $this->description,
-            'content' => $this->getContentRef()
+            'content' => $this->getContentRef(),
         ];
     }
 }

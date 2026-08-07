@@ -89,6 +89,26 @@ final class SensitiveDataMaskerTest extends TestCase
         self::assertSame('invalid(', $logger->records[0]['context']['pattern']);
     }
 
+    /**
+     * `logging.masking.key_patterns` is declared with Symfony's scalarPrototype(), which accepts
+     * any scalar - not just strings - so a misconfigured YAML value (e.g. `true` instead of a
+     * quoted regex) reaches the constructor as-is. Before this test's fix, a non-string entry was
+     * stored as though it were a valid pattern and only failed once matched against a real key,
+     * where preg_match() under strict_types throws a TypeError instead of returning false - masking
+     * broke on the very first logged request instead of degrading to "skip and warn" like every
+     * other invalid pattern here.
+     */
+    public function testNonStringPatternIsSkippedAndWarnedInsteadOfCrashing(): void
+    {
+        $logger = new TestLogger();
+        $masker = new SensitiveDataMasker(['~^password$~i', true], '***', $logger);
+
+        $result = $masker->mask(['password' => 'x', 'other' => 'y']);
+
+        self::assertSame(['password' => '***', 'other' => 'y'], $result);
+        self::assertTrue($logger->hasWarningRecords());
+    }
+
     public function testInvalidRegexWarnsOnlyOnce(): void
     {
         $logger = new TestLogger();
@@ -110,5 +130,95 @@ final class SensitiveDataMaskerTest extends TestCase
         $masker = new SensitiveDataMasker(['~^token$~'], '[REDACTED]', new NullLogger());
 
         self::assertSame(['token' => '[REDACTED]'], $masker->mask(['token' => 'x']));
+    }
+
+    public function testMergesMultiplePatternsWithTheSameFlags(): void
+    {
+        $masker = new SensitiveDataMasker(
+            ['~^password$~i', '~^token$~i', '~^secret$~i'],
+            '***',
+            new NullLogger(),
+        );
+
+        $result = $masker->mask(['password' => 'a', 'TOKEN' => 'b', 'secret' => 'c', 'other' => 'd']);
+
+        self::assertSame(
+            ['password' => '***', 'TOKEN' => '***', 'secret' => '***', 'other' => 'd'],
+            $result,
+        );
+    }
+
+    public function testGroupsPatternsWithDifferentFlagsSeparately(): void
+    {
+        $masker = new SensitiveDataMasker(
+            ['~^password$~i', '~^Token$~'],
+            '***',
+            new NullLogger(),
+        );
+
+        $caseInsensitiveMatch = $masker->mask(['PASSWORD' => 'a']);
+        self::assertSame(['PASSWORD' => '***'], $caseInsensitiveMatch);
+
+        $caseSensitiveNoMatch = $masker->mask(['token' => 'b']);
+        self::assertSame(['token' => 'b'], $caseSensitiveNoMatch, 'the case-sensitive pattern "Token" must not match lowercase "token"');
+
+        $caseSensitiveMatch = $masker->mask(['Token' => 'c']);
+        self::assertSame(['Token' => '***'], $caseSensitiveMatch);
+    }
+
+    public function testValidPatternStillMatchesWhenMixedWithAnInvalidOne(): void
+    {
+        $logger = new TestLogger();
+        $masker = new SensitiveDataMasker(
+            ['~^password$~i', 'invalid(', '~^secret$~i'],
+            '***',
+            $logger,
+        );
+
+        $result = $masker->mask(['password' => 'a', 'secret' => 'b', 'other' => 'c']);
+
+        self::assertSame(['password' => '***', 'secret' => '***', 'other' => 'c'], $result);
+        self::assertTrue($logger->hasWarningRecords());
+    }
+
+    public function testAnchoredPatternsDoNotBleedAcrossMergedAlternatives(): void
+    {
+        $masker = new SensitiveDataMasker(
+            ['~^password$~i', '~^token$~i'],
+            '***',
+            new NullLogger(),
+        );
+
+        $result = $masker->mask(['passwordtoken' => 'should not match either anchored pattern']);
+
+        self::assertSame(['passwordtoken' => 'should not match either anchored pattern'], $result);
+    }
+
+    /**
+     * Merging renumbers capturing groups, so a pattern referring back to one by number silently
+     * starts matching something else. The damage shows up only in company: alone the pattern works,
+     * and adding an unrelated group-bearing entry to the list is what stops it masking.
+     */
+    public function testBackreferencePatternKeepsMaskingWhenOtherGroupPatternsArePresent(): void
+    {
+        $alone = new SensitiveDataMasker(['~(x)y\1~i'], '***', new NullLogger());
+        $inCompany = new SensitiveDataMasker(['~(a)b\1~i', '~(x)y\1~i'], '***', new NullLogger());
+
+        self::assertSame(['xyx' => '***'], $alone->mask(['xyx' => 'secret']));
+        self::assertSame(['xyx' => '***'], $inCompany->mask(['xyx' => 'secret']));
+    }
+
+    public function testGSyntaxBackreferenceSurvivesTheSameWay(): void
+    {
+        $masker = new SensitiveDataMasker(['~(a)b\1~i', '~(z)w\g{1}~i'], '***', new NullLogger());
+
+        self::assertSame(['zwz' => '***', 'aba' => '***'], $masker->mask(['zwz' => 'secret', 'aba' => 'secret']));
+    }
+
+    public function testConditionalOnAGroupNumberIsNotMerged(): void
+    {
+        $masker = new SensitiveDataMasker(['~(a)b\1~i', '~(q)?r(?(1)s|t)~i'], '***', new NullLogger());
+
+        self::assertSame(['qrs' => '***'], $masker->mask(['qrs' => 'secret']));
     }
 }

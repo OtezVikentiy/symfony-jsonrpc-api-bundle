@@ -1,7 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OV\JsonRPCAPIBundle\Swagger\Informational;
 
+/**
+ * @internal
+ */
 final readonly class Openapi
 {
     public function __construct(
@@ -41,7 +46,7 @@ final readonly class Openapi
             $result['servers'] = $servers;
         }
 
-        $filteredTags = array_values(array_filter($this->tags, fn($tag) => !empty($tag)));
+        $filteredTags = array_values(array_filter($this->tags, fn ($tag) => !empty($tag)));
         if (!empty($filteredTags)) {
             $result['tags'] = $filteredTags;
         }

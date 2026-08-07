@@ -6,6 +6,7 @@ use OV\JsonRPCAPIBundle\Core\JRPCException;
 use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
 use OV\JsonRPCAPIBundle\Core\Response\JsonResponse;
 use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
+use OV\JsonRPCAPIBundle\Core\Services\ErrorSanitizer;
 use OV\JsonRPCAPIBundle\Core\Services\HeadersPreparer;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler\SingleBatchStrategy;
@@ -26,7 +27,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\NotifyHello\NotifyHelloRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\NotifyHelloMethod;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\DependencyInjection\Container;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -36,7 +37,7 @@ final class RequestHandlerTest extends TestCase
         MethodSpecCollection $specCollection,
         bool $isGranted = true,
         array $violations = [],
-        ?Container $container = null,
+        ?ServiceLocator $locator = null,
         bool $strictNotifications = false,
     ): RequestHandler {
         $security = $this->createMock(Security::class);
@@ -47,10 +48,10 @@ final class RequestHandlerTest extends TestCase
         $validator->method('validate')->willReturn($violationList);
 
         $headersPreparer = new HeadersPreparer(['*']);
-        $responseService = new ResponseService($headersPreparer);
+        $responseService = new ResponseService($headersPreparer, new ErrorSanitizer());
 
-        if (is_null($container)) {
-            $container = $this->createMock(Container::class);
+        if (is_null($locator)) {
+            $locator = $this->createMock(ServiceLocator::class);
         }
 
         return new RequestHandler(
@@ -58,21 +59,21 @@ final class RequestHandlerTest extends TestCase
             $specCollection,
             $validator,
             $headersPreparer,
-            $container,
+            $locator,
             $responseService,
             new NullJsonRpcCallLogger(),
             $strictNotifications,
         );
     }
 
-    private function createContainerWithMethod(string $methodClass): Container
+    private function createLocatorWithMethod(string $methodClass): ServiceLocator
     {
-        $container = $this->createMock(Container::class);
+        $locator = $this->createMock(ServiceLocator::class);
         $instance = new $methodClass();
-        $container->method('get')->willReturnMap([
-            [$methodClass, 1, $instance],
+        $locator->method('get')->willReturnMap([
+            [$methodClass, $instance],
         ]);
-        return $container;
+        return $locator;
     }
 
     public function testProcessBatchSuccessfulRequest(): void
@@ -99,8 +100,8 @@ final class RequestHandlerTest extends TestCase
         );
         $specCollection->addMethodSpec(1, 'subtract', $methodSpec);
 
-        $container = $this->createContainerWithMethod(SubtractMethod::class);
-        $handler = $this->createRequestHandler($specCollection, container: $container);
+        $locator = $this->createLocatorWithMethod(SubtractMethod::class);
+        $handler = $this->createRequestHandler($specCollection, locator: $locator);
 
         $batch = [
             'jsonrpc' => '2.0',
@@ -213,7 +214,10 @@ final class RequestHandlerTest extends TestCase
         $result = $handler->processBatch($batch, 1, 'POST');
 
         $this->assertInstanceOf(JsonResponse::class, $result);
-        $this->assertEquals(403, $result->getStatusCode());
+        $this->assertEquals(200, $result->getStatusCode());
+        $content = json_decode($result->getContent(), true);
+        $this->assertEquals(JRPCException::SERVER_ERROR, $content['error']['code']);
+        $this->assertEquals('1', $content['id']);
     }
 
     public function testProcessBatchRolesAllowed(): void
@@ -241,8 +245,8 @@ final class RequestHandlerTest extends TestCase
         );
         $specCollection->addMethodSpec(1, 'test', $methodSpec);
 
-        $container = $this->createContainerWithMethod(TestMethod::class);
-        $handler = $this->createRequestHandler($specCollection, isGranted: true, container: $container);
+        $locator = $this->createLocatorWithMethod(TestMethod::class);
+        $handler = $this->createRequestHandler($specCollection, isGranted: true, locator: $locator);
 
         $batch = [
             'jsonrpc' => '2.0',
@@ -309,8 +313,8 @@ final class RequestHandlerTest extends TestCase
         );
         $specCollection->addMethodSpec(1, 'subtract', $methodSpec);
 
-        $container = $this->createContainerWithMethod(SubtractMethod::class);
-        $handler = $this->createRequestHandler($specCollection, container: $container);
+        $locator = $this->createLocatorWithMethod(SubtractMethod::class);
+        $handler = $this->createRequestHandler($specCollection, locator: $locator);
 
         $batch = [
             'jsonrpc' => '2.0',
@@ -350,9 +354,9 @@ final class RequestHandlerTest extends TestCase
         );
         $specCollection->addMethodSpec(1, 'notify_hello', $methodSpec);
 
-        $container = $this->createContainerWithMethod(NotifyHelloMethod::class);
+        $locator = $this->createLocatorWithMethod(NotifyHelloMethod::class);
         // strictNotifications: false (default) — notification with non-empty response still returns data
-        $handler = $this->createRequestHandler($specCollection, container: $container, strictNotifications: false);
+        $handler = $this->createRequestHandler($specCollection, locator: $locator, strictNotifications: false);
 
         $batch = [
             'jsonrpc' => '2.0',
@@ -390,9 +394,9 @@ final class RequestHandlerTest extends TestCase
         );
         $specCollection->addMethodSpec(1, 'subtract', $methodSpec);
 
-        $container = $this->createContainerWithMethod(SubtractMethod::class);
+        $locator = $this->createLocatorWithMethod(SubtractMethod::class);
         // strictNotifications: true — per JSON-RPC 2.0 spec, no response for notifications
-        $handler = $this->createRequestHandler($specCollection, container: $container, strictNotifications: true);
+        $handler = $this->createRequestHandler($specCollection, locator: $locator, strictNotifications: true);
 
         $batch = [
             'jsonrpc' => '2.0',
@@ -406,4 +410,56 @@ final class RequestHandlerTest extends TestCase
         // Strict mode: notification MUST NOT get a response (JSON-RPC 2.0 spec)
         $this->assertNull($result);
     }
+
+    /**
+     * CompilerPass verifies at container-compile time that every attributed RPC method class
+     * has a public call() method, so this path is not reachable through normal bundle wiring.
+     * It guards against a differently-wired ServiceLocator (a hand-built container, a bug in a
+     * future refactor of CompilerPass) handing back something that was never validated - before
+     * the guard, this fell straight through to `$processor->call(...)` and crashed with an
+     * uncaught Error instead of a JSON-RPC error response.
+     */
+    public function testProcessBatchProcessorWithoutCallMethodReturnsInternalError(): void
+    {
+        $specCollection = new MethodSpecCollection();
+        $methodSpec = new MethodSpec(
+            methodClass: NotCallableProcessorFixture::class,
+            requestType: 'POST',
+            methodName: 'notCallable',
+            requestMetadata: new RequestMetadata(
+                request: null,
+                allParameters: [],
+                requiredParameters: [],
+                requestGetters: [],
+                requestSetters: [],
+                requestAdders: [],
+                validators: [],
+            ),
+            swaggerMetadata: new SwaggerMetadata(
+                summary: '',
+                description: '',
+                ignoreInSwagger: false,
+            ),
+        );
+        $specCollection->addMethodSpec(1, 'notCallable', $methodSpec);
+
+        $locator = $this->createLocatorWithMethod(NotCallableProcessorFixture::class);
+        $handler = $this->createRequestHandler($specCollection, locator: $locator);
+
+        $batch = [
+            'jsonrpc' => '2.0',
+            'method' => 'notCallable',
+            'id' => '1',
+        ];
+
+        $result = $handler->processBatch($batch, 1, 'POST');
+
+        $this->assertInstanceOf(OvResponseInterface::class, $result);
+        $content = json_decode($result->getContent(), true);
+        $this->assertEquals(JRPCException::INTERNAL_ERROR, $content['error']['code']);
+    }
+}
+
+final class NotCallableProcessorFixture
+{
 }

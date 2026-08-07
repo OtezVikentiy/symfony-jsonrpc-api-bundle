@@ -167,7 +167,7 @@ final class JsonRpcRequestTest extends TestCase
         $result = $request->toArray();
 
         $this->assertArrayHasKey('date', $result);
-        $this->assertInstanceOf(\DateTime::class, $result['date']);
+        $this->assertSame((new \DateTime('2024-01-01'))->format(DATE_ATOM), $result['date']);
     }
 
     public function testToArrayWithObjectHavingToArrayMethod(): void

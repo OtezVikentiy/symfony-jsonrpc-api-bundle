@@ -9,10 +9,23 @@
 ov_json_rpc_api:
     logging:
         enabled: true
+```
+
+Этого достаточно: с 5.0 маскирование работает из коробки — `key_patterns` содержит 29 паттернов, а тела обрезаются до 8192 символов.
+
+> ⚠️ **`key_patterns` — замена списка, а не дополнение.** Задав свой список, вы выключаете все 29 дефолтных. И задавайте паттерны **без якорей**: `~^password$~i` не поймает `user_password`, `pwd_hash` или `X-Auth-Token` — то есть ровно те имена, за которыми секреты обычно и прячутся. Дефолтный список неякорный намеренно, разбор причины — в docblock `Configuration::DEFAULT_MASKING_KEY_PATTERNS`. Если нужно добавить своё, скопируйте дефолты и дополните:
+
+```yaml
+ov_json_rpc_api:
+    logging:
+        enabled: true
         masking:
             key_patterns:
-                - '~^(password|secret|token|authorization)$~i'
-                - '~^card_number$~i'
+                # ... сюда скопируйте нужные из Configuration::DEFAULT_MASKING_KEY_PATTERNS ...
+                - '~password~i'
+                - '~token~i'
+                # ... и добавьте свои, тоже без якорей
+                - '~internal_ref~i'
 ```
 
 ## Дефолтный формат
@@ -32,12 +45,22 @@ Response: [get_billing_operations] {"jsonrpc":"2.0","result":{"count":7},"id":1}
 | `logging.request_level` | `info` | PSR-3 уровень для Request. |
 | `logging.response_level` | `info` | PSR-3 уровень для успешных Response. |
 | `logging.error_response_level` | `warning` | PSR-3 уровень для Response с error-объектом. |
-| `logging.max_body_length` | `0` | Обрезка body после маскировки (0 = без обрезки). Маркер `...[truncated, N total bytes]`. |
+| `logging.max_body_length` | `8192` | Обрезка body после маскировки (0 = без обрезки, не рекомендуется). Маркер `...[truncated, N total bytes]`. |
 | `logging.skip_plain_responses` | `true` | Для `PlainResponseInterface` body заменяется на `[plain response, N bytes]`. |
 | `logging.masking.placeholder` | `***` | Что подставлять вместо матченных значений. |
-| `logging.masking.key_patterns` | `[]` | Список PCRE-регексов. Совпадение по имени ключа JSON — значение целиком заменяется на placeholder. Применяется рекурсивно на любой глубине. |
+| `logging.masking.key_patterns` | набор regex-ов для типовых имён секретов (`password`, `token`, `jwt`, `secret`, `api_key`, `authorization`, `session_id`, `card_number`, `cvv`, `ssn`, `cert`, …) | Список PCRE-регексов. Совпадение по имени ключа JSON — значение целиком заменяется на placeholder. Применяется рекурсивно на любой глубине. Битый регекс валится на этапе сборки контейнера (`InvalidConfigurationException`), а не молча отключает маскировку в рантайме. Полный список — `Configuration::DEFAULT_MASKING_KEY_PATTERNS`. |
 | `logging.logger_service` | `null` | ID Symfony-сервиса PSR-3 `LoggerInterface`, который бандл использует как sink (см. «Кастомный PSR-3 логгер»). `null` = стандартный `@logger`. |
 | `logging.call_logger_service` | `null` | ID Symfony-сервиса, реализующего `JsonRpcCallLoggerInterface`. Подменяет всю high-level обвязку бандла (pairing/encoding/masking). Учитывается только при `enabled: true` (см. «Полная замена JsonRpcCallLoggerInterface»). |
+
+> **Изменение дефолтов (breaking change).** Начиная с этой версии `logging.masking.key_patterns` и `logging.max_body_length` больше не пустые/нулевые по умолчанию. Если вы уже используете `logging.enabled: true` без явной настройки маскировки, в логах начнут появляться `***` там, где раньше были полные значения, а длинные тела будут обрезаться маркером `...[truncated, N total bytes]`. Чтобы вернуть старое поведение — задайте `key_patterns: []` и/или `max_body_length: 0` явно.
+
+`method` в записи лога всегда обрезается до 128 символов и экранируется (`\r`, `\n`, `\t`, прочие control-байты) до попадания в message — это защита от log injection через ещё не провалидированное значение `method` и не зависит от `max_body_length`.
+
+> **Ограничение маскирования: только по имени ключа.** `SensitiveDataMasker` смотрит исключительно на имя ключа JSON, а не на форму значения. Секрет, попавший в поле с неподходящим именем, замаскирован не будет — например, `"note": "my password is hunter2"` или произвольная JSON-строка, вложенная как значение (сериализованная вручную), не совпадут ни с одним `key_patterns`, даже если внутри буквально лежит пароль. То же с JWT: паттерн `~jwt~i` матчит поле по имени (`jwt`, `jwt_token`), но не опознаёт токен по характерной форме `xxx.yyy.zzz` — если тот же токен передан в поле `access_token` (уже покрыт `~token~i`) всё в порядке, а вот в поле с произвольным именем (`value`, `data`, `payload`) — нет. Это архитектурное свойство маскера, а не забытый паттерн: значение-ориентированное обнаружение (например, детекция JWT по форме) в этой версии не реализовано.
+
+> **Следствие: позиционные параметры не маскируются никогда.** Спецификация разрешает передавать `params` массивом (раздел 4.2), и элементы такого массива не имеют имён — только порядковые номера. Маскировать нечего по имени, поэтому `{"method":"login","params":["alice","hunter2"]}` уходит в лог как есть при любом списке паттернов. Если метод принимает секреты и логирование включено — передавайте параметры по имени (`{"login":"alice","password":"hunter2"}`), тогда `password` попадёт под дефолтный паттерн.
+
+> **Паттерн с обратной ссылкой на номер группы не участвует в слиянии.** Для скорости паттерны с одинаковыми флагами склеиваются в одну альтернацию, а это перенумеровывает группы захвата — паттерн вида `~(x)y\1~` после склейки указывал бы на чужую группу и продолжал бы компилироваться и матчиться, просто не то. Такие паттерны (`\1`, `\g{1}`, `(?(1)…)`) проверяются по отдельности. На корректность это не влияет, на скорость — незначительно; именованные группы можно использовать свободно.
 
 ## Переопределение формата
 
@@ -124,7 +147,7 @@ services:
         alias: App\Infrastructure\Logger\MyCustomLogger
 ```
 
-Если заданы оба — побеждает `logger_service` (применяется после YAML на этапе компиляции). Сервис должен реализовывать `Psr\Log\LoggerInterface`. Бандл по-прежнему отвечает за pairing, маскировку, обрезку body и формирование message/context/level через `JsonRpcLogFormatterInterface`; кастомный логгер получает финальный `log($level, $message, $context)` со всеми его handler/processor.
+Если заданы оба — побеждает alias в `services.yaml` (проектный `services.yaml` разрешается раньше, чем компилируется расширение бандла, и подставленный там alias накладывается поверх результата компиляции — подробности и полная таблица приоритетов ниже, в разделе «Приоритет override-механизмов»). Сервис должен реализовывать `Psr\Log\LoggerInterface`. Бандл по-прежнему отвечает за pairing, маскировку, обрезку body и формирование message/context/level через `JsonRpcLogFormatterInterface`; кастомный логгер получает финальный `log($level, $message, $context)` со всеми его handler/processor.
 
 ### Разделение по monolog-каналам
 
@@ -157,25 +180,30 @@ services:
         alias: App\Logging\MyJsonRpcCallLogger
 ```
 
-`logging.enabled: false` остаётся **kill-switch**: при выключенном логировании бандл всегда подставит `NullJsonRpcCallLogger`, игнорируя оба override. Если задано и через config, и через alias — выигрывает `call_logger_service`.
+`logging.enabled: false` — kill-switch **только пока вы не задали alias вручную в `services.yaml`**: если alias на `JsonRpcCallLoggerInterface` прописан в проектном `services.yaml`, он победит даже при `enabled: false`. Если задано и через config (`call_logger_service`), и через alias в `services.yaml` — выигрывает alias. Подробности — в разделе «Приоритет override-механизмов» ниже.
 
 Контракт интерфейса (`logRequest` / `logRawRequest` / `logResponse`) — см. `src/Core/Logging/JsonRpcCallLoggerInterface.php`. При своей реализации `JsonRpcLogFormatterInterface`, `SensitiveDataMaskerInterface`, `ContextIdGeneratorInterface` бандлом не используются — вы их можете подключать или нет на своё усмотрение.
 
 ## Приоритет override-механизмов
 
+> **Важно, если вы полагаетесь на `logging.enabled: false` как на способ гарантированно выключить логирование:** alias, заданный в вашем собственном `config/services.yaml`, побеждает **всё**, включая kill-switch. Ниже — фактический порядок, проверенный интеграционным тестом на реальном `ContainerBuilder` (а не только предположением о том, как должен вести себя Symfony DI).
+
+Причина в механике Symfony DI: `config/services.yaml` проекта обрабатывается и попадает в контейнер раньше, чем компилируется расширение бандла. `MergeExtensionConfigurationPass` запоминает уже существующие definitions/aliases контейнера **до** вызова `OVJsonRPCAPIExtension::load()`, а после мерджа результатов extension обратно накладывает эти исходные aliases поверх — так что то, что явно прописано в вашем `services.yaml`, всегда оказывается «последним словом», независимо от того, что решил сделать бандл.
+
 PSR-3 logger (`ov_json_rpc_api.logger`):
 
-1. `logging.enabled: false` → не имеет значения, в любом случае `NullJsonRpcCallLogger` ничего не пишет.
-2. `logging.logger_service` (config) — выигрывает.
-3. `ov_json_rpc_api.logger` alias в `services.yaml` — fallback.
-4. Default — `@logger`.
+1. **`ov_json_rpc_api.logger` alias в вашем `services.yaml` — выигрывает всегда**, даже если конфиг ничего не задаёт.
+2. `logging.logger_service` (config) — применяется, если alias в `services.yaml` не переопределён.
+3. Default — `@logger` (регистрируется bundle-собственным `config/services.yaml`).
 
 `JsonRpcCallLoggerInterface`:
 
-1. `logging.enabled: false` → `NullJsonRpcCallLogger`, kill-switch.
-2. `logging.call_logger_service` (config) — выигрывает.
-3. `JsonRpcCallLoggerInterface` alias в `services.yaml` — fallback.
-4. Default — `JsonRpcCallLogger`.
+1. **`JsonRpcCallLoggerInterface` alias в вашем `services.yaml` — выигрывает всегда**, даже над `logging.enabled: false`. Если вы вручную прописали alias на свой логгер, выключить его через `enabled: false` не получится — удалите alias из `services.yaml`, если нужен настоящий kill-switch.
+2. `logging.enabled: false` → `NullJsonRpcCallLogger`, kill-switch, если alias в `services.yaml` не задан.
+3. `logging.call_logger_service` (config) — применяется, если `enabled: true` и alias в `services.yaml` не задан.
+4. Default — `JsonRpcCallLogger` (при `enabled: true`).
+
+Другими словами: `services.yaml` — это ручной, явный override, который стоит **выше** и config-ключей, и kill-switch'а. Config-ключи (`logger_service` / `call_logger_service`) — способ переопределить sink без ручного вмешательства в `services.yaml`; `logging.enabled` — дефолтный переключатель на случай, когда ни то, ни другое не задано.
 
 ## Производительность
 

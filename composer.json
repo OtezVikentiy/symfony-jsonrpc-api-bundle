@@ -1,9 +1,6 @@
 {
   "name": "otezvikentiy/json-rpc-api",
   "description": "Symfony Json RPC API bundle",
-  "version": "4.2",
-  "stability": "stable",
-  "minimum-stability": "stable",
   "keywords": [
     "symfony",
     "bundle",
@@ -28,18 +25,26 @@
     }
   },
   "require": {
-    "php": ">=8.2",
-    "doctrine/annotations": ">=2.0",
-    "symfony/framework-bundle": ">=6.4",
-    "symfony/yaml": ">=6.4",
-    "symfony/validator": ">=6.4",
-    "symfony/serializer": ">=6.4",
-    "symfony/console": ">=6.4",
-    "symfony/security-bundle": ">=6.4"
+    "php": "8.2.* || 8.3.* || 8.4.* || 8.5.*",
+    "psr/log": "^1.1 || ^2.0 || ^3.0",
+    "symfony/config": "^6.4 || ^7.0 || ^8.0",
+    "symfony/dependency-injection": "^6.4 || ^7.0 || ^8.0",
+    "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
+    "symfony/http-foundation": "^6.4 || ^7.0 || ^8.0",
+    "symfony/http-kernel": "^6.4 || ^7.0 || ^8.0",
+    "symfony/routing": "^6.4 || ^7.0 || ^8.0",
+    "symfony/yaml": "^6.4 || ^7.0 || ^8.0",
+    "symfony/validator": "^6.4 || ^7.0 || ^8.0",
+    "symfony/serializer": "^6.4 || ^7.0 || ^8.0",
+    "symfony/console": "^6.4 || ^7.0 || ^8.0",
+    "symfony/security-bundle": "^6.4 || ^7.0 || ^8.0",
+    "symfony/string": "^6.4 || ^7.0 || ^8.0"
   },
   "require-dev": {
+    "friendsofphp/php-cs-fixer": "^3.95",
+    "phpstan/phpstan": "^2.0",
     "phpunit/phpunit": "11.*",
-    "symfony/property-access": ">=6.4"
+    "symfony/property-access": "^6.4 || ^7.0 || ^8.0"
   },
   "authors": [
     {
@@ -48,5 +53,20 @@
       "homepage": "https://otezvikentiy.tech",
       "role": "Creator"
     }
-  ]
+  ],
+  "config": {
+    "sort-packages": true
+  },
+  "scripts": {
+    "test": "phpunit --no-coverage",
+    "lint": "find src tests -name '*.php' -print0 | xargs -0 -n1 php -l",
+    "stan": "phpstan analyse --no-progress",
+    "cs": "php-cs-fixer fix --dry-run --diff",
+    "ci": [
+      "@lint",
+      "@stan",
+      "@cs",
+      "@test"
+    ]
+  }
 }

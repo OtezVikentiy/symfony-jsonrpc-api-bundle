@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 /*
  * This file is part of the OtezVikentiy Json RPC API package.
  *
@@ -11,14 +13,14 @@
 namespace OV\JsonRPCAPIBundle\DependencyInjection;
 
 use Exception;
-use Symfony\Component\Config\FileLocator;
-use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Extension\Extension;
-use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLogger;
 use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
 use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
+use Symfony\Component\Config\FileLocator;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Extension\Extension;
+use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 
 /**
  * Symfony bundle extension.
@@ -27,13 +29,13 @@ use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
  *   - `ov_json_rpc_api.logger` — PSR-3 LoggerInterface used internally by JsonRpcCallLogger.
  *   - JsonRpcCallLoggerInterface — top-level call logger; off-switch (logging.enabled=false) forces NullJsonRpcCallLogger.
  */
-
 final class OVJsonRPCAPIExtension extends Extension
 {
     private const LOGGER_ALIAS_ID = 'ov_json_rpc_api.logger';
 
     /**
      * @noinspection PhpUnused
+     *
      * @throws Exception
      */
     public function load(array $configs, ContainerBuilder $container): void
@@ -49,10 +51,10 @@ final class OVJsonRPCAPIExtension extends Extension
 
         $container->setParameter($this->getAlias() . '.swagger', $config['swagger']);
         $container->setParameter($this->getAlias() . '.access_control_allow_origin_list', $config['access_control_allow_origin_list']);
+        $container->setParameter($this->getAlias() . '.cors_allowed_headers', $config['cors_allowed_headers']);
         $container->setParameter($this->getAlias() . '.strict_notifications', $config['strict_notifications']);
         $container->setParameter($this->getAlias() . '.allow_extra_fields', $config['allow_extra_fields']);
         $container->setParameter($this->getAlias() . '.expose_internal_errors', $config['expose_internal_errors']);
-        $container->setParameter($this->getAlias() . '.cors_strict', $config['cors_strict']);
         $container->setParameter($this->getAlias() . '.max_payload_bytes', $config['max_payload_bytes']);
         $container->setParameter($this->getAlias() . '.max_json_depth', $config['max_json_depth']);
         $container->setParameter($this->getAlias() . '.max_batch_size', $config['max_batch_size']);
@@ -61,6 +63,10 @@ final class OVJsonRPCAPIExtension extends Extension
 
         // --- logging ---
         $loggingCfg = $config['logging'];
+        // Nothing inside the bundle reads this one: the decision it drives is taken here, by
+        // aliasing NullJsonRpcCallLogger instead. It is still exported, because an application has
+        // no other way to ask whether bundle logging is on - and because dropping a published
+        // container parameter would break anyone already referencing it.
         $container->setParameter($this->getAlias() . '.logging.enabled', $loggingCfg['enabled']);
         $container->setParameter($this->getAlias() . '.logging.request_level', $loggingCfg['request_level']);
         $container->setParameter($this->getAlias() . '.logging.response_level', $loggingCfg['response_level']);

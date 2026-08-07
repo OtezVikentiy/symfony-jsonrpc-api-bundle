@@ -26,6 +26,8 @@ final class JsonRpcCallLoggerTest extends TestCase
         array $maskPatterns = [],
         int $maxBodyLength = 0,
         bool $skipPlain = true,
+        int $maxJsonDepth = 64,
+        int $maxPayloadBytes = 1048576,
     ): JsonRpcCallLogger {
         $generator = new class implements ContextIdGeneratorInterface {
             public int $counter = 0;
@@ -41,6 +43,8 @@ final class JsonRpcCallLoggerTest extends TestCase
             contextIdGenerator: $generator,
             maxBodyLength: $maxBodyLength,
             skipPlainResponses: $skipPlain,
+            maxJsonDepth: $maxJsonDepth,
+            maxPayloadBytes: $maxPayloadBytes,
         );
     }
 
@@ -167,6 +171,50 @@ final class JsonRpcCallLoggerTest extends TestCase
         ]);
 
         self::assertStringContainsString('...[truncated,', $sink->records[0]['message']);
+    }
+
+    public function testMethodIsTruncatedIndependentlyOfMaxBodyLength(): void
+    {
+        $sink = new TestLogger();
+        // max_body_length is tight (200), matching the audit's measurement setup: the attacker-controlled
+        // method must be bounded on its own, not merely as a side effect of the overall body truncation.
+        $logger = $this->makeLogger($sink, [], maxBodyLength: 200);
+
+        $hugeMethod = str_repeat('x', 50173);
+        $call = $logger->logRequest(['method' => $hugeMethod, 'id' => 1]);
+
+        self::assertSame(128, strlen((string) $call->method));
+        self::assertLessThan(50173, strlen($sink->records[0]['message']));
+        self::assertStringNotContainsString($hugeMethod, $sink->records[0]['message']);
+    }
+
+    public function testLogRawRequestBoundsDecodeToMaxPayloadBytes(): void
+    {
+        $sink = new TestLogger();
+        // A tiny maxPayloadBytes forces the raw body to be truncated before json_decode ever runs.
+        // Without that bound the full body below is valid JSON and would decode, method and all.
+        $logger = $this->makeLogger($sink, [], maxPayloadBytes: 10);
+
+        $rawBody = '{"method":"evil","params":"' . str_repeat('x', 1000) . '"}';
+        $call = $logger->logRawRequest($rawBody);
+
+        self::assertNull($call->method);
+        self::assertStringContainsString('[unparseable body,', $sink->records[0]['message']);
+        self::assertStringNotContainsString('evil', $sink->records[0]['message']);
+        self::assertStringNotContainsString(str_repeat('x', 1000), $sink->records[0]['message']);
+    }
+
+    public function testLogRawRequestBoundsDecodeToMaxJsonDepth(): void
+    {
+        $sink = new TestLogger();
+        $logger = $this->makeLogger($sink, [], maxJsonDepth: 5);
+
+        // 200 levels of nesting: well within PHP's default json_decode depth (512), so without the
+        // maxJsonDepth bound this decodes successfully; with it, decoding must fail past depth 5.
+        $deeplyNested = str_repeat('[', 200) . '1' . str_repeat(']', 200);
+        $logger->logRawRequest($deeplyNested);
+
+        self::assertStringContainsString('[unparseable body,', $sink->records[0]['message']);
     }
 
     public function testInternalFailureIsSwallowedAndScopeReturned(): void

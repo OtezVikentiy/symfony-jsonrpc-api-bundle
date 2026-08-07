@@ -4,6 +4,7 @@ namespace OV\JsonRPCAPIBundle\Tests\Core\Services;
 
 use OV\JsonRPCAPIBundle\Core\JRPCException;
 use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
+use OV\JsonRPCAPIBundle\Core\Services\ErrorSanitizer;
 use OV\JsonRPCAPIBundle\Core\Services\HeadersPreparer;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 use OV\JsonRPCAPIBundle\Core\Services\ResponseService;
@@ -15,7 +16,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\Subtract\SubtractRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\SubtractMethod;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\DependencyInjection\Container;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -79,13 +80,13 @@ final class HttpMethodEnforcementTest extends TestCase
         $validator = $this->createMock(ValidatorInterface::class);
         $validator->method('validate')->willReturn(new ConstraintViolationList());
 
-        $container = $this->createMock(Container::class);
+        $container = $this->createMock(ServiceLocator::class);
         $container->method('get')->willReturnMap([
-            [SubtractMethod::class, 1, new SubtractMethod()],
+            [SubtractMethod::class, new SubtractMethod()],
         ]);
 
         $headersPreparer = new HeadersPreparer(['*']);
-        $responseService = new ResponseService($headersPreparer);
+        $responseService = new ResponseService($headersPreparer, new ErrorSanitizer());
 
         return new RequestHandler(
             $security,

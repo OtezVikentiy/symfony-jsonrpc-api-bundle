@@ -2,11 +2,11 @@
 
 namespace OV\JsonRPCAPIBundle\Tests\Controller;
 
-use Doctrine\Common\Annotations\AnnotationReader;
 use OV\JsonRPCAPIBundle\Controller\ApiController;
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
 use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
+use OV\JsonRPCAPIBundle\Core\Services\ErrorSanitizer;
 use OV\JsonRPCAPIBundle\Core\Services\HeadersPreparer;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 use OV\JsonRPCAPIBundle\Core\Services\RequestRawDataHandler;
@@ -15,9 +15,10 @@ use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ServiceLocator;
+use Symfony\Component\HttpFoundation\HeaderBag;
 use Symfony\Component\HttpFoundation\InputBag;
+use Symfony\Component\HttpFoundation\ServerBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Serializer\DataCollector\SerializerDataCollector;
 use Symfony\Component\Serializer\Debug\TraceableNormalizer;
@@ -32,7 +33,7 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 abstract class AbstractControllerTestCase extends TestCase
 {
     private ?MethodSpecCollection $methodSpecCollection = null;
-    private ?Container $container = null;
+    private ?ServiceLocator $processorLocator = null;
     private ?ServiceLocator $serviceLocator = null;
     private ?ValidatorInterface $validator = null;
     private ?Security $security = null;
@@ -45,11 +46,12 @@ abstract class AbstractControllerTestCase extends TestCase
     protected bool $allowExtraFields = false;
     protected bool $useRealValidator = false;
     protected ?JsonRpcCallLoggerInterface $callLoggerOverride = null;
+    protected bool $isGranted = true;
 
     protected function tearDown(): void
     {
         $this->methodSpecCollection = null;
-        $this->container = null;
+        $this->processorLocator = null;
         $this->serviceLocator = null;
         $this->validator = null;
         $this->security = null;
@@ -96,7 +98,10 @@ abstract class AbstractControllerTestCase extends TestCase
 
     private function prepareResponseService(): void
     {
-        $this->responseService = new ResponseService($this->headersPreparer);
+        $this->responseService = new ResponseService(
+            $this->headersPreparer,
+            new ErrorSanitizer(exposeInternalErrors: false),
+        );
     }
 
     private function prepareRequestRawDataHandler(): void
@@ -111,7 +116,7 @@ abstract class AbstractControllerTestCase extends TestCase
             $this->methodSpecCollection,
             $this->validator,
             $this->headersPreparer,
-            $this->container,
+            $this->processorLocator,
             $this->responseService,
             $this->callLoggerOverride ?? new NullJsonRpcCallLogger(),
             allowExtraFields: $this->allowExtraFields,
@@ -125,12 +130,26 @@ abstract class AbstractControllerTestCase extends TestCase
 
     private function prepareRequest(array|string $data, ?MethodSpec $methodSpec = null, int $version = 1): void
     {
+        $methodType = !is_null($methodSpec) ? $methodSpec->getRequestType() : 'POST';
+
+        // A GET method takes its payload from the query string, not from a body, so a harness that
+        // always fills the body can only ever exercise half the transports the bundle supports -
+        // and a GET spec used to reach RequestRawDataHandler with an empty query bag and fail with
+        // -32603 for reasons that had nothing to do with the test.
+        $isGet = $methodType === Request::METHOD_GET;
+        $queryData = is_array($data) ? $data : (json_decode($data, true) ?? []);
+
         $request = $this->createMock(Request::class);
         $request->request = new InputBag([]);
+        $request->headers = new HeaderBag(['Content-Type' => 'application/json']);
+        $request->query = new InputBag($isGet && is_array($queryData) ? $queryData : []);
+        $request->server = new ServerBag(
+            $isGet ? ['QUERY_STRING' => http_build_query(is_array($queryData) ? $queryData : [])] : []
+        );
         $request
             ->expects($this->any())
             ->method('getMethod')
-            ->willReturn(!is_null($methodSpec) ? $methodSpec->getRequestType() : 'POST');
+            ->willReturn($methodType);
         $request
             ->expects($this->any())
             ->method('getPathInfo')
@@ -145,24 +164,18 @@ abstract class AbstractControllerTestCase extends TestCase
 
     private function prepareMethodSpecCollection(array $methodSpecs): void
     {
-        $annotationReader = new AnnotationReader();
         $methodSpecCollection = new MethodSpecCollection();
 
-        $container = $this->createMock(Container::class);
+        $processorLocator = $this->createMock(ServiceLocator::class);
         $preProcessors = [];
         foreach ($methodSpecs as $methodSpec) {
             $class = $methodSpec->getMethodClass();
             $methodReflectionClass = new \ReflectionClass(new $class());
-            $classAnnotation = $annotationReader->getClassAnnotation($methodReflectionClass, JsonRPCAPI::class);
             $methodName = null;
-            if (!is_null($classAnnotation)) {
-                $methodName = $classAnnotation->getMethodName();
-            } else {
-                $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
-                foreach ($attributes as $attribute) {
-                    if ($attribute->getName() === JsonRPCAPI::class) {
-                        $methodName = $attribute->getArguments()['methodName'];
-                    }
+            $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
+            foreach ($attributes as $attribute) {
+                if ($attribute->getName() === JsonRPCAPI::class) {
+                    $methodName = $attribute->getArguments()['methodName'];
                 }
             }
 
@@ -170,23 +183,23 @@ abstract class AbstractControllerTestCase extends TestCase
                 throw new \Exception('Could not define method name');
             }
             $methodSpecCollection->addMethodSpec(1, $methodName, $methodSpec);
-            $preProcessors[] = [$class, 1, new $class()];
+            $preProcessors[] = [$class, new $class()];
         }
 
         $serializer = $this->serviceLocator->get('serializer');
-        $container
+        $processorLocator
             ->expects($this->any())
             ->method('has')
             ->with($this->identicalTo('serializer'))
             ->willReturn(true);
-        $preProcessors[] = ['serializer', 1, $serializer];
-        $container
+        $preProcessors[] = ['serializer', $serializer];
+        $processorLocator
             ->expects($this->any())
             ->method('get')
             ->willReturnMap($preProcessors);
 
         $this->methodSpecCollection = $methodSpecCollection;
-        $this->container = $container;
+        $this->processorLocator = $processorLocator;
     }
 
     private function prepareServiceLocator(): void
@@ -249,7 +262,7 @@ abstract class AbstractControllerTestCase extends TestCase
         $security
             ->expects($this->any())
             ->method('isGranted')
-            ->willReturn(true);
+            ->willReturn($this->isGranted);
 
         $this->security = $security;
     }

@@ -5,6 +5,7 @@ namespace OV\JsonRPCAPIBundle\Tests\Security;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
 use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
 use OV\JsonRPCAPIBundle\Core\Request\BaseRequest;
+use OV\JsonRPCAPIBundle\Core\Services\ErrorSanitizer;
 use OV\JsonRPCAPIBundle\Core\Services\HeadersPreparer;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 use OV\JsonRPCAPIBundle\Core\Services\ResponseService;
@@ -18,7 +19,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\CreateSomeMethod;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\DependencyInjection\Container;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -74,7 +75,7 @@ final class ArrayParamLimitTest extends TestCase
                 requiredParameters: [],
                 requestGetters: ['tokens' => 'getTokens'],
                 requestSetters: ['tokens' => 'setTokens'],
-                requestAdders: ['token' => 'addToken'],
+                requestAdders: ['tokens' => 'addToken'],
                 validators: [],
             ),
             swaggerMetadata: new SwaggerMetadata(
@@ -101,14 +102,14 @@ final class ArrayParamLimitTest extends TestCase
         $validator->method('validate')->willReturn(new ConstraintViolationList());
 
         $headersPreparer = new HeadersPreparer(['*']);
-        $responseService = new ResponseService($headersPreparer);
+        $responseService = new ResponseService($headersPreparer, new ErrorSanitizer());
 
         return new RequestHandler(
             $security,
             new MethodSpecCollection(),
             $validator,
             $headersPreparer,
-            $this->createMock(Container::class),
+            $this->createMock(ServiceLocator::class),
             $responseService,
             new NullJsonRpcCallLogger(),
             maxArrayParamSize: $maxArrayParamSize,

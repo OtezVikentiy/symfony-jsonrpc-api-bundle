@@ -1,10 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 
 use OV\JsonRPCAPIBundle\Core\Response\JsonResponse;
 use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
 
+/**
+ * @internal
+ */
 final class SingleBatchStrategy implements HandleBatchInterface
 {
     public function handleBatch(array $batch, int $version, string $methodType, callable $batchProcessor): OvResponseInterface
@@ -12,7 +17,7 @@ final class SingleBatchStrategy implements HandleBatchInterface
         $response = $batchProcessor($batch, $version, $methodType);
 
         if (is_null($response)) {
-            return new JsonResponse($response);
+            return new JsonResponse(data: '', json: true);
         }
 
         return $response;

@@ -1,7 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OV\JsonRPCAPIBundle\Swagger;
 
+/**
+ * @internal
+ */
 final readonly class Response
 {
     public function __construct(
@@ -16,9 +21,9 @@ final readonly class Response
         return [
             'application/json' => [
                 'schema' => [
-                    '$ref' => sprintf('#/components/schemas/%s', $this->contentRef)
-                ]
-            ]
+                    '$ref' => sprintf('#/components/schemas/%s', $this->contentRef),
+                ],
+            ],
         ];
     }
 
@@ -26,7 +31,7 @@ final readonly class Response
     {
         return [
             'description' => $this->description,
-            'content' => $this->getContentRef()
+            'content' => $this->getContentRef(),
         ];
     }
 

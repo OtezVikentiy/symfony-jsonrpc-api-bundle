@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 /*
  * This file is part of the OtezVikentiy Json RPC API package.
  *
@@ -13,6 +15,9 @@ namespace OV\JsonRPCAPIBundle\DependencyInjection;
 use Exception;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
 
+/**
+ * @internal
+ */
 final class MethodSpecCollection
 {
     private array $methodSpecs = [];
@@ -42,16 +47,10 @@ final class MethodSpecCollection
     }
 
     /**
-     * @return MethodSpec[]
+     * @return array<int, array<string, MethodSpec>>
      */
     public function getAllMethods(): array
     {
         return $this->methodSpecs;
-    }
-
-    /** @noinspection PhpUnused */
-    public function getMethodNames(): array
-    {
-        return array_keys($this->methodSpecs);
     }
 }

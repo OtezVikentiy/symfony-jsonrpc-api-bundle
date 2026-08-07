@@ -1,8 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 
-readonly class RequestMetadata
+/**
+ * @internal
+ */
+final readonly class RequestMetadata
 {
     public function __construct(
         private ?string $request,
