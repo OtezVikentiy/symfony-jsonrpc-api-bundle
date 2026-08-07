@@ -50,6 +50,17 @@ final class Configuration implements ConfigurationInterface
         '~cvc~i',
         '~ssn~i',
         '~cert~i',
+        '~bearer~i',
+        '~\bauth\b|auth[_-]~i',
+        '~signature~i',
+        '~\bsign\b|sign[_-]~i',
+        '~hmac~i',
+        '~\bpin\b|pin[_-]~i',
+        '~\botp\b|otp[_-]~i',
+        '~\bsalt\b|salt[_-]~i',
+        '~\bhash\b|hash[_-]|[_-]hash~i',
+        '~iban~i',
+        '~\bpan\b|pan[_-]~i',
     ];
 
     /**

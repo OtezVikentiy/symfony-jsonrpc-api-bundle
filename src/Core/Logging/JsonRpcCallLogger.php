@@ -95,12 +95,13 @@ final class JsonRpcCallLogger implements JsonRpcCallLoggerInterface
     {
         try {
             $totalLength = strlen($rawBody);
-            $boundedBody = $totalLength > $this->maxPayloadBytes
-                ? substr($rawBody, 0, $this->maxPayloadBytes)
-                : $rawBody;
+            $decodeBudget = $this->decodeBudget();
 
             $method = null;
-            $decoded = json_decode($boundedBody, true, max(1, $this->maxJsonDepth));
+            $decoded = $totalLength > $decodeBudget
+                ? null
+                : json_decode($rawBody, true, max(1, $this->maxJsonDepth));
+
             if (is_array($decoded)) {
                 $method = $this->extractMethod($decoded);
                 $body = $this->encodeBody($this->masker->mask($decoded));
@@ -171,6 +172,27 @@ final class JsonRpcCallLogger implements JsonRpcCallLoggerInterface
         $isErrorResponse = array_key_exists(self::RESPONSE_ERROR_KEY, $decoded);
 
         return [$this->encodeBody($this->masker->mask($decoded)), $isErrorResponse];
+    }
+
+    /**
+     * How much of a raw body is worth decoding on the error path.
+     *
+     * logRawRequest() runs after the request was already refused - which is the path an attacker
+     * picks, and the body that reaches it can be as large as max_payload_bytes allows. Decoding all
+     * of it, walking it recursively to mask keys and encoding it back only to truncate the result to
+     * max_body_length turned the size limit into its own amplifier: a rejected 1 MiB payload cost
+     * roughly 1700 times what an ordinary request costs. Nothing beyond max_body_length can appear
+     * in the log line, so nothing beyond it is decoded; a larger body is recorded by its size alone.
+     * This is the same trade already made for a batch refused by max_batch_size.
+     *
+     * max_body_length of zero means "do not truncate", and then the payload limit is the only bound
+     * left.
+     */
+    private function decodeBudget(): int
+    {
+        return $this->maxBodyLength > 0
+            ? min($this->maxBodyLength, $this->maxPayloadBytes)
+            : $this->maxPayloadBytes;
     }
 
     private function encodeBody(array $data): string

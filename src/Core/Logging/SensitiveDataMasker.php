@@ -20,6 +20,13 @@ final class SensitiveDataMasker implements SensitiveDataMaskerInterface
     private const WARNING_CONTEXT_KEY_PATTERN = 'pattern';
     private const MERGE_DELIMITER = "\x01";
 
+    /**
+     * A backslash before a digit or a `g` is a numbered backreference; `(?(` opens a conditional
+     * that selects on one. Deliberately blunt - a false positive costs one extra preg_match call,
+     * a false negative costs a secret in the log.
+     */
+    private const GROUP_NUMBER_REFERENCE_PATTERN = '/\\\\[0-9g]|\(\?\(/';
+
     /** @var array<string, true> */
     private array $invalidPatternsWarned = [];
 
@@ -134,6 +141,12 @@ final class SensitiveDataMasker implements SensitiveDataMaskerInterface
             }
 
             [$body, $flags] = $parsed;
+
+            if (self::dependsOnGroupNumbering($body)) {
+                $individualPatterns[] = $pattern;
+                continue;
+            }
+
             $groupsByFlags[$flags]['bodies'][] = $body;
             $groupsByFlags[$flags]['patterns'][] = $pattern;
         }
@@ -153,6 +166,25 @@ final class SensitiveDataMasker implements SensitiveDataMaskerInterface
         }
 
         return [$mergedPatterns, $individualPatterns];
+    }
+
+    /**
+     * Tells whether a pattern reads the number a capturing group was assigned.
+     *
+     * Merging renumbers every group, because the bodies are concatenated into one alternation. A
+     * pattern that only *creates* groups does not care, but one that refers back to them by number
+     * starts pointing at a group belonging to another pattern - and it keeps compiling and keeps
+     * matching, just not the thing it was written to match. The failure is silent in the worst
+     * direction: `~(x)y\1~i` masks the key `xyx` on its own, and stops masking it the moment any
+     * other group-bearing pattern joins the list, so a secret starts reaching the log because an
+     * unrelated entry was added. Such patterns stay out of the merge and are matched on their own.
+     *
+     * Named groups need no such treatment: a duplicated name fails to compile, and the merged
+     * pattern is then rejected wholesale by the existing check.
+     */
+    private static function dependsOnGroupNumbering(string $body): bool
+    {
+        return preg_match(self::GROUP_NUMBER_REFERENCE_PATTERN, $body) === 1;
     }
 
     /**

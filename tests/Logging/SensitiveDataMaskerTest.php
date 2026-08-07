@@ -193,4 +193,32 @@ final class SensitiveDataMaskerTest extends TestCase
 
         self::assertSame(['passwordtoken' => 'should not match either anchored pattern'], $result);
     }
+
+    /**
+     * Merging renumbers capturing groups, so a pattern referring back to one by number silently
+     * starts matching something else. The damage shows up only in company: alone the pattern works,
+     * and adding an unrelated group-bearing entry to the list is what stops it masking.
+     */
+    public function testBackreferencePatternKeepsMaskingWhenOtherGroupPatternsArePresent(): void
+    {
+        $alone = new SensitiveDataMasker(['~(x)y\1~i'], '***', new NullLogger());
+        $inCompany = new SensitiveDataMasker(['~(a)b\1~i', '~(x)y\1~i'], '***', new NullLogger());
+
+        self::assertSame(['xyx' => '***'], $alone->mask(['xyx' => 'secret']));
+        self::assertSame(['xyx' => '***'], $inCompany->mask(['xyx' => 'secret']));
+    }
+
+    public function testGSyntaxBackreferenceSurvivesTheSameWay(): void
+    {
+        $masker = new SensitiveDataMasker(['~(a)b\1~i', '~(z)w\g{1}~i'], '***', new NullLogger());
+
+        self::assertSame(['zwz' => '***', 'aba' => '***'], $masker->mask(['zwz' => 'secret', 'aba' => 'secret']));
+    }
+
+    public function testConditionalOnAGroupNumberIsNotMerged(): void
+    {
+        $masker = new SensitiveDataMasker(['~(a)b\1~i', '~(q)?r(?(1)s|t)~i'], '***', new NullLogger());
+
+        self::assertSame(['qrs' => '***'], $masker->mask(['qrs' => 'secret']));
+    }
 }
