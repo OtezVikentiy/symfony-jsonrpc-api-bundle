@@ -16,9 +16,6 @@ use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\ServiceLocator;
-use Symfony\Component\HttpFoundation\HeaderBag;
-use Symfony\Component\HttpFoundation\InputBag;
-use Symfony\Component\HttpFoundation\ServerBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Serializer\DataCollector\SerializerDataCollector;
 use Symfony\Component\Serializer\Debug\TraceableNormalizer;
@@ -138,28 +135,29 @@ abstract class AbstractControllerTestCase extends TestCase
         // -32603 for reasons that had nothing to do with the test.
         $isGet = $methodType === Request::METHOD_GET;
         $queryData = is_array($data) ? $data : (json_decode($data, true) ?? []);
+        $body = is_array($data) ? json_encode($data, JSON_UNESCAPED_UNICODE) : $data;
 
-        $request = $this->createMock(Request::class);
-        $request->request = new InputBag([]);
-        $request->headers = new HeaderBag(['Content-Type' => 'application/json']);
-        $request->query = new InputBag($isGet && is_array($queryData) ? $queryData : []);
-        $request->server = new ServerBag(
-            $isGet ? ['QUERY_STRING' => http_build_query(is_array($queryData) ? $queryData : [])] : []
+        // A real Request rather than a mock. The mock had to be told what every accessor
+        // returns and had its bags assigned from outside, which is two descriptions of one
+        // object that can disagree - and on Symfony 8 they stopped agreeing outright: the
+        // bags became typed properties, so a doubled Request reached the code uninitialised
+        // and every controller test came back -32603 for a reason that had nothing to do
+        // with the bundle. Request::create() builds the query bag, QUERY_STRING and the
+        // Content-Type header from one source, the way the framework does at runtime.
+        $uri = sprintf('/api/v%d', $version);
+        if ($isGet && is_array($queryData) && $queryData !== []) {
+            $uri .= '?' . http_build_query($queryData);
+        }
+
+        $this->request = Request::create(
+            $uri,
+            $methodType,
+            [],
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            $body,
         );
-        $request
-            ->expects($this->any())
-            ->method('getMethod')
-            ->willReturn($methodType);
-        $request
-            ->expects($this->any())
-            ->method('getPathInfo')
-            ->willReturn(sprintf('/api/v%d', $version));
-        $request
-            ->expects($this->any())
-            ->method('getContent')
-            ->willReturn(is_array($data) ? json_encode($data, JSON_UNESCAPED_UNICODE) : $data);
-
-        $this->request = $request;
     }
 
     private function prepareMethodSpecCollection(array $methodSpecs): void

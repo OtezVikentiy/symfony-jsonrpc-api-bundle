@@ -9,7 +9,6 @@ use OV\JsonRPCAPIBundle\Core\Services\ResponseService;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
 use RuntimeException;
-use Stringable;
 
 final class ErrorSanitizationTest extends TestCase
 {
@@ -78,7 +77,10 @@ final class InMemoryLogger extends AbstractLogger
 {
     public array $records = [];
 
-    public function log($level, string|Stringable $message, array $context = []): void
+    // Untyped $message on purpose: psr/log 1.x declares log() without parameter types, and a
+    // child narrowing to string|Stringable is an incompatible signature there. The manifest
+    // allows ^1.1 || ^2.0 || ^3.0, so the double has to satisfy the loosest of the three.
+    public function log($level, $message, array $context = []): void
     {
         $this->records[] = [
             'level' => $level,

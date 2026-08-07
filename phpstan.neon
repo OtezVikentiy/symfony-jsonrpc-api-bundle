@@ -3,6 +3,13 @@ parameters:
     paths:
         - src
 
+    # The manifest allows ^6.4 || ^7.0 || ^8.0, so the same source is analysed
+    # against three different sets of Symfony type declarations, and what each
+    # one can prove differs. An ignore that is required on 6.4 goes unused on 8
+    # and vice versa, so an unmatched ignore here means "another branch needed
+    # it", not "this one is stale".
+    reportUnmatchedIgnoredErrors: false
+
     ignoreErrors:
         # Symfony's Config Definition Builder fluent API returns the generic
         # NodeParentInterface from end(), not the concrete NodeBuilder that
@@ -16,7 +23,21 @@ parameters:
         -
             message: '#^Call to an undefined method Symfony\\Component\\Config\\Definition\\Builder\\NodeParentInterface::\w+\(\)\.$#'
             path: src/DependencyInjection/Configuration.php
-            count: 1
+
+        # Same fluent API, different wording: on Symfony 6.4 end() is typed
+        # NodeParentInterface|null rather than NodeParentInterface.
+        -
+            message: '#^Cannot call method \w+\(\) on Symfony\\Component\\Config\\Definition\\Builder\\NodeParentInterface\|null\.$#'
+            path: src/DependencyInjection/Configuration.php
+
+        # Symfony 8 made TreeBuilder generic, so there getRootNode() is already
+        # typed as the concrete node and the guard below it is provably
+        # redundant. On 6.4 and 7 it is a real narrowing that throws on a tree
+        # whose root is not an array node, so the guard stays and the certainty
+        # is ignored rather than the code removed.
+        -
+            message: '#^Instanceof between Symfony\\Component\\Config\\Definition\\Builder\\ArrayNodeDefinition.* and Symfony\\Component\\Config\\Definition\\Builder\\ArrayNodeDefinition will always evaluate to true\.$#'
+            path: src/DependencyInjection/Configuration.php
 
         # These two identifiers are level 6+'s "add array-shape docblocks
         # everywhere" checks. At level 9 they account for 104 of the 132

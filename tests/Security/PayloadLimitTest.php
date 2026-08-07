@@ -5,8 +5,6 @@ namespace OV\JsonRPCAPIBundle\Tests\Security;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
 use OV\JsonRPCAPIBundle\Core\Services\RequestRawDataHandler;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\HttpFoundation\HeaderBag;
-use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\Request;
 
 final class PayloadLimitTest extends TestCase
@@ -60,13 +58,17 @@ final class PayloadLimitTest extends TestCase
 
     private function buildRequest(string $content): Request
     {
-        $request = $this->createMock(Request::class);
-        $request->request = new InputBag([]);
-        $request->headers = new HeaderBag(['Content-Type' => 'application/json']);
-        $request->method('getMethod')->willReturn(Request::METHOD_POST);
-        $request->method('getContent')->willReturn($content);
-
-        return $request;
+        // A real Request, not a mock: on Symfony 8 the bags are typed properties that a mock
+        // leaves uninitialised, so a doubled Request fails before reaching the limit under test.
+        return Request::create(
+            '/api/v1',
+            Request::METHOD_POST,
+            [],
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            $content,
+        );
     }
 
     private function buildNestedJson(int $depth): string

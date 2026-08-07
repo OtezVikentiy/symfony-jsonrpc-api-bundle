@@ -83,7 +83,9 @@ final class SwaggerGenerateSecurityTest extends TestCase
     private function buildCommandTester(string $path, string $configKey = 'api_v1'): CommandTester
     {
         $application = new Application();
-        $application->add(new SwaggerGenerate(
+        // See SwaggerGenerateTest: add() is gone in Symfony 8, addCommand() absent before 7.4.
+        $register = method_exists($application, 'addCommand') ? 'addCommand' : 'add';
+        $application->$register(new SwaggerGenerate(
             $path,
             [
                 $configKey => [

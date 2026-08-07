@@ -40,7 +40,11 @@ class SwaggerGenerateTest extends TestCase
     protected function setUp(): void
     {
         $application = new Application();
-        $application->add(new SwaggerGenerate(
+        // Application::add() was deprecated in Symfony 7.4 in favour of addCommand() and removed
+        // in 8.0, while addCommand() does not exist before 7.4 - so a manifest claiming
+        // ^6.4 || ^7.0 || ^8.0 has to ask which one it got rather than pick one.
+        $register = method_exists($application, 'addCommand') ? 'addCommand' : 'add';
+        $application->$register(new SwaggerGenerate(
             '/app/public',
             [
                 'api_v1' => [

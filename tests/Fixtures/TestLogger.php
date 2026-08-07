@@ -12,7 +12,8 @@ final class TestLogger extends AbstractLogger
     /** @var array<int, array{level: string, message: string, context: array<mixed>}> */
     public array $records = [];
 
-    public function log($level, \Stringable|string $message, array $context = []): void
+    // See ErrorSanitizationTest: psr/log 1.x has no parameter types on log().
+    public function log($level, $message, array $context = []): void
     {
         $this->records[] = [
             'level'   => (string) $level,
