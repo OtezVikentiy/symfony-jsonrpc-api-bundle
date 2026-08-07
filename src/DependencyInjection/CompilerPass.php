@@ -23,7 +23,6 @@ use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
-use ReflectionParameter;
 use ReflectionProperty;
 use ReflectionUnionType;
 use RuntimeException;
@@ -268,17 +267,12 @@ final class CompilerPass implements CompilerPassInterface
             foreach ($allParameters as $index => $allParameter) {
                 $propertyName = $allParameter['name'];
 
-                $getter = $this->resolveGetter($methodRequestReflection, $propertyName);
-                if ($getter === null) {
-                    throw new Exception(
-                        sprintf(
-                            'Property %s of class %s has no accessible getter (expected one of getX, isX, or x)',
-                            $propertyName,
-                            $methodRequestReflection->getName(),
-                        ),
-                    );
-                }
-                $requestGetters[$propertyName] = $getter;
+                // getValidatorsForRequest(), two lines up, walks the same properties through the
+                // same resolver and refuses any that has no accessible getter - naming the three
+                // forms it looked for. A second check here could never fire, and the message it
+                // carried was the worse of the two: it spelled the candidates literally, as
+                // "getX, isX, or x", rather than for the property at hand.
+                $requestGetters[$propertyName] = (string) $this->resolveGetter($methodRequestReflection, $propertyName);
 
                 $setter = $this->resolveMethod($methodRequestReflection, 'set' . ucfirst($propertyName));
                 if ($setter !== null) {
@@ -429,19 +423,30 @@ final class CompilerPass implements CompilerPassInterface
         $return = [];
 
         foreach ($properties as $property) {
+            // Properties are vetted by getValidatorsForRequest() before this runs, but constructor
+            // parameters arrive here unvetted - and a DTO may well declare `private int $limit`
+            // while its constructor takes a bare `$limit`. Reading getName() off the null that
+            // getType() returns for those aborted the container build with "Call to a member
+            // function getName() on null": no parameter named, no class named, nothing to act on.
+            $type = $property->getType();
+
+            if (!$type instanceof ReflectionNamedType) {
+                throw new Exception(
+                    sprintf(
+                        'Parameter %s of class %s %s; only a single named type is supported.',
+                        $property->getName(),
+                        $property->getDeclaringClass()?->getName() ?? 'unknown',
+                        $type === null ? 'has no declared type' : sprintf('has type %s, which is not a single named type', (string) $type),
+                    ),
+                );
+            }
+
             $propData = [
                 'name' => $property->getName(),
-                'type' => $property->getType()->getName(),
+                'type' => $type->getName(),
             ];
 
-            if ($property instanceof ReflectionProperty) {
-                $method = 'hasDefaultValue';
-            } elseif ($property instanceof ReflectionParameter) {
-                $method = 'isDefaultValueAvailable';
-            } else {
-                $return[] = $propData;
-                continue;
-            }
+            $method = $property instanceof ReflectionProperty ? 'hasDefaultValue' : 'isDefaultValueAvailable';
 
             if ($property->$method()) {
                 $propData['defaultValue'] = $property->getDefaultValue();
