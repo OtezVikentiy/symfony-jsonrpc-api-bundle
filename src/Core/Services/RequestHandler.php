@@ -37,6 +37,15 @@ final class RequestHandler
     private const PLAIN_RESPONSE_IN_BATCH_MESSAGE = 'Internal error.';
     private const PLAIN_RESPONSE_IN_BATCH_INFO = 'Plain responses are not supported inside a batch request.';
 
+    /**
+     * A batch rejected for exceeding max_batch_size is, by definition, attacker-influenced and can be
+     * arbitrarily large. Logging metadata about the rejection instead of the payload keeps the DoS
+     * protection from becoming its own amplifier (masking + json_encode over the full rejected payload).
+     */
+    private const LOG_META_BATCH_REJECTED = 'batch_rejected';
+    private const LOG_META_BATCH_SIZE = 'batch_size';
+    private const LOG_META_MAX_BATCH_SIZE = 'max_batch_size';
+
     /** @var array<class-string, array<string, ReflectionMethod>> */
     private static array $setterIndexCache = [];
 
@@ -60,7 +69,11 @@ final class RequestHandler
     public function applyStrategy(HandleBatchInterface $strategy, array $data, int $version, string $methodType): ?OvResponseInterface
     {
         if ($strategy instanceof MultiBatchStrategy && count($data) > $this->maxBatchSize) {
-            $call = $this->callLogger->logRequest($data);
+            $call = $this->callLogger->logRequest([
+                self::LOG_META_BATCH_REJECTED => true,
+                self::LOG_META_BATCH_SIZE => count($data),
+                self::LOG_META_MAX_BATCH_SIZE => $this->maxBatchSize,
+            ]);
             $err = $this->responseService->prepareErrorResponse(
                 new JRPCException(
                     'Invalid Request.',

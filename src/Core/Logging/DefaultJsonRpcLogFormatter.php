@@ -23,7 +23,19 @@ final class DefaultJsonRpcLogFormatter implements JsonRpcLogFormatterInterface
     private const CONTEXT_KEY_CONTEXT_ID = 'context_id';
     private const CONTEXT_KEY_DIRECTION = 'direction';
     private const META_KEY_HTTP_STATUS = 'http_status';
-    private const RESPONSE_ERROR_KEY = 'error';
+
+    /**
+     * Defensive re-truncation: JsonRpcCallLogger already bounds method to this length before it ever
+     * reaches an entry, but this formatter is a public extension point any JsonRpcCallLoggerInterface
+     * implementation may hand entries to, so it must not trust the caller to have done so.
+     */
+    private const MAX_METHOD_LENGTH = 128;
+
+    /**
+     * Matches \r, \n, \t and every other C0 control byte plus DEL — the method field is read before any
+     * request validation, so an attacker can put ANSI escapes or fake log lines directly into it.
+     */
+    private const CONTROL_CHAR_PATTERN = '/[\x00-\x1F\x7F]/';
 
     public function __construct(
         private readonly string $requestLevel,
@@ -38,7 +50,7 @@ final class DefaultJsonRpcLogFormatter implements JsonRpcLogFormatterInterface
             Direction::Request => self::REQUEST_PREFIX,
             Direction::Response => self::RESPONSE_PREFIX,
         };
-        $method = $entry->method ?? self::UNKNOWN_METHOD;
+        $method = $this->sanitizeMethod($entry->method ?? self::UNKNOWN_METHOD);
         $message = sprintf(self::MESSAGE_FORMAT, $prefix, $method, $entry->body, $entry->contextId);
 
         $level = $this->resolveLevel($entry);
@@ -51,6 +63,22 @@ final class DefaultJsonRpcLogFormatter implements JsonRpcLogFormatterInterface
                 self::CONTEXT_KEY_DIRECTION => $entry->direction->value,
             ],
             level: $level,
+        );
+    }
+
+    private function sanitizeMethod(string $method): string
+    {
+        $truncated = substr($method, 0, self::MAX_METHOD_LENGTH);
+
+        return (string) preg_replace_callback(
+            self::CONTROL_CHAR_PATTERN,
+            static fn (array $matches): string => match ($matches[0]) {
+                "\r" => '\\r',
+                "\n" => '\\n',
+                "\t" => '\\t',
+                default => sprintf('\\x%02X', ord($matches[0])),
+            },
+            $truncated,
         );
     }
 
@@ -74,8 +102,6 @@ final class DefaultJsonRpcLogFormatter implements JsonRpcLogFormatterInterface
             return true;
         }
 
-        $decoded = json_decode($entry->body, true);
-
-        return is_array($decoded) && array_key_exists(self::RESPONSE_ERROR_KEY, $decoded);
+        return $entry->isErrorResponse;
     }
 }

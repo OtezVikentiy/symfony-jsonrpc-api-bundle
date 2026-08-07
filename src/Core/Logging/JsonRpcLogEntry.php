@@ -20,6 +20,7 @@ final readonly class JsonRpcLogEntry
         public string $body,
         public string $contextId,
         public array $meta = [],
+        public bool $isErrorResponse = false,
     ) {
     }
 }

@@ -7,6 +7,7 @@ use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
 use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
 use OV\JsonRPCAPIBundle\DependencyInjection\OVJsonRPCAPIExtension;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
@@ -200,6 +201,35 @@ final class OVJsonRPCAPIExtensionTest extends TestCase
             (string) $container->getAlias(JsonRpcCallLoggerInterface::class),
             'enabled=false is a kill-switch that beats call_logger_service',
         );
+    }
+
+    public function testLoadRegistersNonEmptyDefaultMaskingPatternsAndNonZeroMaxBodyLength(): void
+    {
+        $container = new ContainerBuilder();
+        $extension = new OVJsonRPCAPIExtension();
+
+        $extension->load([], $container);
+
+        $this->assertNotEmpty($container->getParameter('ov_json_rpc_api.logging.masking.key_patterns'));
+        $this->assertGreaterThan(0, $container->getParameter('ov_json_rpc_api.logging.max_body_length'));
+    }
+
+    public function testLoadFailsContainerBuildOnInvalidMaskingRegex(): void
+    {
+        $container = new ContainerBuilder();
+        $extension = new OVJsonRPCAPIExtension();
+
+        $this->expectException(InvalidConfigurationException::class);
+
+        $extension->load([
+            [
+                'logging' => [
+                    'masking' => [
+                        'key_patterns' => ['not a valid regex('],
+                    ],
+                ],
+            ],
+        ], $container);
     }
 
     public function testBothOverridesCanCoexist(): void

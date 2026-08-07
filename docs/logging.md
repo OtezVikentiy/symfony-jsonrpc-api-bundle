@@ -32,12 +32,18 @@ Response: [get_billing_operations] {"jsonrpc":"2.0","result":{"count":7},"id":1}
 | `logging.request_level` | `info` | PSR-3 уровень для Request. |
 | `logging.response_level` | `info` | PSR-3 уровень для успешных Response. |
 | `logging.error_response_level` | `warning` | PSR-3 уровень для Response с error-объектом. |
-| `logging.max_body_length` | `0` | Обрезка body после маскировки (0 = без обрезки). Маркер `...[truncated, N total bytes]`. |
+| `logging.max_body_length` | `8192` | Обрезка body после маскировки (0 = без обрезки, не рекомендуется). Маркер `...[truncated, N total bytes]`. |
 | `logging.skip_plain_responses` | `true` | Для `PlainResponseInterface` body заменяется на `[plain response, N bytes]`. |
 | `logging.masking.placeholder` | `***` | Что подставлять вместо матченных значений. |
-| `logging.masking.key_patterns` | `[]` | Список PCRE-регексов. Совпадение по имени ключа JSON — значение целиком заменяется на placeholder. Применяется рекурсивно на любой глубине. |
+| `logging.masking.key_patterns` | набор regex-ов для типовых имён секретов (`password`, `token`, `jwt`, `secret`, `api_key`, `authorization`, `session_id`, `card_number`, `cvv`, `ssn`, `cert`, …) | Список PCRE-регексов. Совпадение по имени ключа JSON — значение целиком заменяется на placeholder. Применяется рекурсивно на любой глубине. Битый регекс валится на этапе сборки контейнера (`InvalidConfigurationException`), а не молча отключает маскировку в рантайме. Полный список — `Configuration::DEFAULT_MASKING_KEY_PATTERNS`. |
 | `logging.logger_service` | `null` | ID Symfony-сервиса PSR-3 `LoggerInterface`, который бандл использует как sink (см. «Кастомный PSR-3 логгер»). `null` = стандартный `@logger`. |
 | `logging.call_logger_service` | `null` | ID Symfony-сервиса, реализующего `JsonRpcCallLoggerInterface`. Подменяет всю high-level обвязку бандла (pairing/encoding/masking). Учитывается только при `enabled: true` (см. «Полная замена JsonRpcCallLoggerInterface»). |
+
+> **Изменение дефолтов (breaking change).** Начиная с этой версии `logging.masking.key_patterns` и `logging.max_body_length` больше не пустые/нулевые по умолчанию. Если вы уже используете `logging.enabled: true` без явной настройки маскировки, в логах начнут появляться `***` там, где раньше были полные значения, а длинные тела будут обрезаться маркером `...[truncated, N total bytes]`. Чтобы вернуть старое поведение — задайте `key_patterns: []` и/или `max_body_length: 0` явно.
+
+`method` в записи лога всегда обрезается до 128 символов и экранируется (`\r`, `\n`, `\t`, прочие control-байты) до попадания в message — это защита от log injection через ещё не провалидированное значение `method` и не зависит от `max_body_length`.
+
+> **Ограничение маскирования: только по имени ключа.** `SensitiveDataMasker` смотрит исключительно на имя ключа JSON, а не на форму значения. Секрет, попавший в поле с неподходящим именем, замаскирован не будет — например, `"note": "my password is hunter2"` или произвольная JSON-строка, вложенная как значение (сериализованная вручную), не совпадут ни с одним `key_patterns`, даже если внутри буквально лежит пароль. То же с JWT: паттерн `~jwt~i` матчит поле по имени (`jwt`, `jwt_token`), но не опознаёт токен по характерной форме `xxx.yyy.zzz` — если тот же токен передан в поле `access_token` (уже покрыт `~token~i`) всё в порядке, а вот в поле с произвольным именем (`value`, `data`, `payload`) — нет. Это архитектурное свойство маскера, а не забытый паттерн: значение-ориентированное обнаружение (например, детекция JWT по форме) в этой версии не реализовано.
 
 ## Переопределение формата
 
