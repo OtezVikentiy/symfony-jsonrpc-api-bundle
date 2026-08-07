@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace OV\JsonRPCAPIBundle\Core\Request;
 
 use DateTimeInterface;
+use ReflectionClass;
+use ReflectionNamedType;
 
 abstract class JsonRpcRequest
 {
@@ -34,6 +36,7 @@ abstract class JsonRpcRequest
             foreach ($value as $key => $item) {
                 $processedArray[$key] = $this->processValue($item);
             }
+
             return $processedArray;
         }
 
@@ -42,14 +45,14 @@ abstract class JsonRpcRequest
 
     private function objectToArray(object $object): array
     {
-        $reflection = new \ReflectionClass($object);
+        $reflection = new ReflectionClass($object);
         $properties = $reflection->getProperties();
         $result = [];
 
         foreach ($properties as $property) {
             $propertyName = $property->getName();
             $type = $property->getType();
-            $typeName = $type instanceof \ReflectionNamedType ? $type->getName() : null;
+            $typeName = $type instanceof ReflectionNamedType ? $type->getName() : null;
 
             $getterName = $this->createGetter($propertyName, $typeName);
 
@@ -72,6 +75,7 @@ abstract class JsonRpcRequest
         if ($propertyType === 'bool' || $propertyType === 'boolean') {
             return 'is' . ucfirst($propertyName);
         }
+
         return 'get' . ucfirst($propertyName);
     }
 }

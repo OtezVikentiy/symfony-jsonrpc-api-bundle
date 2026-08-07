@@ -15,6 +15,7 @@ namespace OV\JsonRPCAPIBundle\Core\Logging;
 use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
 use OV\JsonRPCAPIBundle\Core\Response\PlainResponseInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 final class JsonRpcCallLogger implements JsonRpcCallLoggerInterface
@@ -99,7 +100,7 @@ final class JsonRpcCallLogger implements JsonRpcCallLoggerInterface
                 : $rawBody;
 
             $method = null;
-            $decoded = json_decode($boundedBody, true, $this->maxJsonDepth);
+            $decoded = json_decode($boundedBody, true, max(1, $this->maxJsonDepth));
             if (is_array($decoded)) {
                 $method = $this->extractMethod($decoded);
                 $body = $this->encodeBody($this->masker->mask($decoded));
@@ -127,7 +128,7 @@ final class JsonRpcCallLogger implements JsonRpcCallLoggerInterface
             [$body, $isErrorResponse] = $this->encodeResponseBody($response);
 
             $meta = [];
-            if ($response !== null) {
+            if ($response instanceof Response) {
                 $meta = [self::META_KEY_HTTP_STATUS => $response->getStatusCode()];
             }
 
@@ -147,8 +148,8 @@ final class JsonRpcCallLogger implements JsonRpcCallLoggerInterface
     }
 
     /**
-     * @return array{0: string, 1: bool} The rendered body and whether it carries a JSON-RPC error member,
-     *                                    computed once here so the formatter never has to re-decode it.
+     * @return array{0: string, 1: bool} the rendered body and whether it carries a JSON-RPC error member,
+     *                                    computed once here so the formatter never has to re-decode it
      */
     private function encodeResponseBody(?OvResponseInterface $response): array
     {
@@ -156,11 +157,12 @@ final class JsonRpcCallLogger implements JsonRpcCallLoggerInterface
             return [self::MARKER_NOTIFICATION, false];
         }
 
+        $content = $response instanceof Response ? (string) $response->getContent() : '';
+
         if ($this->skipPlainResponses && $response instanceof PlainResponseInterface) {
-            return [sprintf(self::MARKER_PLAIN_RESPONSE_FORMAT, strlen((string) $response->getContent())), false];
+            return [sprintf(self::MARKER_PLAIN_RESPONSE_FORMAT, strlen($content)), false];
         }
 
-        $content = (string) $response->getContent();
         $decoded = json_decode($content, true);
         if (!is_array($decoded)) {
             return [sprintf(self::MARKER_NON_JSON_RESPONSE_FORMAT, strlen($content)), false];

@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 namespace OV\JsonRPCAPIBundle\DependencyInjection;
 
+use LogicException;
+use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
@@ -61,6 +63,10 @@ final class Configuration implements ConfigurationInterface
     {
         $treeBuilder = new TreeBuilder('ov_json_rpc_api');
         $rootNode = $treeBuilder->getRootNode();
+
+        if (!$rootNode instanceof ArrayNodeDefinition) {
+            throw new LogicException('Expected the ov_json_rpc_api root node to be an array node.');
+        }
 
         $rootNode
             ->children()

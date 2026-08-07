@@ -14,6 +14,7 @@ namespace OV\JsonRPCAPIBundle\DependencyInjection;
 
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
+use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -22,9 +23,12 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 class MethodSpec
 {
-    /** @var array<string, Assert\Constraint> */
+    /** @var array<string, Constraint> */
     private array $compiledValidators;
 
+    /**
+     * @param class-string $methodClass
+     */
     public function __construct(
         private readonly string $methodClass,
         private readonly string $requestType,
@@ -39,6 +43,9 @@ class MethodSpec
     ) {
     }
 
+    /**
+     * @return class-string
+     */
     public function getMethodClass(): string
     {
         return $this->methodClass;
@@ -133,7 +140,7 @@ class MethodSpec
      * Symfony constraints are immutable and expensive to construct via reflection,
      * so the compiled set is built once per method spec and reused across requests.
      *
-     * @return array<string, Assert\Constraint>
+     * @return array<string, Constraint>
      */
     public function getCompiledValidators(): array
     {
@@ -141,7 +148,7 @@ class MethodSpec
     }
 
     /**
-     * @return array<string, Assert\Constraint>
+     * @return array<string, Constraint>
      */
     private function compileValidators(): array
     {

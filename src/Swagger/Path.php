@@ -35,9 +35,13 @@ final readonly class Path
         $data = [
             'summary' => $this->summary,
             'description' => $this->description,
-            'requestBody' => $this->requestBody->toArray(),
-            'responses' => $responses,
         ];
+
+        if ($this->requestBody !== null) {
+            $data['requestBody'] = $this->requestBody->toArray();
+        }
+
+        $data['responses'] = $responses;
 
         if (!empty($this->tags)) {
             $data['tags'] = $this->tags;

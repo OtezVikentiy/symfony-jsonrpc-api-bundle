@@ -22,6 +22,9 @@ use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use ReflectionClass;
 use ReflectionException;
+use ReflectionNamedType;
+use ReflectionParameter;
+use ReflectionProperty;
 use ReflectionUnionType;
 use RuntimeException;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
@@ -48,6 +51,7 @@ final class CompilerPass implements CompilerPassInterface
 
     /**
      * @noinspection PhpUnused
+     *
      * @throws ReflectionException
      * @throws Exception
      */
@@ -63,7 +67,13 @@ final class CompilerPass implements CompilerPassInterface
 
         foreach ($methods as $method => $tags) {
             $methodDefinition = $container->findDefinition($method);
-            $className        = $methodDefinition->getClass();
+            $className = $methodDefinition->getClass();
+
+            if ($className === null || !class_exists($className)) {
+                throw new RuntimeException(
+                    sprintf('Service %s tagged ov.rpc.method has no resolvable class.', $method),
+                );
+            }
 
             $methodDefinition->setAutowired(true);
             $methodDefinition->setAutoconfigured(true);
@@ -93,8 +103,8 @@ final class CompilerPass implements CompilerPassInterface
             $plainResponse = $this->detectPlainResponse($methodReflectionClass);
             [$preProcessorExists, $postProcessorExists] = $this->detectProcessors($methodReflectionClass);
 
-            $methodAlias            = $this->getMethodAlias($metadata['methodName'], $methodReflectionClass->getNamespaceName() . '\\' ?? '');
-            $serviceIdSuffix        = sprintf('%d_%s', $version, $methodAlias);
+            $methodAlias = $this->getMethodAlias($metadata['methodName'], $methodReflectionClass->getNamespaceName() . '\\');
+            $serviceIdSuffix = sprintf('%d_%s', $version, $methodAlias);
 
             $requestMetadataId = 'OV_JSON_RPC_API_REQ_' . $serviceIdSuffix;
             $container->register($requestMetadataId, RequestMetadata::class)
@@ -119,7 +129,7 @@ final class CompilerPass implements CompilerPassInterface
                 ])->setPublic(false);
 
             $methodSpecDefinitionId = 'OV_JSON_RPC_API_' . $serviceIdSuffix;
-            $methodSpec             = $container->register($methodSpecDefinitionId, MethodSpec::class);
+            $methodSpec = $container->register($methodSpecDefinitionId, MethodSpec::class);
 
             $methodSpec->setArguments([
                 $methodReflectionClass->getName(),
@@ -187,7 +197,7 @@ final class CompilerPass implements CompilerPassInterface
         }
 
         $namespace = $reflectionClass->getNamespaceName();
-        if (preg_match('/\\\\(V[0-9]+)(?:\\\\|$)/', $namespace, $matches) === 0) {
+        if (preg_match('/\\\\(V[0-9]+)(?:\\\\|$)/', $namespace, $matches) !== 1) {
             throw new RuntimeException(
                 sprintf(
                     'Version for API endpoint %s is not defined. Either use the version parameter in the
@@ -198,9 +208,9 @@ final class CompilerPass implements CompilerPassInterface
             );
         }
 
-        $version = (int)preg_replace('/[A-Za-z]+/', '', $matches[1]);
+        $version = (int) preg_replace('/[A-Za-z]+/', '', $matches[1]);
 
-        if (empty($version) || $version == 0) {
+        if (empty($version)) {
             throw new RuntimeException(
                 sprintf(
                     'Version for API endpoint %s is not defined or zero. Either use the version parameter in the
@@ -219,14 +229,14 @@ final class CompilerPass implements CompilerPassInterface
      */
     private function analyzeRequestClass(ReflectionClass $methodReflectionClass, string $className): array
     {
-        $allParameters           = [];
-        $requiredParameters      = [];
-        $requestGetters          = [];
-        $requestSetters          = [];
-        $requestAdders           = [];
-        $validators              = [];
+        $allParameters = [];
+        $requiredParameters = [];
+        $requestGetters = [];
+        $requestSetters = [];
+        $requestAdders = [];
+        $validators = [];
         $methodRequestReflection = null;
-        $callParameters          = $methodReflectionClass->getMethod('call')->getParameters();
+        $callParameters = $methodReflectionClass->getMethod('call')->getParameters();
 
         if (count($callParameters) > 1) {
             throw new RuntimeException(
@@ -240,10 +250,20 @@ final class CompilerPass implements CompilerPassInterface
 
         if (!empty($callParameters[0])) {
             $callParameter = $callParameters[0];
-            $methodRequestReflection = new ReflectionClass($callParameter->getType()->getName());
-            $validators              = $this->getValidatorsForRequest($methodRequestReflection);
-            $allParameters           = $this->getProperties($methodRequestReflection->getProperties() ?? []);
-            $requiredParameters      = $this->getProperties($methodRequestReflection->getConstructor()?->getParameters() ?? []);
+            $callParameterType = $callParameter->getType();
+            if (!$callParameterType instanceof ReflectionNamedType || !class_exists($callParameterType->getName())) {
+                throw new RuntimeException(
+                    sprintf(
+                        'Parameter of method %s::%s has an unsupported or missing type',
+                        $className,
+                        self::CALL_METHOD,
+                    ),
+                );
+            }
+            $methodRequestReflection = new ReflectionClass($callParameterType->getName());
+            $validators = $this->getValidatorsForRequest($methodRequestReflection);
+            $allParameters = $this->getProperties($methodRequestReflection->getProperties());
+            $requiredParameters = $this->getProperties($methodRequestReflection->getConstructor()?->getParameters() ?? []);
 
             foreach ($allParameters as $index => $allParameter) {
                 $propertyName = $allParameter['name'];
@@ -325,7 +345,8 @@ final class CompilerPass implements CompilerPassInterface
         foreach ($this->inflector->singularize($propertyName) as $singularName) {
             $adder = $this->resolveMethod($reflection, 'add' . ucfirst($singularName));
             if ($adder !== null) {
-                $adderElementType = $reflection->getMethod($adder)->getParameters()[0]?->getType()?->getName();
+                $adderParameterType = $reflection->getMethod($adder)->getParameters()[0]->getType();
+                $adderElementType = $adderParameterType instanceof ReflectionNamedType ? $adderParameterType->getName() : null;
 
                 return [$adder, $adderElementType];
             }
@@ -348,7 +369,14 @@ final class CompilerPass implements CompilerPassInterface
         $callResponseType = $methodReflectionClass->getMethod('call')->getReturnType();
         if ($callResponseType instanceof ReflectionUnionType) {
             foreach ($callResponseType->getTypes() as $type) {
-                $responseTypeReflection = new ReflectionClass($type->getName());
+                if (!$type instanceof ReflectionNamedType) {
+                    continue;
+                }
+                $typeName = $type->getName();
+                if (!class_exists($typeName)) {
+                    continue;
+                }
+                $responseTypeReflection = new ReflectionClass($typeName);
                 foreach ($responseTypeReflection->getInterfaces() as $interface) {
                     if ($interface->getName() === PlainResponseInterface::class) {
                         return true;
@@ -393,9 +421,9 @@ final class CompilerPass implements CompilerPassInterface
                 'type' => $property->getType()->getName(),
             ];
 
-            if ($property instanceof \ReflectionProperty) {
+            if ($property instanceof ReflectionProperty) {
                 $method = 'hasDefaultValue';
-            } elseif ($property instanceof \ReflectionParameter) {
+            } elseif ($property instanceof ReflectionParameter) {
                 $method = 'isDefaultValueAvailable';
             } else {
                 $return[] = $propData;
@@ -408,6 +436,7 @@ final class CompilerPass implements CompilerPassInterface
 
             $return[] = $propData;
         }
+
         return $return;
     }
 
@@ -418,7 +447,7 @@ final class CompilerPass implements CompilerPassInterface
     {
         $validatorsIdx = [];
 
-        $methods    = $requestReflection->getMethods();
+        $methods = $requestReflection->getMethods();
         $properties = $requestReflection->getProperties();
 
         $propertiesIdx = [];
@@ -435,12 +464,13 @@ final class CompilerPass implements CompilerPassInterface
                 );
             }
 
-            if ($propertyType instanceof ReflectionUnionType) {
+            if (!$propertyType instanceof ReflectionNamedType) {
                 throw new Exception(
                     sprintf(
-                        'Property %s of class %s has a union type, which is not supported',
+                        'Property %s of class %s has type %s, which is not supported; only a single named type is supported.',
                         $property->getName(),
                         $requestReflection->getName(),
+                        (string) $propertyType,
                     ),
                 );
             }
@@ -491,8 +521,7 @@ final class CompilerPass implements CompilerPassInterface
             if ($setterParamType === null) {
                 continue;
             }
-            $setterTypeMismatch = $setterParamType->getName() !== $typeData['type'];
-            if ($setterTypeMismatch) {
+            if (!$setterParamType instanceof ReflectionNamedType || $setterParamType->getName() !== $typeData['type']) {
                 throw new Exception(
                     sprintf(
                         'Property %s of method %s has invalid data type in setter %s',
@@ -502,8 +531,8 @@ final class CompilerPass implements CompilerPassInterface
                     ),
                 );
             }
-            $getterTypeMismatch = $getter->getReturnType()->getName() !== $typeData['type'];
-            if ($getterTypeMismatch) {
+            $getterReturnType = $getter->getReturnType();
+            if (!$getterReturnType instanceof ReflectionNamedType || $getterReturnType->getName() !== $typeData['type']) {
                 throw new Exception(
                     sprintf(
                         'Property %s of method %s has invalid data type in getter %s',

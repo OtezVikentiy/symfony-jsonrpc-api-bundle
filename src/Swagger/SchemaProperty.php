@@ -98,10 +98,10 @@ final class SchemaProperty
             }
 
             return $arr;
-        } else {
-            return [
-                '$ref' => '#/components/schemas/' . $this->ref,
-            ];
         }
+
+        return [
+            '$ref' => '#/components/schemas/' . $this->ref,
+        ];
     }
 }

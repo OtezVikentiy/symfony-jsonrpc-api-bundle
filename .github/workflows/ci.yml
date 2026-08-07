@@ -168,6 +168,42 @@ jobs:
           }
           '
 
+  # Static analysis: PHPStan against src/ (tests/ are excluded — they
+  # deliberately lean on mocks, reflection and inline-FQCN that would just
+  # be noise) plus a PHP-CS-Fixer dry-run to enforce the formatting the
+  # fix job applies locally.
+  static-analysis:
+    name: Static analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v4
+        with:
+          php-version: '8.4'
+          extensions: ${{ env.PHP_EXTENSIONS }}
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ runner.os }}-php8.4-static-analysis-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php8.4-static-analysis-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: PHPStan
+        run: vendor/bin/phpstan analyse --no-progress
+
+      - name: PHP-CS-Fixer (dry run)
+        run: vendor/bin/php-cs-fixer fix --dry-run --diff
+
   # Manifest hygiene: the file Packagist and every consumer's resolver
   # trusts has to be syntactically strict and free of known advisories.
   manifest:

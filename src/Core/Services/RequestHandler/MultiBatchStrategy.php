@@ -6,6 +6,7 @@ namespace OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 
 use OV\JsonRPCAPIBundle\Core\Response\JsonResponse;
 use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
+use Symfony\Component\HttpFoundation\Response;
 use UnexpectedValueException;
 
 final class MultiBatchStrategy implements HandleBatchInterface
@@ -22,7 +23,7 @@ final class MultiBatchStrategy implements HandleBatchInterface
                 continue;
             }
 
-            $content = $response->getContent();
+            $content = $response instanceof Response ? $response->getContent() : false;
             if ($content === '' || $content === false) {
                 continue;
             }

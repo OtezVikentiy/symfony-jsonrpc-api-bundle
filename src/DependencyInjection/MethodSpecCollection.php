@@ -47,7 +47,7 @@ final class MethodSpecCollection
     }
 
     /**
-     * @return MethodSpec[]
+     * @return array<int, array<string, MethodSpec>>
      */
     public function getAllMethods(): array
     {

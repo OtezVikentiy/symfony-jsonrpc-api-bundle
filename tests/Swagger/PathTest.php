@@ -88,6 +88,16 @@ final class PathTest extends TestCase
         $this->assertArrayHasKey('get', $result);
     }
 
+    public function testToArrayWithoutRequestBodyOmitsTheKeyInsteadOfCrashing(): void
+    {
+        $path = new Path(name: '/no_body', methodType: 'GET');
+
+        $result = $path->toArray();
+
+        $this->assertArrayNotHasKey('requestBody', $result['get']);
+        $this->assertArrayHasKey('responses', $result['get']);
+    }
+
     public function testMultipleResponses(): void
     {
         $requestBody = new RequestBody(contentRef: 'TestRequest');

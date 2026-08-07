@@ -33,7 +33,7 @@ final readonly class Info
                 'name' => $this->contact->getName(),
                 'url' => $this->contact->getUrl(),
                 'email' => $this->contact->getEmail(),
-            ], fn($v) => $v !== '' && $v !== null);
+            ], fn ($v) => $v !== '');
 
             if (!empty($contactArray)) {
                 $result['contact'] = $contactArray;
@@ -44,7 +44,7 @@ final readonly class Info
             $licenseArray = array_filter([
                 'name' => $this->license->getName(),
                 'url' => $this->license->getUrl(),
-            ], fn($v) => $v !== '' && $v !== null);
+            ], fn ($v) => $v !== '');
 
             if (!empty($licenseArray)) {
                 $result['license'] = $licenseArray;

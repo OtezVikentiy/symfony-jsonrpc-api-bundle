@@ -19,7 +19,7 @@ interface JsonRpcCallLoggerInterface
     /**
      * Logs an incoming JSON-RPC call that has already been parsed from the HTTP body.
      *
-     * @param array<mixed, mixed> $rpcCall Decoded JSON-RPC element.
+     * @param array<mixed, mixed> $rpcCall decoded JSON-RPC element
      */
     public function logRequest(array $rpcCall): LoggedRpcCall;
 

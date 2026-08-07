@@ -13,11 +13,11 @@ declare(strict_types=1);
 namespace OV\JsonRPCAPIBundle\Controller;
 
 use OV\JsonRPCAPIBundle\Core\JRPCException;
+use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
 use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler\BatchStrategyFactory;
 use OV\JsonRPCAPIBundle\Core\Services\RequestRawDataHandler;
-use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
 use OV\JsonRPCAPIBundle\Core\Services\ResponseService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -56,13 +56,14 @@ final class ApiController extends AbstractController
             if (empty($data)) {
                 throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
             }
-        } catch (JRPCException|Throwable $e) {
+        } catch (Throwable $e) {
             $call = $callLogger->logRawRequest((string) $request->getContent());
             $errResp = $responseService->prepareErrorResponse(
                 $e,
-                isset($data) ? ($data['id'] ?? null) : null,
+                null,
             );
             $callLogger->logResponse($call, $errResp);
+
             return $errResp;
         }
 

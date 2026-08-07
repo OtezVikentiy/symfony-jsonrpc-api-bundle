@@ -26,6 +26,7 @@ final class SwaggerGenerate extends Command
 
     /**
      * @throws ReflectionException
+     *
      * @noinspection PhpUnused
      */
     protected function execute(InputInterface $input, OutputInterface $output): int

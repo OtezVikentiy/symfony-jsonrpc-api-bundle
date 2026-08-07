@@ -20,9 +20,9 @@ final readonly class RequestBody
         return [
             'application/json' => [
                 'schema' => [
-                    '$ref' => sprintf('#/components/schemas/%s', $this->contentRef)
-                ]
-            ]
+                    '$ref' => sprintf('#/components/schemas/%s', $this->contentRef),
+                ],
+            ],
         ];
     }
 
@@ -30,7 +30,7 @@ final readonly class RequestBody
     {
         return [
             'description' => $this->description,
-            'content' => $this->getContentRef()
+            'content' => $this->getContentRef(),
         ];
     }
 }

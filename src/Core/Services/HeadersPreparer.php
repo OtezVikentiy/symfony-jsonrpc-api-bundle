@@ -69,6 +69,7 @@ final readonly class HeadersPreparer
      * formality that grants whatever the client asks for.
      *
      * @param string[] $allowedMethods methods actually declared on the route being preflighted
+     *
      * @return array<string,string>
      */
     public function preparePreflightHeaders(array $allowedMethods): array

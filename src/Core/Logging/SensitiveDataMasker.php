@@ -42,7 +42,7 @@ final class SensitiveDataMasker implements SensitiveDataMaskerInterface
         private readonly string $placeholder,
         private readonly LoggerInterface $logger,
     ) {
-        [$this->mergedPatterns, $this->individualPatterns] = self::compilePatternGroups($keyPatterns);
+        [$this->mergedPatterns, $this->individualPatterns] = $this->compilePatternGroups($keyPatterns);
     }
 
     public function mask(array $data): array
@@ -106,17 +106,23 @@ final class SensitiveDataMasker implements SensitiveDataMaskerInterface
      * Patterns that fail validation, or whose delimiter/flags cannot be parsed safely, are left
      * out of the merge and handled one by one exactly as before.
      *
-     * @param array<int, string> $patterns
+     * @param array<int, mixed> $patterns config values pass through Symfony's scalarPrototype(),
+     *                                     so an element is not guaranteed to be a string
      *
      * @return array{0: array<int, string>, 1: array<int, string>}
      */
-    private static function compilePatternGroups(array $patterns): array
+    private function compilePatternGroups(array $patterns): array
     {
         $groupsByFlags = [];
         $individualPatterns = [];
 
         foreach ($patterns as $pattern) {
-            if (!is_string($pattern) || @preg_match($pattern, '') === false) {
+            if (!is_string($pattern)) {
+                $this->warnInvalidPatternOnce(var_export($pattern, true));
+                continue;
+            }
+
+            if (@preg_match($pattern, '') === false) {
                 $individualPatterns[] = $pattern;
                 continue;
             }

@@ -89,6 +89,26 @@ final class SensitiveDataMaskerTest extends TestCase
         self::assertSame('invalid(', $logger->records[0]['context']['pattern']);
     }
 
+    /**
+     * `logging.masking.key_patterns` is declared with Symfony's scalarPrototype(), which accepts
+     * any scalar - not just strings - so a misconfigured YAML value (e.g. `true` instead of a
+     * quoted regex) reaches the constructor as-is. Before this test's fix, a non-string entry was
+     * stored as though it were a valid pattern and only failed once matched against a real key,
+     * where preg_match() under strict_types throws a TypeError instead of returning false - masking
+     * broke on the very first logged request instead of degrading to "skip and warn" like every
+     * other invalid pattern here.
+     */
+    public function testNonStringPatternIsSkippedAndWarnedInsteadOfCrashing(): void
+    {
+        $logger = new TestLogger();
+        $masker = new SensitiveDataMasker(['~^password$~i', true], '***', $logger);
+
+        $result = $masker->mask(['password' => 'x', 'other' => 'y']);
+
+        self::assertSame(['password' => '***', 'other' => 'y'], $result);
+        self::assertTrue($logger->hasWarningRecords());
+    }
+
     public function testInvalidRegexWarnsOnlyOnce(): void
     {
         $logger = new TestLogger();

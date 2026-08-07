@@ -16,6 +16,7 @@ interface SensitiveDataMaskerInterface
 {
     /**
      * @param array<mixed, mixed> $data
+     *
      * @return array<mixed, mixed>
      */
     public function mask(array $data): array;

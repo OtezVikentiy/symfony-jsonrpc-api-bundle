@@ -24,7 +24,7 @@ final class RequestRawDataHandler
     {
         $pathArray = explode('/', $request->getPathInfo());
 
-        return (int)preg_replace('/\D+/', '', $pathArray[count($pathArray) - 1]);
+        return (int) preg_replace('/\D+/', '', $pathArray[count($pathArray) - 1]);
     }
 
     /**
@@ -33,7 +33,8 @@ final class RequestRawDataHandler
     public function prepareData(Request $request): array
     {
         if ($request->getMethod() === Request::METHOD_GET) {
-            $queryString = (string) $request->server->get(self::SERVER_QUERY_STRING_KEY);
+            $rawQueryString = $request->server->get(self::SERVER_QUERY_STRING_KEY);
+            $queryString = is_string($rawQueryString) ? $rawQueryString : '';
 
             if (strlen($queryString) > $this->maxPayloadBytes) {
                 throw new JRPCException(
@@ -76,7 +77,7 @@ final class RequestRawDataHandler
         }
 
         try {
-            $jsonData = json_decode($requestContent, true, $this->maxJsonDepth, JSON_THROW_ON_ERROR);
+            $jsonData = json_decode($requestContent, true, max(1, $this->maxJsonDepth), JSON_THROW_ON_ERROR);
         } catch (JsonException $e) {
             throw new JRPCException('Parse error.', JRPCException::PARSE_ERROR, $e->getMessage());
         }

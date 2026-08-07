@@ -38,7 +38,7 @@ final class BaseRequest
         }
 
         $this->jsonrpc = $data['jsonrpc'];
-        $this->method  = $data['method'];
+        $this->method = $data['method'];
 
         if (!empty($data['params'])) {
             $this->params = $data['params'];
@@ -69,7 +69,7 @@ final class BaseRequest
         return $this->params;
     }
 
-    public function getId()
+    public function getId(): mixed
     {
         return $this->id;
     }

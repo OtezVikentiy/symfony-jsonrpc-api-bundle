@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace OV\JsonRPCAPIBundle\Core\Services;
 
+use InvalidArgumentException;
+use OV\JsonRPCAPIBundle\Core\JRPCException;
 use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
 use OV\JsonRPCAPIBundle\Core\PostProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\PreProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\Request\BaseRequest;
 use OV\JsonRPCAPIBundle\Core\Request\PartialRequestInterface;
-use OV\JsonRPCAPIBundle\Core\JRPCException;
 use OV\JsonRPCAPIBundle\Core\Response\BaseResponse;
 use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
 use OV\JsonRPCAPIBundle\Core\Response\PlainResponseInterface;
@@ -17,15 +18,15 @@ use OV\JsonRPCAPIBundle\Core\Services\RequestHandler\HandleBatchInterface;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler\MultiBatchStrategy;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
+use Psr\Log\LoggerInterface;
+use ReflectionClass;
+use ReflectionMethod;
+use ReflectionNamedType;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Psr\Log\LoggerInterface;
-use InvalidArgumentException;
-use ReflectionClass;
-use ReflectionMethod;
 use Throwable;
 use TypeError;
 
@@ -36,6 +37,8 @@ final class RequestHandler
     private const ACCESS_DENIED_MESSAGE = 'Access denied.';
     private const PLAIN_RESPONSE_IN_BATCH_MESSAGE = 'Internal error.';
     private const PLAIN_RESPONSE_IN_BATCH_INFO = 'Plain responses are not supported inside a batch request.';
+    private const PROCESSOR_NOT_CALLABLE_MESSAGE = 'Internal error.';
+    private const PROCESSOR_NOT_CALLABLE_INFO_FORMAT = 'Processor %s does not implement a callable RPC method.';
 
     /**
      * A batch rejected for exceeding max_batch_size is, by definition, attacker-influenced and can be
@@ -66,7 +69,7 @@ final class RequestHandler
     ) {
     }
 
-    public function applyStrategy(HandleBatchInterface $strategy, array $data, int $version, string $methodType): ?OvResponseInterface
+    public function applyStrategy(HandleBatchInterface $strategy, array $data, int $version, string $methodType): OvResponseInterface
     {
         if ($strategy instanceof MultiBatchStrategy && count($data) > $this->maxBatchSize) {
             $call = $this->callLogger->logRequest([
@@ -83,12 +86,12 @@ final class RequestHandler
                 null,
             );
             $this->callLogger->logResponse($call, $err);
+
             return $err;
         }
 
         $isMultiBatch = $strategy instanceof MultiBatchStrategy;
-        $batchProcessor = fn (mixed $item, int $itemVersion, string $itemMethodType): ?OvResponseInterface
-            => $this->processBatch($item, $itemVersion, $itemMethodType, $isMultiBatch);
+        $batchProcessor = fn (mixed $item, int $itemVersion, string $itemMethodType): ?OvResponseInterface => $this->processBatch($item, $itemVersion, $itemMethodType, $isMultiBatch);
 
         $response = $strategy->handleBatch($data, $version, $methodType, $batchProcessor);
 
@@ -132,6 +135,14 @@ final class RequestHandler
             $processorClass = $methodSpec->getMethodClass();
             $processor = $this->processorLocator->get($processorClass);
 
+            if (!is_object($processor) || !method_exists($processor, 'call')) {
+                throw new JRPCException(
+                    self::PROCESSOR_NOT_CALLABLE_MESSAGE,
+                    JRPCException::INTERNAL_ERROR,
+                    sprintf(self::PROCESSOR_NOT_CALLABLE_INFO_FORMAT, $processorClass),
+                );
+            }
+
             if ($methodSpec->isPreProcessorExists() && $processor instanceof PreProcessorInterface) {
                 $this->runPreProcessors($processor, $processorClass, $requestInstance);
             }
@@ -148,16 +159,19 @@ final class RequestHandler
             }
 
             if ($methodSpec->isPlainResponse() && $response instanceof PlainResponseInterface) {
-                $response->headers->add($this->headersPreparer->prepareHeaders());
+                if ($response instanceof Response) {
+                    $response->headers->add($this->headersPreparer->prepareHeaders());
+                }
 
                 return $response;
             }
 
-            if ($baseRequest->hasId() || (!$this->strictNotifications && !empty((array)$response))) {
+            if ($baseRequest->hasId() || (!$this->strictNotifications && !empty((array) $response))) {
                 $response = $this->responseService->prepareJsonResponse(new BaseResponse($response, $baseRequest->getId()));
+
                 return $response;
             }
-        } catch (JRPCException|Throwable $e) {
+        } catch (Throwable $e) {
             match (true) {
                 isset($baseRequest) && $baseRequest->hasId() => $id = $baseRequest->getId(),
                 is_array($batch) && isset($batch['id']) => $id = $batch['id'],
@@ -182,7 +196,7 @@ final class RequestHandler
                     && $methodSpec->isPostProcessorExists()
                     && $processor instanceof PostProcessorInterface
                 ) {
-                    $this->runPostProcessors($processor, $processorClass, $requestInstance ?? null, $response ?? null);
+                    $this->runPostProcessors($processor, $processorClass, $requestInstance ?? null, $loggedResponse);
                 }
             } catch (Throwable $finallyFailure) {
                 $this->logger?->error(self::FINALLY_FAILURE_MESSAGE, ['exception' => $finallyFailure]);
@@ -237,14 +251,14 @@ final class RequestHandler
         }
     }
 
-    private function processRequestClass(MethodSpec $methodSpec, BaseRequest $baseRequest, string $requestClass): mixed
+    private function processRequestClass(MethodSpec $methodSpec, BaseRequest $baseRequest, string $requestClass): object
     {
         $requestInstance = $this->instantiateRequest($methodSpec, $baseRequest, $requestClass);
 
         return $this->hydrateRequest($requestInstance, $methodSpec, $baseRequest);
     }
 
-    private function instantiateRequest(MethodSpec $methodSpec, BaseRequest $baseRequest, string $requestClass): mixed
+    private function instantiateRequest(MethodSpec $methodSpec, BaseRequest $baseRequest, string $requestClass): object
     {
         $constructorParams = [];
         foreach ($methodSpec->getRequiredParameters() as $requiredParameter) {
@@ -262,7 +276,7 @@ final class RequestHandler
         }
     }
 
-    private function hydrateRequest(mixed $requestInstance, MethodSpec $methodSpec, BaseRequest $baseRequest): mixed
+    private function hydrateRequest(object $requestInstance, MethodSpec $methodSpec, BaseRequest $baseRequest): object
     {
         $tracksProvided = $requestInstance instanceof PartialRequestInterface;
         $allowExtraFields = $this->isExtraFieldsAllowed($methodSpec);
@@ -303,6 +317,16 @@ final class RequestHandler
 
                 if (class_exists($allParameter['type'])) {
                     foreach ($value as $elem) {
+                        if (!is_array($elem) && !is_string($elem)) {
+                            $invalidTypeErrors[] = sprintf(
+                                self::INVALID_TYPE_MESSAGE_FORMAT,
+                                $name,
+                                $allParameter['type'],
+                            );
+                            $adderFailed = true;
+                            continue;
+                        }
+
                         try {
                             $elemVal = $this->prepareParametersFromClass($allParameter['type'], $elem, $allowExtraFields);
                         } catch (InvalidArgumentException|TypeError) {
@@ -397,6 +421,9 @@ final class RequestHandler
         return $requestInstance;
     }
 
+    /**
+     * @param class-string $class
+     */
     private function prepareParametersFromClass(string $class, array|string $values, bool $allowExtraFields = false, int $depth = 0): object
     {
         if ($depth > $this->maxDtoDepth) {
@@ -437,7 +464,7 @@ final class RequestHandler
 
             $setter = $methodsIdx[$setterName];
             $setterParamType = $setter->getParameters()[0]->getType();
-            $setterArgumentType = $setterParamType?->getName() ?? 'mixed';
+            $setterArgumentType = $setterParamType instanceof ReflectionNamedType ? $setterParamType->getName() : 'mixed';
             if ($setterParamType !== null && class_exists($setterArgumentType)) {
                 $value = $this->prepareParametersFromClass($setterArgumentType, $value, $allowExtraFields, $depth + 1);
             }

@@ -410,4 +410,56 @@ final class RequestHandlerTest extends TestCase
         // Strict mode: notification MUST NOT get a response (JSON-RPC 2.0 spec)
         $this->assertNull($result);
     }
+
+    /**
+     * CompilerPass verifies at container-compile time that every attributed RPC method class
+     * has a public call() method, so this path is not reachable through normal bundle wiring.
+     * It guards against a differently-wired ServiceLocator (a hand-built container, a bug in a
+     * future refactor of CompilerPass) handing back something that was never validated - before
+     * the guard, this fell straight through to `$processor->call(...)` and crashed with an
+     * uncaught Error instead of a JSON-RPC error response.
+     */
+    public function testProcessBatchProcessorWithoutCallMethodReturnsInternalError(): void
+    {
+        $specCollection = new MethodSpecCollection();
+        $methodSpec = new MethodSpec(
+            methodClass: NotCallableProcessorFixture::class,
+            requestType: 'POST',
+            methodName: 'notCallable',
+            requestMetadata: new RequestMetadata(
+                request: null,
+                allParameters: [],
+                requiredParameters: [],
+                requestGetters: [],
+                requestSetters: [],
+                requestAdders: [],
+                validators: [],
+            ),
+            swaggerMetadata: new SwaggerMetadata(
+                summary: '',
+                description: '',
+                ignoreInSwagger: false,
+            ),
+        );
+        $specCollection->addMethodSpec(1, 'notCallable', $methodSpec);
+
+        $locator = $this->createLocatorWithMethod(NotCallableProcessorFixture::class);
+        $handler = $this->createRequestHandler($specCollection, locator: $locator);
+
+        $batch = [
+            'jsonrpc' => '2.0',
+            'method' => 'notCallable',
+            'id' => '1',
+        ];
+
+        $result = $handler->processBatch($batch, 1, 'POST');
+
+        $this->assertInstanceOf(OvResponseInterface::class, $result);
+        $content = json_decode($result->getContent(), true);
+        $this->assertEquals(JRPCException::INTERNAL_ERROR, $content['error']['code']);
+    }
+}
+
+final class NotCallableProcessorFixture
+{
 }

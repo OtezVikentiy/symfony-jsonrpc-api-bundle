@@ -74,7 +74,7 @@ final readonly class BaseResponse implements OvResponseInterface, BaseJsonRespon
         }
 
         if (is_array($value)) {
-            return array_map(fn(mixed $v) => $this->normalizeValue($v, $visited), $value);
+            return array_map(fn (mixed $v) => $this->normalizeValue($v, $visited), $value);
         }
 
         return $value;

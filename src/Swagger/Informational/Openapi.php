@@ -46,7 +46,7 @@ final readonly class Openapi
             $result['servers'] = $servers;
         }
 
-        $filteredTags = array_values(array_filter($this->tags, fn($tag) => !empty($tag)));
+        $filteredTags = array_values(array_filter($this->tags, fn ($tag) => !empty($tag)));
         if (!empty($filteredTags)) {
             $result['tags'] = $filteredTags;
         }

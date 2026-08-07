@@ -13,14 +13,14 @@ declare(strict_types=1);
 namespace OV\JsonRPCAPIBundle\DependencyInjection;
 
 use Exception;
-use Symfony\Component\Config\FileLocator;
-use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Extension\Extension;
-use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLogger;
 use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
 use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
+use Symfony\Component\Config\FileLocator;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Extension\Extension;
+use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 
 /**
  * Symfony bundle extension.
@@ -29,13 +29,13 @@ use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
  *   - `ov_json_rpc_api.logger` — PSR-3 LoggerInterface used internally by JsonRpcCallLogger.
  *   - JsonRpcCallLoggerInterface — top-level call logger; off-switch (logging.enabled=false) forces NullJsonRpcCallLogger.
  */
-
 final class OVJsonRPCAPIExtension extends Extension
 {
     private const LOGGER_ALIAS_ID = 'ov_json_rpc_api.logger';
 
     /**
      * @noinspection PhpUnused
+     *
      * @throws Exception
      */
     public function load(array $configs, ContainerBuilder $container): void
