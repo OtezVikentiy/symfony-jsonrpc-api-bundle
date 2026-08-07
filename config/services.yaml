@@ -60,8 +60,6 @@ services:
         tags:
             - 'controller.service_arguments'
 
-    Symfony\Component\DependencyInjection\Container: '@service_container'
-
     ov_json_rpc_api_swagger_generate_command:
         class: OV\JsonRPCAPIBundle\Command\SwaggerGenerate
         autoconfigure: true

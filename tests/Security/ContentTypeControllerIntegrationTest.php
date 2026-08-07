@@ -16,7 +16,7 @@ use OV\JsonRPCAPIBundle\Core\Services\ResponseService;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\DependencyInjection\Container;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -92,7 +92,7 @@ final class ContentTypeControllerIntegrationTest extends TestCase
             new MethodSpecCollection(),
             $this->createMock(ValidatorInterface::class),
             $headersPreparer,
-            $this->createMock(Container::class),
+            $this->createMock(ServiceLocator::class),
             $responseService,
             $callLogger,
         );

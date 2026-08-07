@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace OV\JsonRPCAPIBundle\Swagger;
 
+/**
+ * @internal
+ */
 final readonly class Response
 {
     public function __construct(

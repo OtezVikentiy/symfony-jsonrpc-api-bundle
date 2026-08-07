@@ -14,7 +14,7 @@ use OV\JsonRPCAPIBundle\Core\Services\ResponseService;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\DependencyInjection\Container;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -70,7 +70,7 @@ final class BatchSizeLimitTest extends TestCase
             new MethodSpecCollection(),
             $validator,
             $headersPreparer,
-            $this->createMock(Container::class),
+            $this->createMock(ServiceLocator::class),
             $responseService,
             new NullJsonRpcCallLogger(),
             maxBatchSize: $maxBatchSize,

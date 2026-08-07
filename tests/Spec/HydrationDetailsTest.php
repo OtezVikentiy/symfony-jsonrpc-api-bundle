@@ -20,7 +20,7 @@ use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionMethod;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\DependencyInjection\Container;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\Serializer\NameConverter\CamelCaseToSnakeCaseNameConverter;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -369,9 +369,9 @@ final class HydrationDetailsTest extends TestCase
         $headersPreparer = new HeadersPreparer(['*']);
         $responseService = new ResponseService($headersPreparer, new ErrorSanitizer());
 
-        $container = $this->createMock(Container::class);
+        $container = $this->createMock(ServiceLocator::class);
         $container->method('get')->willReturnMap([
-            [$methodClass, 1, $methodInstance],
+            [$methodClass, $methodInstance],
         ]);
 
         return new RequestHandler(

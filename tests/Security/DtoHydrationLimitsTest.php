@@ -20,7 +20,7 @@ use OV\JsonRPCAPIBundle\Tests\Security\Fixtures\ScalarSetterDto;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\DependencyInjection\Container;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -152,7 +152,7 @@ final class DtoHydrationLimitsTest extends TestCase
             new MethodSpecCollection(),
             $validator,
             $headersPreparer,
-            $this->createMock(Container::class),
+            $this->createMock(ServiceLocator::class),
             $responseService,
             new NullJsonRpcCallLogger(),
             maxDtoDepth: $maxDtoDepth,

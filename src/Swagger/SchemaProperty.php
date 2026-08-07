@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace OV\JsonRPCAPIBundle\Swagger;
 
+/**
+ * @internal
+ */
 final class SchemaProperty
 {
     public function __construct(

@@ -19,7 +19,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\CreateSomeMethod;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\DependencyInjection\Container;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -109,7 +109,7 @@ final class ArrayParamLimitTest extends TestCase
             new MethodSpecCollection(),
             $validator,
             $headersPreparer,
-            $this->createMock(Container::class),
+            $this->createMock(ServiceLocator::class),
             $responseService,
             new NullJsonRpcCallLogger(),
             maxArrayParamSize: $maxArrayParamSize,

@@ -15,6 +15,9 @@ namespace OV\JsonRPCAPIBundle\DependencyInjection;
 use Exception;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
 
+/**
+ * @internal
+ */
 final class MethodSpecCollection
 {
     private array $methodSpecs = [];

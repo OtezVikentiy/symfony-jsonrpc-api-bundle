@@ -16,6 +16,10 @@ use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use Symfony\Component\Validator\Constraints as Assert;
 
+/**
+ * @internal not final: CompilerPass registers this as a lazy service on PHP 8.3+,
+ * and Symfony's native lazy ghost proxies require a non-final class to extend.
+ */
 class MethodSpec
 {
     /** @var array<string, Assert\Constraint> */

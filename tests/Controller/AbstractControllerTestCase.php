@@ -15,7 +15,6 @@ use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\HttpFoundation\HeaderBag;
 use Symfony\Component\HttpFoundation\InputBag;
@@ -33,7 +32,7 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 abstract class AbstractControllerTestCase extends TestCase
 {
     private ?MethodSpecCollection $methodSpecCollection = null;
-    private ?Container $container = null;
+    private ?ServiceLocator $processorLocator = null;
     private ?ServiceLocator $serviceLocator = null;
     private ?ValidatorInterface $validator = null;
     private ?Security $security = null;
@@ -51,7 +50,7 @@ abstract class AbstractControllerTestCase extends TestCase
     protected function tearDown(): void
     {
         $this->methodSpecCollection = null;
-        $this->container = null;
+        $this->processorLocator = null;
         $this->serviceLocator = null;
         $this->validator = null;
         $this->security = null;
@@ -116,7 +115,7 @@ abstract class AbstractControllerTestCase extends TestCase
             $this->methodSpecCollection,
             $this->validator,
             $this->headersPreparer,
-            $this->container,
+            $this->processorLocator,
             $this->responseService,
             $this->callLoggerOverride ?? new NullJsonRpcCallLogger(),
             allowExtraFields: $this->allowExtraFields,
@@ -154,7 +153,7 @@ abstract class AbstractControllerTestCase extends TestCase
     {
         $methodSpecCollection = new MethodSpecCollection();
 
-        $container = $this->createMock(Container::class);
+        $processorLocator = $this->createMock(ServiceLocator::class);
         $preProcessors = [];
         foreach ($methodSpecs as $methodSpec) {
             $class = $methodSpec->getMethodClass();
@@ -171,23 +170,23 @@ abstract class AbstractControllerTestCase extends TestCase
                 throw new \Exception('Could not define method name');
             }
             $methodSpecCollection->addMethodSpec(1, $methodName, $methodSpec);
-            $preProcessors[] = [$class, 1, new $class()];
+            $preProcessors[] = [$class, new $class()];
         }
 
         $serializer = $this->serviceLocator->get('serializer');
-        $container
+        $processorLocator
             ->expects($this->any())
             ->method('has')
             ->with($this->identicalTo('serializer'))
             ->willReturn(true);
-        $preProcessors[] = ['serializer', 1, $serializer];
-        $container
+        $preProcessors[] = ['serializer', $serializer];
+        $processorLocator
             ->expects($this->any())
             ->method('get')
             ->willReturnMap($preProcessors);
 
         $this->methodSpecCollection = $methodSpecCollection;
-        $this->container = $container;
+        $this->processorLocator = $processorLocator;
     }
 
     private function prepareServiceLocator(): void

@@ -27,7 +27,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\NotifyHello\NotifyHelloRequest;
 use OV\JsonRPCAPIBundle\RPC\V1\NotifyHelloMethod;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\DependencyInjection\Container;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -37,7 +37,7 @@ final class RequestHandlerTest extends TestCase
         MethodSpecCollection $specCollection,
         bool $isGranted = true,
         array $violations = [],
-        ?Container $container = null,
+        ?ServiceLocator $locator = null,
         bool $strictNotifications = false,
     ): RequestHandler {
         $security = $this->createMock(Security::class);
@@ -50,8 +50,8 @@ final class RequestHandlerTest extends TestCase
         $headersPreparer = new HeadersPreparer(['*']);
         $responseService = new ResponseService($headersPreparer, new ErrorSanitizer());
 
-        if (is_null($container)) {
-            $container = $this->createMock(Container::class);
+        if (is_null($locator)) {
+            $locator = $this->createMock(ServiceLocator::class);
         }
 
         return new RequestHandler(
@@ -59,21 +59,21 @@ final class RequestHandlerTest extends TestCase
             $specCollection,
             $validator,
             $headersPreparer,
-            $container,
+            $locator,
             $responseService,
             new NullJsonRpcCallLogger(),
             $strictNotifications,
         );
     }
 
-    private function createContainerWithMethod(string $methodClass): Container
+    private function createLocatorWithMethod(string $methodClass): ServiceLocator
     {
-        $container = $this->createMock(Container::class);
+        $locator = $this->createMock(ServiceLocator::class);
         $instance = new $methodClass();
-        $container->method('get')->willReturnMap([
-            [$methodClass, 1, $instance],
+        $locator->method('get')->willReturnMap([
+            [$methodClass, $instance],
         ]);
-        return $container;
+        return $locator;
     }
 
     public function testProcessBatchSuccessfulRequest(): void
@@ -100,8 +100,8 @@ final class RequestHandlerTest extends TestCase
         );
         $specCollection->addMethodSpec(1, 'subtract', $methodSpec);
 
-        $container = $this->createContainerWithMethod(SubtractMethod::class);
-        $handler = $this->createRequestHandler($specCollection, container: $container);
+        $locator = $this->createLocatorWithMethod(SubtractMethod::class);
+        $handler = $this->createRequestHandler($specCollection, locator: $locator);
 
         $batch = [
             'jsonrpc' => '2.0',
@@ -245,8 +245,8 @@ final class RequestHandlerTest extends TestCase
         );
         $specCollection->addMethodSpec(1, 'test', $methodSpec);
 
-        $container = $this->createContainerWithMethod(TestMethod::class);
-        $handler = $this->createRequestHandler($specCollection, isGranted: true, container: $container);
+        $locator = $this->createLocatorWithMethod(TestMethod::class);
+        $handler = $this->createRequestHandler($specCollection, isGranted: true, locator: $locator);
 
         $batch = [
             'jsonrpc' => '2.0',
@@ -313,8 +313,8 @@ final class RequestHandlerTest extends TestCase
         );
         $specCollection->addMethodSpec(1, 'subtract', $methodSpec);
 
-        $container = $this->createContainerWithMethod(SubtractMethod::class);
-        $handler = $this->createRequestHandler($specCollection, container: $container);
+        $locator = $this->createLocatorWithMethod(SubtractMethod::class);
+        $handler = $this->createRequestHandler($specCollection, locator: $locator);
 
         $batch = [
             'jsonrpc' => '2.0',
@@ -354,9 +354,9 @@ final class RequestHandlerTest extends TestCase
         );
         $specCollection->addMethodSpec(1, 'notify_hello', $methodSpec);
 
-        $container = $this->createContainerWithMethod(NotifyHelloMethod::class);
+        $locator = $this->createLocatorWithMethod(NotifyHelloMethod::class);
         // strictNotifications: false (default) — notification with non-empty response still returns data
-        $handler = $this->createRequestHandler($specCollection, container: $container, strictNotifications: false);
+        $handler = $this->createRequestHandler($specCollection, locator: $locator, strictNotifications: false);
 
         $batch = [
             'jsonrpc' => '2.0',
@@ -394,9 +394,9 @@ final class RequestHandlerTest extends TestCase
         );
         $specCollection->addMethodSpec(1, 'subtract', $methodSpec);
 
-        $container = $this->createContainerWithMethod(SubtractMethod::class);
+        $locator = $this->createLocatorWithMethod(SubtractMethod::class);
         // strictNotifications: true — per JSON-RPC 2.0 spec, no response for notifications
-        $handler = $this->createRequestHandler($specCollection, container: $container, strictNotifications: true);
+        $handler = $this->createRequestHandler($specCollection, locator: $locator, strictNotifications: true);
 
         $batch = [
             'jsonrpc' => '2.0',

@@ -18,6 +18,9 @@ use ReflectionProperty;
 use ReflectionUnionType;
 use Symfony\Component\Yaml\Yaml;
 
+/**
+ * @internal
+ */
 final class SwaggerSchemaBuilder
 {
     private array $components = [];

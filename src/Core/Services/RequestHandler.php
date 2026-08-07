@@ -18,7 +18,7 @@ use OV\JsonRPCAPIBundle\Core\Services\RequestHandler\MultiBatchStrategy;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\DependencyInjection\Container;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -45,7 +45,7 @@ final class RequestHandler
         private readonly MethodSpecCollection $specCollection,
         private readonly ValidatorInterface $validator,
         private readonly HeadersPreparer $headersPreparer,
-        private readonly Container $container,
+        private readonly ServiceLocator $processorLocator,
         private readonly ResponseService $responseService,
         private readonly JsonRpcCallLoggerInterface $callLogger,
         private readonly bool $strictNotifications = true,
@@ -117,7 +117,7 @@ final class RequestHandler
             $this->processValidatorsForRequestInstance($methodSpec, $baseRequest, $requestInstance);
 
             $processorClass = $methodSpec->getMethodClass();
-            $processor = $this->container->get($processorClass);
+            $processor = $this->processorLocator->get($processorClass);
 
             if ($methodSpec->isPreProcessorExists() && $processor instanceof PreProcessorInterface) {
                 $this->runPreProcessors($processor, $processorClass, $requestInstance);

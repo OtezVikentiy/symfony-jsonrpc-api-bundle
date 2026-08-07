@@ -17,6 +17,7 @@ use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 use OV\JsonRPCAPIBundle\Core\PostProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\PreProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\Response\PlainResponseInterface;
+use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use ReflectionClass;
@@ -24,12 +25,16 @@ use ReflectionException;
 use ReflectionUnionType;
 use RuntimeException;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
+use Symfony\Component\DependencyInjection\Compiler\ServiceLocatorTagPass;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
 use Symfony\Component\String\Inflector\EnglishInflector;
 use Symfony\Component\String\Inflector\InflectorInterface;
 
+/**
+ * @internal
+ */
 final class CompilerPass implements CompilerPassInterface
 {
     private const CALL_METHOD = 'call';
@@ -54,14 +59,16 @@ final class CompilerPass implements CompilerPassInterface
         );
 
         $methods = $container->findTaggedServiceIds('ov.rpc.method');
+        $processorReferences = [];
 
         foreach ($methods as $method => $tags) {
             $methodDefinition = $container->findDefinition($method);
             $className        = $methodDefinition->getClass();
 
-            $methodDefinition->setPublic(true);
             $methodDefinition->setAutowired(true);
             $methodDefinition->setAutoconfigured(true);
+
+            $processorReferences[$className] = new Reference($method);
 
             $methodReflectionClass = new ReflectionClass($className);
 
@@ -137,6 +144,13 @@ final class CompilerPass implements CompilerPassInterface
                     '$methodName' => $metadata['methodName'],
                     '$methodSpec' => new Reference($methodSpecDefinitionId),
                 ],
+            );
+        }
+
+        if ($container->hasDefinition(RequestHandler::class)) {
+            $container->getDefinition(RequestHandler::class)->setArgument(
+                '$processorLocator',
+                ServiceLocatorTagPass::register($container, $processorReferences),
             );
         }
     }

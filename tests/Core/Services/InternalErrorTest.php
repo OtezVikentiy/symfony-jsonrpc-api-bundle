@@ -15,7 +15,7 @@ use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\DependencyInjection\Container;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -85,9 +85,9 @@ final class InternalErrorTest extends TestCase
         $validator = $this->createMock(ValidatorInterface::class);
         $validator->method('validate')->willReturn(new ConstraintViolationList());
 
-        $container = $this->createMock(Container::class);
+        $container = $this->createMock(ServiceLocator::class);
         $container->method('get')->willReturnMap([
-            [ExplodingMethod::class, 1, new ExplodingMethod($error)],
+            [ExplodingMethod::class, new ExplodingMethod($error)],
         ]);
 
         $headersPreparer = new HeadersPreparer(['*']);

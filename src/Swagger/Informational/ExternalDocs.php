@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace OV\JsonRPCAPIBundle\Swagger\Informational;
 
+/**
+ * @internal
+ */
 final readonly class ExternalDocs
 {
     public function __construct(

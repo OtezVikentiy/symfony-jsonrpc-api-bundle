@@ -7,6 +7,7 @@ use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
 use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
 use OV\JsonRPCAPIBundle\DependencyInjection\OVJsonRPCAPIExtension;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 final class OVJsonRPCAPIExtensionTest extends TestCase
@@ -16,6 +17,21 @@ final class OVJsonRPCAPIExtensionTest extends TestCase
         $extension = new OVJsonRPCAPIExtension();
 
         $this->assertSame('ov_json_rpc_api', $extension->getAlias());
+    }
+
+    public function testContainerIsNotAliasedForConsumerAutowiring(): void
+    {
+        $container = new ContainerBuilder();
+        $extension = new OVJsonRPCAPIExtension();
+
+        $extension->load([], $container);
+
+        $this->assertFalse(
+            $container->hasAlias(Container::class),
+            'The bundle must not alias the DI Container to @service_container: any consumer service '
+                . 'autowiring Container would receive the whole application container instead of the '
+                . 'narrow ServiceLocator this bundle needs internally.',
+        );
     }
 
     public function testLoadRegistersDefaultParameters(): void

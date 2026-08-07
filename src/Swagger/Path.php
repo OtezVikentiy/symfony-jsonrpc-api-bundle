@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace OV\JsonRPCAPIBundle\Swagger;
 
+/**
+ * @internal
+ */
 final readonly class Path
 {
     public function __construct(
