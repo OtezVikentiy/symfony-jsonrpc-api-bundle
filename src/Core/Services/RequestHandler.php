@@ -33,6 +33,8 @@ final readonly class RequestHandler
     private const INVALID_TYPE_MESSAGE_FORMAT = '[%s] - This value should be of type %s';
     private const FINALLY_FAILURE_MESSAGE = 'JSON-RPC post-response stage failed';
     private const ACCESS_DENIED_MESSAGE = 'Access denied.';
+    private const PLAIN_RESPONSE_IN_BATCH_MESSAGE = 'Internal error.';
+    private const PLAIN_RESPONSE_IN_BATCH_INFO = 'Plain responses are not supported inside a batch request.';
 
     public function __construct(
         private Security $security,
@@ -67,13 +69,24 @@ final readonly class RequestHandler
             return $err;
         }
 
-        return $strategy->handleBatch($data, $version, $methodType, [$this, 'processBatch']);
+        $isMultiBatch = $strategy instanceof MultiBatchStrategy;
+        $batchProcessor = fn (mixed $item, int $itemVersion, string $itemMethodType): ?OvResponseInterface
+            => $this->processBatch($item, $itemVersion, $itemMethodType, $isMultiBatch);
+
+        $response = $strategy->handleBatch($data, $version, $methodType, $batchProcessor);
+
+        if ($response instanceof Response) {
+            $response->headers->add($this->headersPreparer->prepareHeaders());
+        }
+
+        return $response;
     }
 
     public function processBatch(
         mixed $batch,
         int $version,
         string $methodType,
+        bool $isBatchItem = false,
     ): ?OvResponseInterface {
         $call = $this->callLogger->logRequest(is_array($batch) ? $batch : []);
         try {
@@ -108,6 +121,14 @@ final readonly class RequestHandler
 
             /** @var mixed|Response $response */
             $response = $processor->call($requestInstance);
+
+            if ($isBatchItem && $response instanceof PlainResponseInterface) {
+                throw new JRPCException(
+                    self::PLAIN_RESPONSE_IN_BATCH_MESSAGE,
+                    JRPCException::INTERNAL_ERROR,
+                    self::PLAIN_RESPONSE_IN_BATCH_INFO,
+                );
+            }
 
             if ($methodSpec->isPlainResponse() && $response instanceof PlainResponseInterface) {
                 $response->headers->add($this->headersPreparer->prepareHeaders());
