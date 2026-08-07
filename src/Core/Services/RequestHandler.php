@@ -25,10 +25,11 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Psr\Log\LoggerInterface;
 use InvalidArgumentException;
 use ReflectionClass;
+use ReflectionMethod;
 use Throwable;
 use TypeError;
 
-final readonly class RequestHandler
+final class RequestHandler
 {
     private const INVALID_TYPE_MESSAGE_FORMAT = '[%s] - This value should be of type %s';
     private const FINALLY_FAILURE_MESSAGE = 'JSON-RPC post-response stage failed';
@@ -36,20 +37,23 @@ final readonly class RequestHandler
     private const PLAIN_RESPONSE_IN_BATCH_MESSAGE = 'Internal error.';
     private const PLAIN_RESPONSE_IN_BATCH_INFO = 'Plain responses are not supported inside a batch request.';
 
+    /** @var array<class-string, array<string, ReflectionMethod>> */
+    private static array $setterIndexCache = [];
+
     public function __construct(
-        private Security $security,
-        private MethodSpecCollection $specCollection,
-        private ValidatorInterface $validator,
-        private HeadersPreparer $headersPreparer,
-        private Container $container,
-        private ResponseService $responseService,
-        private JsonRpcCallLoggerInterface $callLogger,
-        private bool $strictNotifications = true,
-        private bool $allowExtraFields = false,
-        private int $maxBatchSize = 50,
-        private int $maxDtoDepth = 10,
-        private int $maxArrayParamSize = 1000,
-        private ?LoggerInterface $logger = null,
+        private readonly Security $security,
+        private readonly MethodSpecCollection $specCollection,
+        private readonly ValidatorInterface $validator,
+        private readonly HeadersPreparer $headersPreparer,
+        private readonly Container $container,
+        private readonly ResponseService $responseService,
+        private readonly JsonRpcCallLoggerInterface $callLogger,
+        private readonly bool $strictNotifications = true,
+        private readonly bool $allowExtraFields = false,
+        private readonly int $maxBatchSize = 50,
+        private readonly int $maxDtoDepth = 10,
+        private readonly int $maxArrayParamSize = 1000,
+        private readonly ?LoggerInterface $logger = null,
     ) {
     }
 
@@ -405,12 +409,7 @@ final readonly class RequestHandler
         $parametersClass = new $class();
         $tracksProvided = $parametersClass instanceof PartialRequestInterface;
 
-        $classReflection = new ReflectionClass($class);
-        $methods = $classReflection->getMethods();
-        $methodsIdx = [];
-        foreach ($methods as $method) {
-            $methodsIdx[$method->getName()] = $method;
-        }
+        $methodsIdx = self::$setterIndexCache[$class] ??= self::buildSetterIndex($class);
 
         $invalidTypeErrors = [];
         foreach ($values as $name => $value) {
@@ -456,23 +455,10 @@ final readonly class RequestHandler
     {
         $requestData = $baseRequest->getParams();
 
-        $validators = [];
         foreach ($methodSpec->getValidators() as $field => $validatorItem) {
-            if (class_exists($validatorItem['type'])) {
+            if (class_exists($validatorItem['type'], false)) {
                 $getter = $methodSpec->getRequestGetters()[$field];
                 $requestData[$field] = $requestInstance->$getter();
-            }
-
-            if ($validatorItem['allowsNull'] === false) {
-                $validators[$field] = new Assert\Type($validatorItem['type']);
-            } else {
-                $validators[$field] = new Assert\Optional([
-                    new Assert\AtLeastOneOf([
-                        new Assert\Type($validatorItem['type']),
-                        new Assert\Blank(),
-                        new Assert\IsNull(),
-                    ]),
-                ]);
             }
         }
 
@@ -480,7 +466,7 @@ final readonly class RequestHandler
 
         $violations = $this->validator->validate(
             $requestData,
-            new Assert\Collection(fields: $validators, allowExtraFields: $allowExtraFields)
+            new Assert\Collection(fields: $methodSpec->getCompiledValidators(), allowExtraFields: $allowExtraFields)
         );
 
         if ($violations->count()) {
@@ -492,6 +478,21 @@ final readonly class RequestHandler
 
             throw new JRPCException('Invalid params.', JRPCException::INVALID_PARAMS, implode(PHP_EOL, $errs));
         }
+    }
+
+    /**
+     * @param class-string $class
+     *
+     * @return array<string, ReflectionMethod>
+     */
+    private static function buildSetterIndex(string $class): array
+    {
+        $methodsIdx = [];
+        foreach ((new ReflectionClass($class))->getMethods() as $method) {
+            $methodsIdx[$method->getName()] = $method;
+        }
+
+        return $methodsIdx;
     }
 
     private function isExtraFieldsAllowed(MethodSpec $methodSpec): bool

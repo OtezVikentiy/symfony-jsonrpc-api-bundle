@@ -111,4 +111,66 @@ final class SensitiveDataMaskerTest extends TestCase
 
         self::assertSame(['token' => '[REDACTED]'], $masker->mask(['token' => 'x']));
     }
+
+    public function testMergesMultiplePatternsWithTheSameFlags(): void
+    {
+        $masker = new SensitiveDataMasker(
+            ['~^password$~i', '~^token$~i', '~^secret$~i'],
+            '***',
+            new NullLogger(),
+        );
+
+        $result = $masker->mask(['password' => 'a', 'TOKEN' => 'b', 'secret' => 'c', 'other' => 'd']);
+
+        self::assertSame(
+            ['password' => '***', 'TOKEN' => '***', 'secret' => '***', 'other' => 'd'],
+            $result,
+        );
+    }
+
+    public function testGroupsPatternsWithDifferentFlagsSeparately(): void
+    {
+        $masker = new SensitiveDataMasker(
+            ['~^password$~i', '~^Token$~'],
+            '***',
+            new NullLogger(),
+        );
+
+        $caseInsensitiveMatch = $masker->mask(['PASSWORD' => 'a']);
+        self::assertSame(['PASSWORD' => '***'], $caseInsensitiveMatch);
+
+        $caseSensitiveNoMatch = $masker->mask(['token' => 'b']);
+        self::assertSame(['token' => 'b'], $caseSensitiveNoMatch, 'the case-sensitive pattern "Token" must not match lowercase "token"');
+
+        $caseSensitiveMatch = $masker->mask(['Token' => 'c']);
+        self::assertSame(['Token' => '***'], $caseSensitiveMatch);
+    }
+
+    public function testValidPatternStillMatchesWhenMixedWithAnInvalidOne(): void
+    {
+        $logger = new TestLogger();
+        $masker = new SensitiveDataMasker(
+            ['~^password$~i', 'invalid(', '~^secret$~i'],
+            '***',
+            $logger,
+        );
+
+        $result = $masker->mask(['password' => 'a', 'secret' => 'b', 'other' => 'c']);
+
+        self::assertSame(['password' => '***', 'secret' => '***', 'other' => 'c'], $result);
+        self::assertTrue($logger->hasWarningRecords());
+    }
+
+    public function testAnchoredPatternsDoNotBleedAcrossMergedAlternatives(): void
+    {
+        $masker = new SensitiveDataMasker(
+            ['~^password$~i', '~^token$~i'],
+            '***',
+            new NullLogger(),
+        );
+
+        $result = $masker->mask(['passwordtoken' => 'should not match either anchored pattern']);
+
+        self::assertSame(['passwordtoken' => 'should not match either anchored pattern'], $result);
+    }
 }
