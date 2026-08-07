@@ -89,7 +89,7 @@ ov_json_rpc_api:
 | `swagger.*.base_path_variables` | Переменные для подстановки в `base_path` |
 | `swagger.*.test_path_variables` | Переменные для подстановки в `test_path` |
 | `swagger.*.auth_token_name` | Имя HTTP-заголовка для токена авторизации |
-| `swagger.*.auth_token_test_value` | Тестовое значение токена (для Swagger UI) |
+| `swagger.*.auth_token_test_value` | Тестовое значение токена. **Сейчас не используется** — генератор берёт из блока авторизации только `auth_token_name`. Ключ принимается и валидируется, но ни на что не влияет |
 | `swagger.*.info` | Информация об API: title, description, contact, license |
 
 > **Подстановка переменных в path**
@@ -144,7 +144,7 @@ curl -X POST http://localhost/api/v1 \
         "code": -32601,
         "message": "Method not found."
     },
-    "id": "1"
+    "id": 1
 }
 ```
 

@@ -358,7 +358,20 @@ final class RequestHandler
                 if ($value === []) {
                     $collectionSetter = $methodSpec->getRequestSetters()[$name] ?? null;
                     if (!is_null($collectionSetter)) {
-                        $requestInstance->$collectionSetter([]);
+                        try {
+                            $requestInstance->$collectionSetter([]);
+                        } catch (InvalidArgumentException|TypeError) {
+                            // A collection held in an object rather than an array - a Doctrine
+                            // ArrayCollection, or any custom type - rejects the empty array its
+                            // setter is being handed. The branch this replaced sat inside the same
+                            // guard, so without it a caller sending [] was told the server had
+                            // failed, which is the -32603 the surrounding work exists to stop.
+                            $invalidTypeErrors[] = sprintf(
+                                self::INVALID_TYPE_MESSAGE_FORMAT,
+                                $name,
+                                $allParameter['type'],
+                            );
+                        }
                     }
 
                     if ($tracksProvided && $wasProvided) {
@@ -569,7 +582,12 @@ final class RequestHandler
             return $params;
         }
 
-        if (array_key_exists(self::POSITIONAL_PARAMS_FIELD, $params)) {
+        // The test is whether the payload is by-position, and section 4.2 says that means an Array -
+        // which json_decode gives as a list. Keying on "there is no literal params key" instead was
+        // wrong: a DTO may declare params alongside other fields, and then a perfectly ordinary
+        // by-name call such as {"other":"x"} was swallowed whole into the pseudo-field, leaving
+        // every named field it did send reported as missing.
+        if (!array_is_list($params)) {
             return $params;
         }
 

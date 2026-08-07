@@ -31,6 +31,8 @@ use SplObjectStorage;
  *
  * A property is exported only when a public getter for it exists. Both directions of the trade were
  * weighed: a property whose getter is private stays out of the payload, which is the point.
+ *
+ * @internal
  */
 trait SerialisesThroughPublicGetters
 {

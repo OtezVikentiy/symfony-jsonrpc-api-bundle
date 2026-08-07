@@ -524,7 +524,7 @@ class DeleteUserMethod implements ApiMethodInterface
 | `logging.logger_service` | `null` | ID сервиса PSR-3 логгера, в который пишет `JsonRpcCallLogger`. |
 | `logging.call_logger_service` | `null` | ID сервиса, целиком заменяющего реализацию `JsonRpcCallLoggerInterface`. |
 | `logging.masking.placeholder` | `'***'` | Чем заменяется значение поля, попавшего под маскирование. |
-| `logging.masking.key_patterns` | 18 паттернов | Регулярные выражения имён полей и заголовков, значения которых маскируются (`password`, `token`, `secret`, `authorization`, `jwt` и прочие). **В 4.x дефолт был `[]`, то есть маскирования не было.** Битое регулярное выражение роняет компиляцию контейнера. |
+| `logging.masking.key_patterns` | 29 паттернов | Регулярные выражения имён полей и заголовков, значения которых маскируются (`password`, `token`, `secret`, `authorization`, `jwt` и прочие). **В 4.x дефолт был `[]`, то есть маскирования не было.** Битое регулярное выражение роняет компиляцию контейнера. |
 | `swagger` | — | Конфигурация Swagger по версиям API |
 | `swagger.*.api_version` | `'1'` | Номер версии API |
 | `swagger.*.base_path` | — | URL production-сервера |
@@ -532,7 +532,7 @@ class DeleteUserMethod implements ApiMethodInterface
 | `swagger.*.base_path_variables` | `[]` | Переменные для подстановки в base_path |
 | `swagger.*.test_path_variables` | `[]` | Переменные для подстановки в test_path |
 | `swagger.*.auth_token_name` | — | Имя заголовка для токена авторизации |
-| `swagger.*.auth_token_test_value` | — | Тестовое значение токена |
+| `swagger.*.auth_token_test_value` | — | Тестовое значение токена. **Сейчас не используется:** в OpenAPI-схему попадает только имя заголовка (`auth_token_name`), значение никуда не подставляется. Ключ сохранён, чтобы не ломать существующие конфиги. |
 | `swagger.*.info` | — | Информация об API (title, description, contact, license) |
 
 > **Security hardening:** рекомендации по значениям, обоснование и тюнинг для high-volume API — [docs/security_hardening.md](./docs/security_hardening.md).

@@ -35,7 +35,10 @@ final readonly class HeadersPreparer
      * - Wildcard `*` in the whitelist → always returns `Access-Control-Allow-Origin: *`.
      * - One whitelisted origin matches the request `Origin` header → returns that exact
      *   origin plus `Vary: Origin` so caches stay correct.
-     * - No match, no `Origin` header, or an empty whitelist → no CORS header is emitted.
+     * - No match or no `Origin` header → no `Access-Control-Allow-Origin`, but `Vary: Origin` is
+     *   still emitted: whether the header appears depends on the request's origin either way, and a
+     *   shared cache that is not told so can serve one origin's answer to another.
+     * - An empty whitelist → nothing at all. CORS is off, so no response varies by origin.
      *
      * @return array<string,string>
      */
