@@ -156,11 +156,18 @@ final class Configuration implements ConfigurationInterface
                             ->scalarNode('auth_token_name')->end()
                             ->scalarNode('auth_token_test_value')->end()
                             ->arrayNode('info')
+                                // Without this the declared defaults below never apply: a node that
+                                // the configuration omits produces no key at all, and the OpenAPI
+                                // generator reads `info.title` and friends unguarded. Leaving the
+                                // block out - which the schema permits - aborted ov:swagger:generate
+                                // with a TypeError instead of generating with the defaults.
+                                ->addDefaultsIfNotSet()
                                 ->children()
                                     ->scalarNode('title')->defaultValue('title')->end()
                                     ->scalarNode('description')->defaultValue('description')->end()
                                     ->scalarNode('terms_of_service_url')->defaultValue('terms_of_service_url')->end()
                                     ->arrayNode('contact')
+                                        ->addDefaultsIfNotSet()
                                         ->children()
                                             ->scalarNode('name')->defaultValue('name')->end()
                                             ->scalarNode('url')->defaultValue('url')->end()

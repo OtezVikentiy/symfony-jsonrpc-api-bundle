@@ -65,6 +65,38 @@ final class ConfigurationTest extends TestCase
         ]);
     }
 
+    /**
+     * Every child of `info` and of `info.contact` declares a default, but a node the configuration
+     * omits produces no key at all unless it says addDefaultsIfNotSet(). The OpenAPI generator reads
+     * `info.title` and `info.contact.name` unguarded, so leaving the block out - which the schema
+     * permits, and which any project not publishing contact details would do - aborted
+     * ov:swagger:generate with a TypeError rather than generating with the defaults.
+     */
+    public function testSwaggerInfoDefaultsApplyWhenTheBlockIsOmitted(): void
+    {
+        $config = (new Processor())->processConfiguration(new Configuration(), [
+            ['swagger' => ['api_v1' => ['api_version' => '1']]],
+        ]);
+
+        $info = $config['swagger']['api_v1']['info'];
+
+        $this->assertSame('title', $info['title']);
+        $this->assertSame('name', $info['contact']['name']);
+        $this->assertSame('email', $info['contact']['email']);
+    }
+
+    public function testSwaggerContactDefaultsApplyWhenOnlyContactIsOmitted(): void
+    {
+        $config = (new Processor())->processConfiguration(new Configuration(), [
+            ['swagger' => ['api_v1' => ['api_version' => '1', 'info' => ['title' => 'Mine']]]],
+        ]);
+
+        $info = $config['swagger']['api_v1']['info'];
+
+        $this->assertSame('Mine', $info['title'], 'an explicit value must survive');
+        $this->assertSame('name', $info['contact']['name']);
+    }
+
     public function testWildcardOnItsOwnIsStillAllowed(): void
     {
         $config = (new Processor())->processConfiguration(new Configuration(), [
