@@ -3,6 +3,7 @@
 namespace OV\JsonRPCAPIBundle\Tests\Core\Services;
 
 use OV\JsonRPCAPIBundle\Core\Response\BaseResponse;
+use OV\JsonRPCAPIBundle\Core\Response\CorsPreflightResponse;
 use OV\JsonRPCAPIBundle\Core\Response\ErrorResponse;
 use OV\JsonRPCAPIBundle\Core\Response\JsonResponse;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
@@ -12,6 +13,7 @@ use OV\JsonRPCAPIBundle\Core\Services\ResponseService;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Response;
 
 final class ResponseServiceTest extends TestCase
 {
@@ -103,5 +105,56 @@ final class ResponseServiceTest extends TestCase
         $content = json_decode($response->getContent(), true);
         $this->assertEquals('2.0', $content['jsonrpc']);
         $this->assertEquals('test', $content['result']);
+    }
+
+    public function testPreparePreflightResponseIsNoContent(): void
+    {
+        $response = $this->responseService->preparePreflightResponse(['POST', 'GET']);
+
+        $this->assertInstanceOf(CorsPreflightResponse::class, $response);
+        $this->assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+        $this->assertSame('', $response->getContent());
+    }
+
+    public function testPreparePreflightResponseCarriesFullHeaderSet(): void
+    {
+        $response = $this->responseService->preparePreflightResponse(['POST', 'GET', 'PUT', 'PATCH', 'DELETE']);
+
+        $this->assertSame('*', $response->headers->get('Access-Control-Allow-Origin'));
+        $this->assertSame('POST, GET, PUT, PATCH, DELETE', $response->headers->get('Access-Control-Allow-Methods'));
+        $this->assertNotNull($response->headers->get('Access-Control-Allow-Headers'));
+        $this->assertNotNull($response->headers->get('Access-Control-Max-Age'));
+    }
+
+    public function testPreparePreflightResponseMatchesRequestOrigin(): void
+    {
+        $request = new Request();
+        $request->headers->set('Origin', 'https://b.com');
+        $stack = new RequestStack();
+        $stack->push($request);
+
+        $headersPreparer = new HeadersPreparer(['https://a.com', 'https://b.com'], $stack);
+        $responseService = new ResponseService($headersPreparer, new ErrorSanitizer());
+
+        $response = $responseService->preparePreflightResponse(['POST']);
+
+        $this->assertSame('https://b.com', $response->headers->get('Access-Control-Allow-Origin'));
+        $this->assertSame('Origin', $response->headers->get('Vary'));
+    }
+
+    public function testPreparePreflightResponseOmitsAllowOriginForForeignOrigin(): void
+    {
+        $request = new Request();
+        $request->headers->set('Origin', 'https://evil.com');
+        $stack = new RequestStack();
+        $stack->push($request);
+
+        $headersPreparer = new HeadersPreparer(['https://a.com'], $stack);
+        $responseService = new ResponseService($headersPreparer, new ErrorSanitizer());
+
+        $response = $responseService->preparePreflightResponse(['POST']);
+
+        $this->assertFalse($response->headers->has('Access-Control-Allow-Origin'));
+        $this->assertSame('POST', $response->headers->get('Access-Control-Allow-Methods'));
     }
 }

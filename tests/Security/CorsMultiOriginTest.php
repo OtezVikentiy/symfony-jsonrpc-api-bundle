@@ -32,7 +32,7 @@ final class CorsMultiOriginTest extends TestCase
         $this->assertSame([], $preparer->prepareHeaders());
     }
 
-    public function testMissingOriginHeaderEmitsNothingWhenStrict(): void
+    public function testMissingOriginHeaderEmitsNothing(): void
     {
         $preparer = new HeadersPreparer(
             ['https://api.example.com'],

@@ -1,10 +1,10 @@
 parameters:
     ovJsonRpcApiSwaggerPath: '%env(string:OV_JSON_RPC_API_SWAGGER_PATH)%'
     accessControlAllowOriginList: '%ov_json_rpc_api.access_control_allow_origin_list%'
+    corsAllowedHeaders: '%ov_json_rpc_api.cors_allowed_headers%'
     strictNotifications: '%ov_json_rpc_api.strict_notifications%'
     allowExtraFields: '%ov_json_rpc_api.allow_extra_fields%'
     exposeInternalErrors: '%ov_json_rpc_api.expose_internal_errors%'
-    corsStrict: '%ov_json_rpc_api.cors_strict%'
     maxPayloadBytes: '%ov_json_rpc_api.max_payload_bytes%'
     maxJsonDepth: '%ov_json_rpc_api.max_json_depth%'
     maxBatchSize: '%ov_json_rpc_api.max_batch_size%'
@@ -25,10 +25,10 @@ services:
         autoconfigure: true
         bind:
             $accessControlAllowOriginList: '%accessControlAllowOriginList%'
+            $allowedHeaders: '%corsAllowedHeaders%'
             $strictNotifications: '%strictNotifications%'
             $allowExtraFields: '%allowExtraFields%'
             $exposeInternalErrors: '%exposeInternalErrors%'
-            $corsStrict: '%corsStrict%'
             $maxPayloadBytes: '%maxPayloadBytes%'
             $maxJsonDepth: '%maxJsonDepth%'
             $maxBatchSize: '%maxBatchSize%'

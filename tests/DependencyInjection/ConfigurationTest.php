@@ -50,6 +50,28 @@ final class ConfigurationTest extends TestCase
         $this->assertEquals(['https://example.com', 'https://app.example.com'], $config['access_control_allow_origin_list']);
     }
 
+    public function testCorsAllowedHeadersDefaultsToContentTypeOnly(): void
+    {
+        $configuration = new Configuration();
+        $processor = new Processor();
+
+        $config = $processor->processConfiguration($configuration, []);
+
+        $this->assertSame(['Content-Type'], $config['cors_allowed_headers']);
+    }
+
+    public function testCorsAllowedHeadersCanBeOverridden(): void
+    {
+        $configuration = new Configuration();
+        $processor = new Processor();
+
+        $config = $processor->processConfiguration($configuration, [
+            ['cors_allowed_headers' => ['Content-Type', 'X-AUTH-TOKEN']],
+        ]);
+
+        $this->assertSame(['Content-Type', 'X-AUTH-TOKEN'], $config['cors_allowed_headers']);
+    }
+
     public function testProcessWithSwaggerConfig(): void
     {
         $configuration = new Configuration();
@@ -149,7 +171,7 @@ final class ConfigurationTest extends TestCase
         $config = $processor->processConfiguration($configuration, []);
 
         $this->assertFalse($config['expose_internal_errors']);
-        $this->assertTrue($config['cors_strict']);
+        $this->assertArrayNotHasKey('cors_strict', $config);
         $this->assertSame(1048576, $config['max_payload_bytes']);
         $this->assertSame(64, $config['max_json_depth']);
         $this->assertSame(50, $config['max_batch_size']);
@@ -194,7 +216,6 @@ final class ConfigurationTest extends TestCase
         $config = $processor->processConfiguration($configuration, [
             [
                 'expose_internal_errors' => true,
-                'cors_strict' => false,
                 'max_payload_bytes' => 2048,
                 'max_json_depth' => 32,
                 'max_batch_size' => 5,
@@ -204,7 +225,6 @@ final class ConfigurationTest extends TestCase
         ]);
 
         $this->assertTrue($config['expose_internal_errors']);
-        $this->assertFalse($config['cors_strict']);
         $this->assertSame(2048, $config['max_payload_bytes']);
         $this->assertSame(32, $config['max_json_depth']);
         $this->assertSame(5, $config['max_batch_size']);

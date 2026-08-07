@@ -26,16 +26,18 @@ use Throwable;
 
 final class ApiController extends AbstractController
 {
+    private const HANDLED_JSON_RPC_METHODS = [
+        Request::METHOD_POST,
+        Request::METHOD_GET,
+        Request::METHOD_PUT,
+        Request::METHOD_PATCH,
+        Request::METHOD_DELETE,
+    ];
+
     #[Route(
         path: '/api/v{version<\d+>}',
         name: 'ov_json_rpc_api_index',
-        methods: [
-            Request::METHOD_POST,
-            Request::METHOD_GET,
-            Request::METHOD_PUT,
-            Request::METHOD_PATCH,
-            Request::METHOD_DELETE
-        ]
+        methods: [...self::HANDLED_JSON_RPC_METHODS, Request::METHOD_OPTIONS],
     )]
     public function index(
         Request $request,
@@ -44,6 +46,10 @@ final class ApiController extends AbstractController
         ResponseService $responseService,
         JsonRpcCallLoggerInterface $callLogger,
     ): OvResponseInterface {
+        if ($request->getMethod() === Request::METHOD_OPTIONS) {
+            return $responseService->preparePreflightResponse(self::HANDLED_JSON_RPC_METHODS);
+        }
+
         try {
             $data = $requestRawDataHandler->prepareData($request);
 
