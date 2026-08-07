@@ -75,7 +75,7 @@ final class ArrayParamLimitTest extends TestCase
                 requiredParameters: [],
                 requestGetters: ['tokens' => 'getTokens'],
                 requestSetters: ['tokens' => 'setTokens'],
-                requestAdders: ['token' => 'addToken'],
+                requestAdders: ['tokens' => 'addToken'],
                 validators: [],
             ),
             swaggerMetadata: new SwaggerMetadata(

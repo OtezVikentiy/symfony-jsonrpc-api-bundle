@@ -27,6 +27,8 @@ use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
+use Symfony\Component\String\Inflector\EnglishInflector;
+use Symfony\Component\String\Inflector\InflectorInterface;
 
 final class CompilerPass implements CompilerPassInterface
 {
@@ -35,6 +37,7 @@ final class CompilerPass implements CompilerPassInterface
 
     public function __construct(
         private readonly NameConverterInterface $nameConverter,
+        private readonly InflectorInterface $inflector = new EnglishInflector(),
     ) {
     }
 
@@ -249,8 +252,8 @@ final class CompilerPass implements CompilerPassInterface
 
                 $adder = $this->resolveAdder($methodRequestReflection, $propertyName);
                 if ($adder !== null) {
-                    [$adderKey, $adderMethod, $adderElementType] = $adder;
-                    $requestAdders[$adderKey] = $adderMethod;
+                    [$adderMethod, $adderElementType] = $adder;
+                    $requestAdders[$propertyName] = $adderMethod;
                     $allParameters[$index]['type'] = $adderElementType;
                 }
             }
@@ -293,28 +296,27 @@ final class CompilerPass implements CompilerPassInterface
     /**
      * A property holding a collection is expected to be named as the plural
      * of the adder's own argument, e.g. property `$tokens` is filled element
-     * by element through `addToken(Token $token)`. Returns the adder's key
-     * (the singular form used by RequestHandler to look the adder up), its
-     * method name, and the element type taken from the adder's own parameter,
-     * or null when the property has no matching adder.
+     * by element through `addToken(Token $token)`. The singular form is
+     * derived with an English inflector rather than by dropping the last
+     * character, so irregular plurals resolve correctly: `$children` to
+     * `addChild(Child $child)`, `$people` to `addPerson(Person $person)`.
+     * Returns the adder's method name and the element type taken from its
+     * own parameter, or null when the property has no matching adder.
      *
-     * @return array{0: string, 1: string, 2: ?string}|null
+     * @return array{0: string, 1: ?string}|null
      */
     private function resolveAdder(ReflectionClass $reflection, string $propertyName): ?array
     {
-        if (mb_strlen($propertyName) < 2) {
-            return null;
+        foreach ($this->inflector->singularize($propertyName) as $singularName) {
+            $adder = $this->resolveMethod($reflection, 'add' . ucfirst($singularName));
+            if ($adder !== null) {
+                $adderElementType = $reflection->getMethod($adder)->getParameters()[0]?->getType()?->getName();
+
+                return [$adder, $adderElementType];
+            }
         }
 
-        $singularName = mb_substr($propertyName, 0, -1);
-        $adder        = $this->resolveMethod($reflection, 'add' . ucfirst($singularName));
-        if ($adder === null) {
-            return null;
-        }
-
-        $adderElementType = $reflection->getMethod($adder)->getParameters()[0]?->getType()?->getName();
-
-        return [$singularName, $adder, $adderElementType];
+        return null;
     }
 
     private function resolveMethod(ReflectionClass $reflection, string $methodName): ?string

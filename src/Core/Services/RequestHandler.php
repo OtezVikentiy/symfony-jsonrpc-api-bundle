@@ -248,6 +248,7 @@ final readonly class RequestHandler
     private function hydrateRequest(mixed $requestInstance, MethodSpec $methodSpec, BaseRequest $baseRequest): mixed
     {
         $tracksProvided = $requestInstance instanceof PartialRequestInterface;
+        $allowExtraFields = $this->isExtraFieldsAllowed($methodSpec);
         $invalidTypeErrors = [];
 
         foreach ($methodSpec->getAllParameters() as $allParameter) {
@@ -265,7 +266,7 @@ final readonly class RequestHandler
                 continue;
             }
 
-            $requestAdder = $methodSpec->getRequestAdders()[substr($name, 0, -1)] ?? null;
+            $requestAdder = $methodSpec->getRequestAdders()[$name] ?? null;
             if (!is_null($requestAdder) && !empty($value)) {
                 if (!is_array($value)) {
                     throw new JRPCException(
@@ -286,7 +287,7 @@ final readonly class RequestHandler
                 if (class_exists($allParameter['type'])) {
                     foreach ($value as $elem) {
                         try {
-                            $elemVal = $this->prepareParametersFromClass($allParameter['type'], $elem);
+                            $elemVal = $this->prepareParametersFromClass($allParameter['type'], $elem, $allowExtraFields);
                         } catch (InvalidArgumentException|TypeError) {
                             $invalidTypeErrors[] = sprintf(
                                 self::INVALID_TYPE_MESSAGE_FORMAT,
@@ -335,7 +336,7 @@ final readonly class RequestHandler
                 if (class_exists($allParameter['type'])) {
                     if ($value !== null) {
                         try {
-                            $value = $this->prepareParametersFromClass($allParameter['type'], $value);
+                            $value = $this->prepareParametersFromClass($allParameter['type'], $value, $allowExtraFields);
                         } catch (InvalidArgumentException|TypeError) {
                             $invalidTypeErrors[] = sprintf(
                                 self::INVALID_TYPE_MESSAGE_FORMAT,
@@ -379,7 +380,7 @@ final readonly class RequestHandler
         return $requestInstance;
     }
 
-    private function prepareParametersFromClass(string $class, array|string $values, int $depth = 0): object
+    private function prepareParametersFromClass(string $class, array|string $values, bool $allowExtraFields = false, int $depth = 0): object
     {
         if ($depth > $this->maxDtoDepth) {
             throw new JRPCException(
@@ -416,6 +417,9 @@ final readonly class RequestHandler
             $setterName = 'set' . ucfirst($name);
 
             if (!isset($methodsIdx[$setterName]) || !$methodsIdx[$setterName]->isPublic()) {
+                if ($allowExtraFields) {
+                    continue;
+                }
                 throw new JRPCException('Invalid params.', JRPCException::INVALID_PARAMS, sprintf('Parameters %s is not expected in request.', $name));
             }
 
@@ -423,7 +427,7 @@ final readonly class RequestHandler
             $setterParamType = $setter->getParameters()[0]->getType();
             $setterArgumentType = $setterParamType?->getName() ?? 'mixed';
             if ($setterParamType !== null && class_exists($setterArgumentType)) {
-                $value = $this->prepareParametersFromClass($setterArgumentType, $value, $depth + 1);
+                $value = $this->prepareParametersFromClass($setterArgumentType, $value, $allowExtraFields, $depth + 1);
             }
 
             try {
@@ -472,7 +476,7 @@ final readonly class RequestHandler
             }
         }
 
-        $allowExtraFields = $this->allowExtraFields || $methodSpec->isAllowExtraFields();
+        $allowExtraFields = $this->isExtraFieldsAllowed($methodSpec);
 
         $violations = $this->validator->validate(
             $requestData,
@@ -488,6 +492,11 @@ final readonly class RequestHandler
 
             throw new JRPCException('Invalid params.', JRPCException::INVALID_PARAMS, implode(PHP_EOL, $errs));
         }
+    }
+
+    private function isExtraFieldsAllowed(MethodSpec $methodSpec): bool
+    {
+        return $this->allowExtraFields || $methodSpec->isAllowExtraFields();
     }
 
     /**

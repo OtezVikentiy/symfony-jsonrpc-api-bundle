@@ -118,7 +118,7 @@ final class ScalarTypeErrorTest extends AbstractControllerTestCase
                 requiredParameters: [],
                 requestGetters: ['tokens' => 'getTokens'],
                 requestSetters: ['tokens' => 'setTokens'],
-                requestAdders: ['token' => 'addToken'],
+                requestAdders: ['tokens' => 'addToken'],
                 validators: [],
             ),
             swaggerMetadata: new SwaggerMetadata(summary: '', description: '', ignoreInSwagger: true),

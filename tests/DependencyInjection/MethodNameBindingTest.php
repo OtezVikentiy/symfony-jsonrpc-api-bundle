@@ -74,7 +74,7 @@ final class MethodNameBindingTest extends TestCase
     {
         $result = $this->analyze(MethodNameBindingFixtureMethod::class);
 
-        $this->assertSame('addToken', $result['requestAdders']['token']);
+        $this->assertSame('addToken', $result['requestAdders']['tokens']);
 
         $tokens = $this->findParameter($result['allParameters'], 'tokens');
         $this->assertSame(MethodNameBindingFixtureToken::class, $tokens['type']);
