@@ -139,22 +139,56 @@ final class JsonRpcSpecConformanceTest extends AbstractControllerTestCase
 
     // ---- §4 id MUST be String, Number or Null ----
 
+    /**
+     * Both halves of the requirement are asserted. Rejecting the request is section 4; answering
+     * with a null id is section 5, "If there was an error in detecting the id in the Request Object
+     * (e.g. Parse error/Invalid Request), it MUST be Null". Checking only the error code left the
+     * second half unverified, and the id was in fact echoed back verbatim - so a Response that
+     * announces an invalid request was itself invalid, and any structure the caller put in the id
+     * field came straight back out.
+     */
     public function testArrayIdIsRejectedAsInvalidRequest(): void
     {
         $decoded = json_decode($this->call('{"jsonrpc":"2.0","method":"update","params":[1],"id":[1,2]}'), true);
         $this->assertSame(-32600, $decoded['error']['code'] ?? null);
+        $this->assertNull($decoded['id'], 'an id that could not be detected must be reported as null');
     }
 
     public function testObjectIdIsRejectedAsInvalidRequest(): void
     {
         $decoded = json_decode($this->call('{"jsonrpc":"2.0","method":"update","params":[1],"id":{"a":1}}'), true);
         $this->assertSame(-32600, $decoded['error']['code'] ?? null);
+        $this->assertNull($decoded['id']);
     }
 
     public function testBooleanIdIsRejectedAsInvalidRequest(): void
     {
         $decoded = json_decode($this->call('{"jsonrpc":"2.0","method":"update","params":[1],"id":true}'), true);
         $this->assertSame(-32600, $decoded['error']['code'] ?? null);
+        $this->assertNull($decoded['id']);
+    }
+
+    public function testInvalidIdInsideABatchIsAlsoReportedAsNull(): void
+    {
+        $decoded = json_decode(
+            $this->call('[{"jsonrpc":"2.0","method":"update","params":[1],"id":{"deeply":{"nested":"structure"}}}]'),
+            true
+        );
+
+        $this->assertSame(-32600, $decoded[0]['error']['code'] ?? null);
+        $this->assertNull($decoded[0]['id']);
+    }
+
+    /**
+     * The id is echoed verbatim only when the spec says it is a usable one - the reflection channel
+     * closed above must not close the ordinary case with it.
+     */
+    public function testValidIdIsStillEchoedOnAnErrorResponse(): void
+    {
+        $decoded = json_decode($this->call('{"jsonrpc":"2.0","method":"does_not_exist","id":"abc"}'), true);
+
+        $this->assertSame(-32601, $decoded['error']['code'] ?? null);
+        $this->assertSame('abc', $decoded['id']);
     }
 
     // ---- §5 "It MUST be the same as the value of the id member in the Request Object" ----

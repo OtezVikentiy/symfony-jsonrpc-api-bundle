@@ -14,6 +14,7 @@ namespace OV\JsonRPCAPIBundle\Controller;
 
 use OV\JsonRPCAPIBundle\Core\JRPCException;
 use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
+use OV\JsonRPCAPIBundle\Core\Request\BaseRequest;
 use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler\BatchStrategyFactory;
@@ -76,7 +77,15 @@ final class ApiController extends AbstractController
             );
         } catch (Throwable $e) {
             $call = $callLogger->logRawRequest((string) $request->getContent());
-            $errResp = $responseService->prepareErrorResponse($e, $data['id'] ?? null);
+            // $data is the raw decoded payload, so its id is whatever the caller sent - an array or
+            // an object included, and section 5 forbids echoing those. Nothing is known to reach
+            // here today: processBatch() catches every Throwable including inside its finally, and a
+            // batch is a list, so it has no id to begin with. The guard is kept because the value is
+            // caller-controlled and the day this path does become reachable is not the day to
+            // discover it reflects arbitrary structures back. Deliberately without a test - covering
+            // it would mean dropping final from RequestHandler to double it, which is a worse trade.
+            $rawId = $data['id'] ?? null;
+            $errResp = $responseService->prepareErrorResponse($e, BaseRequest::isValidId($rawId) ? $rawId : null);
             $callLogger->logResponse($call, $errResp);
 
             return $errResp;

@@ -175,9 +175,14 @@ final class RequestHandler
                 return $response;
             }
         } catch (Throwable $e) {
+            // Section 5: the id of a Response echoes the request's, and is Null when the request was
+            // too malformed to establish one. BaseRequest may have thrown on this very id - it
+            // rejects a boolean, an array or an object - so the raw value has to face the same test
+            // before it is echoed, or the error response is itself invalid and the caller gets its
+            // own arbitrary structure reflected back.
             match (true) {
                 isset($baseRequest) && $baseRequest->hasId() => $id = $baseRequest->getId(),
-                is_array($batch) && isset($batch['id']) => $id = $batch['id'],
+                is_array($batch) && isset($batch['id']) && BaseRequest::isValidId($batch['id']) => $id = $batch['id'],
                 default => $id = null,
             };
 
@@ -327,13 +332,37 @@ final class RequestHandler
             }
 
             $requestAdder = $methodSpec->getRequestAdders()[$name] ?? null;
-            if (!is_null($requestAdder) && !empty($value)) {
+
+            // The `|| is_array($value)` is what lets an empty list through. !empty([]) is false, so
+            // [] used to fall to the setter branch - where CompilerPass has already rewritten the
+            // declared type to the type of an *element*, so the empty array was built into one bare
+            // element and handed to a setter expecting the collection. The caller got
+            // "[items] - This value should be of type Item" and no way at all to send []. Every
+            // other value keeps the branch it had: null and 0 still go to the setter, a string still
+            // enters here and is refused by the check below.
+            if (!is_null($requestAdder) && (!empty($value) || is_array($value))) {
                 if (!is_array($value)) {
                     throw new JRPCException(
                         'Invalid params.',
                         JRPCException::INVALID_PARAMS,
                         sprintf('Parameter "%s" must be an array.', $name),
                     );
+                }
+
+                // An adder appends, so zero elements leave a typed collection property holding
+                // nothing at all, and the first read of it raises an Error - reported as -32603.
+                // "No items" is an answer; the setter is what states it.
+                if ($value === []) {
+                    $collectionSetter = $methodSpec->getRequestSetters()[$name] ?? null;
+                    if (!is_null($collectionSetter)) {
+                        $requestInstance->$collectionSetter([]);
+                    }
+
+                    if ($tracksProvided && $wasProvided) {
+                        $requestInstance->markProvided($name);
+                    }
+
+                    continue;
                 }
                 if (count($value) > $this->maxArrayParamSize) {
                     throw new JRPCException(
@@ -544,6 +573,21 @@ final class RequestHandler
         return [self::POSITIONAL_PARAMS_FIELD => $params];
     }
 
+    private function isFieldInitialised(mixed $requestInstance, string $field): bool
+    {
+        if (!is_object($requestInstance)) {
+            return false;
+        }
+
+        $reflection = new ReflectionClass($requestInstance);
+
+        if (!$reflection->hasProperty($field)) {
+            return true;
+        }
+
+        return $reflection->getProperty($field)->isInitialized($requestInstance);
+    }
+
     /**
      * @throws JRPCException
      */
@@ -552,10 +596,21 @@ final class RequestHandler
         $requestData = $this->mapParamsOntoValidatedFields($methodSpec, $baseRequest);
 
         foreach ($methodSpec->getValidators() as $field => $validatorItem) {
-            if (class_exists($validatorItem['type'], false)) {
-                $getter = $methodSpec->getRequestGetters()[$field];
-                $requestData[$field] = $requestInstance->$getter();
+            if (!class_exists($validatorItem['type'], false)) {
+                continue;
             }
+
+            // A field the caller omitted was never hydrated, so its typed property holds nothing at
+            // all. Reading it raises "must not be accessed before initialization" - an Error, not a
+            // JRPCException, which ErrorSanitizer then reported as -32603 Internal error. A caller
+            // who forgot a required field was being told the server had broken. Leaving the field
+            // out of the data lets the validator do its job and say what it is: -32602, naming it.
+            if (!$this->isFieldInitialised($requestInstance, $field)) {
+                continue;
+            }
+
+            $getter = $methodSpec->getRequestGetters()[$field];
+            $requestData[$field] = $requestInstance->$getter();
         }
 
         $allowExtraFields = $this->isExtraFieldsAllowed($methodSpec);

@@ -44,7 +44,7 @@ final class BaseRequest
             $this->params = $data['params'];
         }
         if (array_key_exists('id', $data)) {
-            if (!$this->isValidId($data['id'])) {
+            if (!self::isValidId($data['id'])) {
                 throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
             }
 
@@ -79,7 +79,16 @@ final class BaseRequest
         return $this->hasId;
     }
 
-    private function isValidId(mixed $id): bool
+    /**
+     * Spec section 4: an id is a String, a Number or Null - never a boolean, an array or an object.
+     *
+     * Public and static because the error paths need it too. Section 5 requires the id of a Response
+     * to echo the request's, and to be Null when the request was malformed enough that no id could
+     * be established - so a value this method rejects must never be copied into a Response, and the
+     * places that build one from a raw decoded payload have to ask the same question this
+     * constructor asks.
+     */
+    public static function isValidId(mixed $id): bool
     {
         return $id === null || is_string($id) || is_int($id) || is_float($id);
     }
