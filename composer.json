@@ -11,7 +11,10 @@
   "type": "symfony-bundle",
   "license": "MIT",
   "support": {
-    "issues": "https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle/issues"
+    "issues": "https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle/issues",
+    "source": "https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle",
+    "docs": "https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle/tree/master/docs",
+    "security": "https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle/security/policy"
   },
   "autoload": {
     "psr-4": {

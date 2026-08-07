@@ -1,12 +1,20 @@
+[English](CONTRIBUTING.md) · [Русский](CONTRIBUTING.ru.md)
+
 # Contributing
 
-Спасибо за интерес к `otezvikentiy/json-rpc-api`. Этот документ — минимальный набор правил, чтобы PR проходил CI с первого раза и не требовал раунда правок только из-за формальностей.
+Thanks for your interest in `otezvikentiy/json-rpc-api`. This document is the
+minimum set of rules that gets a pull request through CI on the first attempt,
+without a round of corrections spent purely on formalities.
 
-## Перед тем как начать
+## Before you start
 
-Для небольших исправлений (опечатка, явный баг с понятным фиксом) — сразу открывайте PR. Для нового функционала или изменения поведения — сначала откройте issue с описанием проблемы и предлагаемым решением, чтобы не тратить время на реализацию, которая не впишется в архитектуру бандла.
+For small fixes — a typo, an obvious bug with an obvious patch — open a pull
+request straight away. For new functionality or a change in behaviour, open an
+issue first describing the problem and the solution you have in mind, so that
+you do not spend time on an implementation that will not fit the bundle's
+architecture.
 
-## Окружение
+## Environment
 
 ```bash
 git clone https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle.git
@@ -14,50 +22,95 @@ cd symfony-jsonrpc-api-bundle
 composer install
 ```
 
-Поддерживаемые версии: PHP 8.2–8.4, Symfony `^6.4 || ^7.0` (см. `composer.json`). Перед отправкой PR стоит хотя бы раз прогнать тесты на минимальной поддерживаемой версии PHP — CI проверяет полную матрицу, но локально быстрее поймать очевидные проблемы заранее.
+Supported versions: PHP 8.2–8.5, Symfony `^6.4 || ^7.0 || ^8.0` (see
+`composer.json`). CI runs the full matrix, but running the suite once on the
+lowest PHP version you have is a faster way to catch the obvious problems
+before pushing.
 
-## Тесты
+## Tests
 
 ```bash
-composer test          # phpunit --no-coverage
-composer lint           # php -l по всем файлам src/ и tests/
-composer ci              # lint + test
+composer test     # phpunit --no-coverage
+composer lint     # php -l across src/ and tests/
+composer stan     # phpstan analyse
+composer cs       # php-cs-fixer, dry run
+composer ci       # all of the above
 ```
 
-Полный прогон с покрытием:
+A full run with coverage:
 
 ```bash
 ./vendor/bin/phpunit --coverage-text
 ```
 
-CI (`.github/workflows/ci.yml`) требует:
-- Зелёный набор тестов на PHP 8.2/8.3/8.4 × Symfony 6.4/7.x.
-- Зелёный набор тестов на **минимально разрешённых** версиях зависимостей (`composer update --prefer-lowest`) — новый код не должен полагаться на API, появившийся в более свежей версии, чем заявлено в `composer.json`.
-- **Line coverage не ниже 90%.** Новый код без покрывающего теста, скорее всего, уронит это число — добавляйте тест в том же PR, что и функционал.
-- `composer validate --strict` и `composer audit` без ошибок.
+CI (`.github/workflows/ci.yml`) requires:
 
-Любое изменение наблюдаемого поведения (новый код ошибки, другой формат сообщения, другой дефолт конфига) должно сопровождаться тестом, который заметит регресс — предпочтительно в `tests/Security/` для security-релевантных изменений или в постоянном JSON-RPC 2.0 conformance-наборе, если меняется поведение, описанное спекой.
+- A green suite on PHP 8.2/8.3/8.4/8.5 against Symfony 6.4/7.x/8.x — ten
+  combinations, excluding Symfony 8 below PHP 8.4, where the combination
+  cannot exist because Symfony 8 requires PHP >= 8.4.1.
+- A green suite on the **lowest permitted** dependency versions
+  (`composer update --prefer-lowest`) — new code must not rely on an API that
+  appeared later than `composer.json` claims to support.
+- **Line coverage at or above 90%.** New code without a covering test will
+  most likely push that number down; add the test in the same pull request as
+  the feature.
+- PHPStan level 9 and PHP-CS-Fixer clean.
+- `composer validate --strict` and `composer audit` without errors.
 
-## Стиль кода
+Any change to observable behaviour — a new error code, a different message
+format, a different config default — needs a test that will notice the
+regression. Prefer `tests/Security/` for security-relevant changes, or the
+permanent JSON-RPC 2.0 conformance suite when the behaviour is one the
+specification describes.
 
-- `declare(strict_types=1)` в каждом файле `src/`.
-- PHP 8 атрибуты, не аннотации в докблоках — `doctrine/annotations` в проекте намеренно не используется.
-- `final` для классов, где нет явной причины оставлять точку расширения через наследование.
-- Комментарии объясняют **почему**, а не **что** — код должен быть читаем сам по себе; комментарий нужен там, где неочевидное архитектурное решение иначе спровоцирует «улучшающий» PR, отменяющий фикс.
-- Код и комментарии в `src/`, `tests/`, `config/` — на английском. Документация в `docs/`, `README.md`, `CHANGELOG.md` — на русском (см. `README.en.md` для английской версии README).
+## Code style
 
-## Документация
+- `declare(strict_types=1)` in every file under `src/`.
+- PHP 8 attributes, not docblock annotations — `doctrine/annotations` is
+  deliberately not used in this project.
+- `final` on classes unless there is a stated reason to leave an extension
+  point open through inheritance.
+- Comments explain **why**, not **what**. The code should read on its own; a
+  comment belongs where a non-obvious decision would otherwise invite an
+  "improving" pull request that undoes a fix.
+- Code and comments in `src/`, `tests/` and `config/` are in English.
+  Documentation is bilingual: English is the primary version, Russian carries
+  the `.ru.md` suffix. `CHANGELOG.md` is currently Russian only.
 
-Если PR меняет наблюдаемое поведение (новый конфиг-ключ, другой дефолт, другой формат ошибки, BC-break) — обновите соответствующий файл в `docs/` и добавьте запись в `CHANGELOG.md` по формату [Keep a Changelog](https://keepachangelog.com/ru/1.0.0/). PR, меняющий поведение без обновления документации, не будет принят — расхождение документации с кодом хуже отсутствия документации, потому что вводит пользователей в заблуждение молча.
+## Documentation
 
-Для BC-breaking изменений при подготовке мажорного релиза — добавьте пункт в `docs/upgrade-X.0.md` (создайте файл по образцу `docs/upgrade-5.0.md`, если релиза ещё нет): что было, что стало, что сломается у потребителей, что делать.
+If a pull request changes observable behaviour — a new config key, a different
+default, a different error format, a BC break — update the corresponding file
+in `docs/` and add an entry to `CHANGELOG.md` following
+[Keep a Changelog](https://keepachangelog.com/en/1.0.0/). A pull request that
+changes behaviour without updating the documentation will not be accepted:
+documentation that disagrees with the code is worse than no documentation,
+because it misleads silently.
 
-## Pull Request
+For BC-breaking changes destined for a major release, add an item to
+`docs/upgrade-X.0.md` (create the file following `docs/upgrade-5.0.en.md` if
+the release does not exist yet): what it was, what it is, what breaks for
+consumers, what to do about it.
 
-- Один PR — одно логическое изменение. Не смешивайте рефакторинг с изменением поведения — так проще ревьюить и проще делать `git revert`, если что-то пошло не так.
-- Опишите в PR: что изменилось и почему (не только «что»), как проверяли, что документация обновлена (или почему не требовалась).
-- Коммиты — осмысленные сообщения, описывающие причину изменения, а не только факт («fix bug» — плохо; «fix!: ... » с объяснением, какой инвариант нарушался и почему — хорошо; см. историю коммитов проекта как ориентир).
+## Pull requests
 
-## Отчёт об уязвимости
+- One pull request, one logical change. Do not mix refactoring with a change
+  in behaviour — separate changes are easier to review and easier to
+  `git revert` when something turns out to be wrong.
+- Describe in the pull request what changed and *why* (not only what), how you
+  verified it, and that the documentation is updated — or why it did not need
+  to be.
+- Write commit messages that give the reason for the change, not just the fact
+  of it. "fix bug" says nothing; a message explaining which invariant was
+  violated and why says everything. The project's commit history is the
+  reference.
 
-Не открывайте публичный issue для security-уязвимостей — см. [SECURITY.md](./SECURITY.md).
+## Reporting a vulnerability
+
+Do not open a public issue for a security vulnerability — see
+[SECURITY.md](./SECURITY.md).
+
+## Code of conduct
+
+Participation in this project is governed by the
+[Code of Conduct](./CODE_OF_CONDUCT.md).

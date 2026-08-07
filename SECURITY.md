@@ -1,61 +1,135 @@
+[English](SECURITY.md) · [Русский](SECURITY.ru.md)
+
 # Security Policy
 
-## Поддерживаемые версии
+## Supported versions
 
-| Версия | Поддержка |
+| Version | Support |
 |---|---|
 | 5.0.x | ✅ |
-| 4.2.x | ✅ security-фиксы (без нового функционала) |
+| 4.2.x | ✅ security fixes only, no new functionality |
 | ≤ 4.1, ≤ 3.x | ❌ |
 
-Мажорные версии до 4.0 не получают security-патчей — 4.0 сам по себе был security-hardening релизом, закрывшим известные на тот момент проблемы (см. [docs/upgrade-4.0.md](./docs/upgrade-4.0.md) и [docs/upgrade-5.0.md](./docs/upgrade-5.0.md)). Обновление до актуальной мажорной версии — самый надёжный способ получить исправления.
+Majors before 4.0 receive no security patches. 4.0 was itself a
+security-hardening release that closed the problems known at the time (see
+[docs/upgrade-4.0.md](./docs/upgrade-4.0.md) and
+[docs/upgrade-5.0.en.md](./docs/upgrade-5.0.en.md)). Upgrading to the current
+major is the most reliable way to have the fixes.
 
-## Как сообщить об уязвимости
+## Reporting a vulnerability
 
-**Не открывайте публичный GitHub issue.** Напишите на **otezvikentiy@gmail.com** с темой вида `[SECURITY] <краткое описание>`.
+**Do not open a public GitHub issue.** Use either:
 
-В письме укажите:
-- Версию бандла (и Symfony/PHP, если релевантно).
-- Конфигурацию, при которой воспроизводится проблема (в частности — значения `strict_notifications`, `expose_internal_errors`, `allow_extra_fields`, `access_control_allow_origin_list`, `cors_allowed_headers`; если что-то из этого не задано — значит используется дефолт).
-- Шаги воспроизведения — по возможности минимальный запрос (`curl`) и ожидаемый vs фактический результат.
-- Потенциальное воздействие, как вы его видите (утечка данных, DoS, обход авторизации и т. д.).
+- a [private security advisory](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle/security/advisories/new)
+  on this repository — private vulnerability reporting is enabled; or
+- email **otezvikentiy@gmail.com** with a subject of the form
+  `[SECURITY] <short description>`.
 
-Ответ — в течение 5 рабочих дней. Если уязвимость подтверждается, патч и координированное раскрытие — по договорённости с автором отчёта; в CHANGELOG исправление появляется без деталей эксплуатации до тех пор, пока патч не станет доступен подавляющему большинству пользователей.
+Please include:
 
-## Что считается уязвимостью бандла, а что — нет
+- The bundle version, and Symfony/PHP versions where relevant.
+- The configuration that reproduces the problem — in particular the values of
+  `strict_notifications`, `expose_internal_errors`, `allow_extra_fields`,
+  `access_control_allow_origin_list` and `cors_allowed_headers`. Anything you
+  do not mention is assumed to be at its default.
+- Steps to reproduce, ideally a minimal `curl` request with expected versus
+  actual output.
+- The impact as you see it: data disclosure, denial of service, authorisation
+  bypass, and so on.
 
-**В скоупе:**
-- Обход лимитов (`max_payload_bytes`, `max_json_depth`, `max_batch_size`, `max_dto_depth`, `max_array_param_size`) при их дефолтных или документированных значениях.
-- Утечка данных, не описанных в контракте ответа (например, поле без геттера всё же попадающее в JSON — см. [docs/upgrade-5.0.md](./docs/upgrade-5.0.md) п. 3).
-- Обход проверки ролей (`RequestHandler::checkRoles()`), CORS whitelist'а или Content-Type-проверки.
-- Утечка внутренней информации (stack trace, путь к файлу, данные подключения к БД) через ответ при `expose_internal_errors: false` (дефолт).
-- DoS-вектор, не покрытый ни одним из существующих лимитов.
+You will get a reply within five working days. If the report is confirmed, the
+patch and the disclosure timeline are agreed with the reporter; the CHANGELOG
+entry carries no exploitation detail until the patch has reached the large
+majority of users.
 
-**Вне скоупа (не уязвимость бандла как такового):**
-- Поведение при `expose_internal_errors: true` — это осознанный dev/debug-режим, документированный как небезопасный для prod (см. [docs/security_hardening.md](./docs/security_hardening.md)).
-- Отсутствие `Access-Control-Allow-Credentials` — бандл сознательно не отдаёт этот заголовок автоматически; см. [docs/cors.md](./docs/cors.md).
-- Отсутствие встроенного rate-limiting — бандл ожидает, что это делается на уровне reverse-proxy/middleware.
-- Уязвимости в транзитивных зависимостях (`symfony/*`) — сообщайте напрямую в [Symfony Security Advisories](https://symfony.com/security/advisories); мы отслеживаем их через еженедельный `composer audit` в CI, но патчить сам Symfony не в нашей власти.
-- Проблемы в коде, который пишет потребитель бандла (например, Request/Response DTO без геттера для чувствительного поля, публичный сеттер там, где нужен приватный) — это ответственность интегратора, а не бандла; см. [docs/upgrade-5.0.md](./docs/upgrade-5.0.md) для того, как сериализация ответа работает.
+## What counts as a vulnerability in the bundle, and what does not
 
-## Что уже сделано
+**In scope:**
 
-Коротко, для контекста перед тем, как сообщать о проблеме — возможно, она уже закрыта:
+- Bypassing a limit (`max_payload_bytes`, `max_json_depth`, `max_batch_size`,
+  `max_dto_depth`, `max_array_param_size`) at its default or documented value.
+- Disclosure of data that the response contract does not describe — for
+  example a field with no getter reaching the JSON anyway; see
+  [docs/upgrade-5.0.en.md](./docs/upgrade-5.0.en.md) item 3.
+- Bypassing the role check (`RequestHandler::checkRoles()`), the CORS
+  whitelist, or the Content-Type check.
+- Internal information leaking through a response — a stack trace, a file
+  path, database connection details — while `expose_internal_errors: false`
+  (the default).
+- A denial-of-service vector that none of the existing limits covers.
 
-- **Санитизация ошибок** (с 4.0) — любое исключение, кроме `JRPCException`, отдаётся клиенту как generic `Internal error.` (`-32603`), полный текст уходит только в лог. См. [docs/errors.md](./docs/errors.md).
-- **DoS-лимиты** (с 4.0) — payload size, JSON nesting depth, batch size, DTO recursion depth, array param size, все с safe-default'ами. См. [docs/security_hardening.md](./docs/security_hardening.md).
-- **CORS origin matching + preflight** (4.0, доработано в 5.0) — точное совпадение `Origin` с whitelist'ом вместо конкатенации списка; бандл сам отвечает на `OPTIONS`. См. [docs/cors.md](./docs/cors.md).
-- **Content-Type enforcement** (с 5.0) — form-encoded/multipart запросы с телом отклоняются, закрывая CSRF-вектор через "simple request" для методов с телом. **На методы, объявленные как `#[JsonRPCAPI(type: 'GET')]`, это не распространяется** — у GET-запроса нет тела, payload приходит из query string. Такие методы обязаны быть идемпотентными и без побочных эффектов; всё, что меняет состояние, объявляйте POST/PUT/PATCH/DELETE. См. [docs/upgrade-5.0.md](./docs/upgrade-5.0.md) п. 1 и [docs/security_hardening.md](./docs/security_hardening.md).
-- **Строгая типизация параметров** (с 5.0) — скалярные значения не приводятся, невидимые сеттеры не вызываются.
-- **Сериализация ответа только через публичные геттеры** (с 5.0) — приватное поле без геттера не может случайно утечь в ответ через голое Reflection.
-- **Ролевой доступ возвращает корректный JSON-RPC объект** (с 5.0), а не HTTP 403 с бинарным телом, которое ломало структуру batch-ответа.
+**Out of scope** — not a vulnerability in the bundle as such:
 
-## Известные компромиссы
+- Behaviour under `expose_internal_errors: true`. That is a deliberate
+  development mode, documented as unsafe for production; see
+  [docs/security_hardening.md](./docs/security_hardening.md).
+- The absence of `Access-Control-Allow-Credentials`. The bundle deliberately
+  does not emit that header automatically; see [docs/cors.md](./docs/cors.md).
+- The absence of built-in rate limiting. The bundle expects that at the
+  reverse-proxy or middleware layer.
+- Vulnerabilities in transitive dependencies (`symfony/*`). Report those to
+  [Symfony Security Advisories](https://symfony.com/security/advisories). We
+  track them through a weekly `composer audit` in CI, but patching Symfony is
+  not ours to do.
+- Problems in code written by the consumer of the bundle — a request or
+  response DTO exposing a sensitive field, a public setter where a private one
+  belongs. That is the integrator's responsibility; see
+  [docs/upgrade-5.0.en.md](./docs/upgrade-5.0.en.md) for how response
+  serialisation works.
 
-Осознанные решения, а не недосмотр. Перечислены, чтобы их не пришлось находить самостоятельно.
+## What is already in place
 
-- **Существование метода различимо до авторизации.** Неизвестный метод отвечает `-32601 Method not found.`, а существующий, но запрещённый ролью — `-32000 Access denied.` По разнице ответов неаутентифицированный клиент может выяснить, какие методы у вас есть. Слить их в один код означало бы отнять у легитимного клиента возможность отличить опечатку в имени метода от нехватки прав. Если состав API у вас сам по себе секрет — закрывайте его на уровне сети или реверс-прокси, а не кодами ошибок.
-- **`max_payload_bytes` ограничивает обработку, а не буферизацию.** PHP читает тело запроса в память целиком до того, как бандл получит управление, поэтому фактический потолок памяти задаёт `post_max_size` из `php.ini` и лимит веб-сервера. Ключ бандла — финальная проверка перед декодированием, а не защита от memory exhaustion; полная защита описана в [docs/security_hardening.md](./docs/security_hardening.md).
-- **Маскирование логов работает по именам ключей.** Секрет в поле с неподходящим именем, а также любые параметры, переданные позиционным массивом (у них нет имён), в лог попадут как есть. См. [docs/logging.md](./docs/logging.md).
+Briefly, for context before you report — the problem may already be closed:
 
-Полная история — [CHANGELOG.md](./CHANGELOG.md).
+- **Error sanitisation** (since 4.0) — any exception other than
+  `JRPCException` reaches the client as a generic `Internal error.`
+  (`-32603`); the full text goes only to the log. See
+  [docs/errors.md](./docs/errors.md).
+- **DoS limits** (since 4.0) — payload size, JSON nesting depth, batch size,
+  DTO recursion depth, array parameter size, all with safe defaults. See
+  [docs/security_hardening.md](./docs/security_hardening.md).
+- **CORS origin matching and preflight** (4.0, extended in 5.0) — an exact
+  match of `Origin` against the whitelist instead of joining the list; the
+  bundle answers `OPTIONS` itself. See [docs/cors.md](./docs/cors.md).
+- **Content-Type enforcement** (since 5.0) — form-encoded and multipart
+  requests with a body are rejected, closing the CSRF vector that "simple
+  requests" opened for methods with a body. **This does not apply to methods
+  declared `#[JsonRPCAPI(type: 'GET')]`** — a GET request has no body and its
+  payload comes from the query string. Such methods must be idempotent and
+  free of side effects; declare anything that changes state as
+  POST/PUT/PATCH/DELETE. See [docs/upgrade-5.0.en.md](./docs/upgrade-5.0.en.md)
+  item 1 and [docs/security_hardening.md](./docs/security_hardening.md).
+- **Strict parameter typing** (since 5.0) — scalars are not coerced, and
+  non-public setters are not called.
+- **Response serialisation limited to the public surface** (since 5.0) — a
+  private field with no getter cannot leak into a response through bare
+  Reflection.
+- **Role denial returns a well-formed JSON-RPC object** (since 5.0) rather
+  than HTTP 403 with a bare string that broke the structure of a batch
+  response.
+
+## Known trade-offs
+
+Deliberate decisions rather than oversights. Listed so that you do not have to
+discover them yourself.
+
+- **Method existence is distinguishable before authorisation.** An unknown
+  method answers `-32601 Method not found.`, while an existing one forbidden
+  by role answers `-32000 Access denied.` The difference lets an
+  unauthenticated client work out which methods you have. Collapsing both into
+  one code would take away a legitimate client's ability to tell a misspelled
+  method name from insufficient permissions. If the shape of your API is itself
+  a secret, hide it at the network or reverse-proxy layer, not through error
+  codes.
+- **`max_payload_bytes` bounds processing, not buffering.** PHP reads the
+  whole request body into memory before the bundle is given control, so the
+  real memory ceiling is set by `post_max_size` in `php.ini` and by the web
+  server's own limit. The bundle's key is a final check before decoding, not a
+  defence against memory exhaustion; the complete picture is in
+  [docs/security_hardening.md](./docs/security_hardening.md).
+- **Log masking works on key names.** A secret in a field whose name does not
+  match a pattern — and any parameter passed by position, since those have no
+  names at all — reaches the log as it is. See
+  [docs/logging.md](./docs/logging.md).
+
+The full history is in [CHANGELOG.md](./CHANGELOG.md) (in Russian).

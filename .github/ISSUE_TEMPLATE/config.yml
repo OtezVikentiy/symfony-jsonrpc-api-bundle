@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle/security/advisories/new
+    about: Report privately through a security advisory. Never in a public issue.
+  - name: Upgrade guide
+    url: https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle/blob/master/docs/upgrade-5.0.en.md
+    about: Nearly everything in 5.0 is BC-breaking. Check here before reporting a behaviour change.
+  - name: Documentation
+    url: https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle/tree/master/docs
+    about: Configuration, batch semantics, CORS, logging, testing and troubleshooting.

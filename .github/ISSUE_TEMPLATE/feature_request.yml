@@ -1,0 +1,43 @@
+name: Feature request
+description: Propose new functionality or a change in behaviour.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: >
+        What are you unable to do today, and what did you try instead? Describe
+        the situation rather than the solution — the solution is easier to judge
+        once the problem is clear.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What you would like the bundle to do, and roughly how.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you considered instead
+      description: >
+        Extension points that exist already — pre/post processors, a custom
+        logger, a custom masker — and why they do not cover this.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: bc
+    attributes:
+      label: Does this change existing behaviour?
+      options:
+        - "No, purely additive"
+        - "Yes, it would be a BC break"
+        - "Not sure"
+    validations:
+      required: true

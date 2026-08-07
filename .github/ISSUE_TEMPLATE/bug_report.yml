@@ -1,0 +1,68 @@
+name: Bug report
+description: Something behaves differently from what the documentation or the JSON-RPC 2.0 specification says.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not use this form for security vulnerabilities. Report those privately —
+        see [SECURITY.md](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle/blob/master/SECURITY.md).
+
+  - type: input
+    id: bundle-version
+    attributes:
+      label: Bundle version
+      placeholder: "5.0"
+    validations:
+      required: true
+
+  - type: input
+    id: php-symfony
+    attributes:
+      label: PHP and Symfony versions
+      placeholder: "PHP 8.4.15, Symfony 7.2.9"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happens
+    attributes:
+      label: What happens
+      description: The actual behaviour, and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: >
+        The smallest thing that shows it. A `curl` command with the request body
+        and the response you get back is usually enough. Include the relevant
+        Request and Response DTOs and the `#[JsonRPCAPI]` attribute if the
+        problem involves hydration, validation or serialisation.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Bundle configuration
+      description: >
+        The `ov_json_rpc_api` section of your config. Anything you leave out is
+        assumed to be at its default — several defaults changed in 5.0, so this
+        matters more than it used to.
+      render: yaml
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I checked the [upgrade guide](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle/blob/master/docs/upgrade-5.0.en.md) — the behaviour is not a documented 5.0 change.
+          required: true
+        - label: I searched existing issues.
+          required: true

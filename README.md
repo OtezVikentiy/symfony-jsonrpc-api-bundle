@@ -1,48 +1,49 @@
 # OtezVikentiy Symfony JSON-RPC API Bundle
 
-[English version](./README.en.md)
+[English](README.md) · [Русский](README.ru.md)
 
+[![CI](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle/actions/workflows/ci.yml/badge.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle/actions/workflows/ci.yml)
+[![Latest Stable Version](https://img.shields.io/packagist/v/otezvikentiy/json-rpc-api.svg)](https://packagist.org/packages/otezvikentiy/json-rpc-api)
 [![PHP Version](https://img.shields.io/badge/php-8.2%20--%208.5-8892BF.svg)](https://php.net/)
 [![Symfony Version](https://img.shields.io/badge/symfony-%5E6.4%20%7C%7C%20%5E7.0%20%7C%7C%20%5E8.0-000000.svg)](https://symfony.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-5.0-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
-[![Coverage](https://img.shields.io/badge/coverage-91%25-brightgreen.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
+[![Coverage](https://img.shields.io/badge/coverage-99%25-brightgreen.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle/actions/workflows/ci.yml)
 
-Symfony-бандл для быстрого и удобного создания JSON-RPC 2.0 API приложений.
+A Symfony bundle for fast and convenient creation of JSON-RPC 2.0 API applications.
 
 GitHub: https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle
 
 ---
 
-## Возможности
+## Features
 
-- Полная совместимость со спецификацией [JSON-RPC 2.0](https://www.jsonrpc.org/specification)
-- Конфигурация методов через PHP 8 атрибуты (`#[JsonRPCAPI(...)]`)
-- Поддержка HTTP-методов: POST, GET, PUT, PATCH, DELETE
-- Версионирование API (`/api/v1`, `/api/v2`, ...)
-- Автоматическая генерация OpenAPI/Swagger документации
-- Pre- и Post-процессоры (middleware)
-- Пакетные запросы (batch requests)
-- Встроенная валидация запросов
-- Ролевой контроль доступа через Symfony Security
-- Поддержка бинарных ответов (изображения, документы)
+- Full [JSON-RPC 2.0](https://www.jsonrpc.org/specification) specification compliance
+- Method configuration via PHP 8 attributes (`#[JsonRPCAPI(...)]`)
+- HTTP methods support: POST, GET, PUT, PATCH, DELETE
+- API versioning (`/api/v1`, `/api/v2`, ...)
+- Automatic OpenAPI/Swagger documentation generation
+- Pre- and Post-processors (middleware)
+- Batch requests
+- Built-in request validation
+- Role-based access control via Symfony Security
+- Binary response support (images, documents)
 
 ---
 
-## Требования
+## Requirements
 
 - PHP 8.2 – 8.5
 - Symfony ^6.4 || ^7.0 || ^8.0
 
 ---
 
-## Установка
+## Installation
 
 ```bash
 composer require otezvikentiy/json-rpc-api
 ```
 
-Включите бандл (если не используется Symfony Flex):
+Enable the bundle (if not using Symfony Flex):
 
 ```php
 // config/bundles.php
@@ -52,7 +53,7 @@ return [
 ];
 ```
 
-Создайте конфигурационные файлы:
+Create configuration files:
 
 ```yaml
 # config/routes/ov_json_rpc_api.yaml
@@ -94,13 +95,13 @@ OV_JSON_RPC_API_TEST_URL=http://localhost
 OV_JSON_RPC_API_AUTH_TOKEN=your_test_token_here
 ```
 
-Подробная инструкция: [docs/installation.md](./docs/installation.md)
+Detailed instructions: [docs/installation.md](./docs/installation.md)
 
 ---
 
-## Быстрый старт
+## Quick Start
 
-### 1. Создайте Request
+### 1. Create a Request
 
 ```php
 // src/RPC/V1/GetProduct/Request.php
@@ -123,7 +124,7 @@ class Request
 }
 ```
 
-### 2. Создайте Response
+### 2. Create a Response
 
 ```php
 // src/RPC/V1/GetProduct/Response.php
@@ -149,7 +150,7 @@ class Response
 }
 ```
 
-### 3. Создайте метод API
+### 3. Create an API Method
 
 ```php
 // src/RPC/V1/GetProductMethod.php
@@ -173,7 +174,7 @@ class GetProductMethod implements ApiMethodInterface
 }
 ```
 
-### 4. Вызовите API
+### 4. Call the API
 
 ```bash
 curl -X POST http://localhost/api/v1 \
@@ -181,7 +182,7 @@ curl -X POST http://localhost/api/v1 \
   -d '{"jsonrpc": "2.0", "method": "getProduct", "params": {"id": 1, "title": "test"}, "id": "1"}'
 ```
 
-Ответ:
+Response:
 
 ```json
 {
@@ -197,9 +198,9 @@ curl -X POST http://localhost/api/v1 \
 
 ---
 
-## Архитектура
+## Architecture
 
-### Пайплайн обработки запроса
+### Request Processing Pipeline
 
 ```
 HTTP POST /api/v{version}
@@ -208,77 +209,77 @@ HTTP POST /api/v{version}
 ApiController
     |
     v
-RequestRawDataHandler --- парсит HTTP-запрос (JSON body / query params)
+RequestRawDataHandler --- parses HTTP request (JSON body / query params)
     |
     v
-BatchStrategyFactory --- определяет: одиночный или пакетный запрос
+BatchStrategyFactory --- determines: single or batch request
     |
     v
 RequestHandler
-    |--- Поиск MethodSpec по имени метода
-    |--- Создание объекта Request из параметров
-    |--- Валидация типизированных свойств
-    |--- PreProcessors (если есть)
+    |--- Lookup MethodSpec by method name
+    |--- Create Request object from parameters
+    |--- Validate typed properties
+    |--- PreProcessors (if any)
     |--- Method::call(Request) -> Response
-    |--- PostProcessors (если есть)
+    |--- PostProcessors (if any)
     |
     v
-ResponseService --- сериализация ответа в JSON-RPC 2.0 формат
+ResponseService --- serializes response into JSON-RPC 2.0 format
 ```
 
-### Структура проекта API-метода
+### API Method Project Structure
 
 ```
 src/RPC/V1/
-    GetProductMethod.php          # Класс метода с #[JsonRPCAPI] атрибутом
+    GetProductMethod.php          # Method class with #[JsonRPCAPI] attribute
     GetProduct/
-        Request.php               # DTO входящего запроса
-        Response.php              # DTO ответа
+        Request.php               # Incoming request DTO
+        Response.php              # Response DTO
 ```
 
-Классы, реализующие `ApiMethodInterface` и помеченные атрибутом `#[JsonRPCAPI]`, автоматически обнаруживаются и регистрируются бандлом.
+Classes marked with the `#[JsonRPCAPI]` attribute are automatically discovered and registered by the bundle.
 
 ---
 
-## Примеры
+## Examples
 
-| Пример | Описание | Файлы |
-|:------:|:--------:|:-----:|
-| [Базовый](./docs/examples/base.md) | Простейший пример создания API-метода | Request, Response, Method |
-| [Pre/Post-процессоры](./docs/examples/pre-and-post-processors.md) | Выполнение логики до и после вызова метода | Request, Response, Method, AbstractMethod |
-| [Массив объектов](./docs/examples/array_of_objects.md) | Возврат коллекции объектов в ответе | Request, Response, Method, Product |
-| [Бинарный ответ](./docs/examples/plain_response.md) | Возврат изображений, документов и других бинарных данных | Request, PlainResponse, Method |
+| Example | Description | Files |
+|:-------:|:----------:|:-----:|
+| [Basic](./docs/examples/base.md) | Simplest example of creating an API method | Request, Response, Method |
+| [Pre/Post-processors](./docs/examples/pre-and-post-processors.md) | Executing logic before and after method call | Request, Response, Method, AbstractMethod |
+| [Array of objects](./docs/examples/array_of_objects.md) | Returning a collection of objects in the response | Request, Response, Method, Product |
+| [Binary response](./docs/examples/plain_response.md) | Returning images, documents and other binary data | Request, PlainResponse, Method |
 
 ---
 
-## Дополнительная документация
+## Additional Documentation
 
-| Раздел | Описание |
-|--------|----------|
-| [Обработка ошибок](./docs/errors.md) | Коды ошибок, `JRPCException`, кастомные ошибки, `additionalInfo` |
-| [Notification-запросы](./docs/notifications.md) | Запросы без `id`, параметр `strict_notifications` |
-| [Валидация параметров](./docs/validation.md) | Автоматическая валидация типов, nullable, формат ошибок |
-| [Базовый класс JsonRpcRequest](./docs/json_rpc_request.md) | Метод `toArray()`, рекурсивная сериализация |
-| [Partial updates (JSON Merge Patch)](./docs/partial_updates.md) | `PartialRequestInterface`, `wasProvided()`, RFC 7396 семантика |
-| [Troubleshooting / FAQ](./docs/troubleshooting.md) | Типичные проблемы и их решения |
-| [**Гайд по миграции 4.x → 5.0**](./docs/upgrade-5.0.md) | **Все ломающие изменения 5.0: что сломается и что с этим делать** |
-| [CHANGELOG](./CHANGELOG.md) | История изменений по версиям |
+| Section | Description |
+|---------|-------------|
+| [Error Handling](./docs/errors.md) | Error codes, `JRPCException`, custom errors, `additionalInfo` |
+| [Notification Requests](./docs/notifications.md) | Requests without `id`, `strict_notifications` parameter |
+| [Parameter Validation](./docs/validation.md) | Automatic type validation, nullable, error format |
+| [JsonRpcRequest Base Class](./docs/json_rpc_request.md) | `toArray()` method, recursive serialization |
+| [Partial updates (JSON Merge Patch)](./docs/partial_updates.md) | `PartialRequestInterface`, `wasProvided()`, RFC 7396 semantics |
+| [Troubleshooting / FAQ](./docs/troubleshooting.md) | Common problems and their solutions |
+| [**Upgrade Guide 4.x → 5.0**](./docs/upgrade-5.0.en.md) | **Every BC-breaking change in 5.0, what breaks and what to do about it** |
+| [CHANGELOG](./CHANGELOG.md) | Version history |
 
 ---
 
 ## Logging
 
-Опциональная подсистема Request/Response логирования с маскировкой sensitive-данных через PSR-3 logger. По умолчанию выключена. Подробности — [docs/logging.md](docs/logging.md).
+Optional Request/Response logging subsystem with sensitive-data masking through a PSR-3 logger. Disabled by default. Details — [docs/logging.md](docs/logging.md).
 
 ---
 
 ## Partial updates (JSON Merge Patch)
 
-Бандл поддерживает PATCH-семантику по [RFC 7396](https://datatracker.ietf.org/doc/html/rfc7396) для Update-методов, где клиент шлёт только изменённые поля.
+The bundle supports PATCH semantics per [RFC 7396](https://datatracker.ietf.org/doc/html/rfc7396) for Update methods where the client sends only changed fields.
 
-**Проблема:** при стандартном паттерне `if ($request->getX() !== null) { $entity->setX($request->getX()); }` нельзя различить «поле не передано» и «поле передано как `null`» — оба случая дают `null` в DTO. Это значит, что нельзя **очистить** поле через PATCH.
+**Problem:** the standard `if ($request->getX() !== null) { $entity->setX($request->getX()); }` pattern cannot distinguish "field not in payload" from "field sent as `null`" — both give `null` on the DTO. This means a field cannot be **cleared** via PATCH.
 
-**Решение:** Request DTO реализует `PartialRequestInterface`, и фреймворк отслеживает, какие поля реально пришли в payload. Сервис-слой использует `wasProvided('x')` вместо `!== null`:
+**Solution:** the Request DTO implements `PartialRequestInterface`, and the framework tracks which fields actually arrived in the payload. The service layer uses `wasProvided('x')` instead of `!== null`:
 
 ```php
 use OV\JsonRPCAPIBundle\Core\Request\PartialUpdateRequest;
@@ -298,7 +299,7 @@ public function call(UpdateUserRequest $request): Response
     $user = $this->userRepository->find($request->getId());
 
     if ($request->wasProvided('email')) {
-        $user->setEmail($request->getEmail()); // null = очистить
+        $user->setEmail($request->getEmail()); // null = clear
     }
     if ($request->wasProvided('bio')) {
         $user->setBio($request->getBio());
@@ -307,35 +308,35 @@ public function call(UpdateUserRequest $request): Response
 }
 ```
 
-**Семантика payload-а:**
+**Payload semantics:**
 
-| Payload | `wasProvided` | Поведение в сервисе |
+| Payload | `wasProvided` | Service behavior |
 |---|---|---|
-| `{"email": "new@x.com"}` | `true` | установить новое значение |
-| `{"email": null}` | `true` | очистить поле (`null`) |
-| `{}` (ключ отсутствует) | `false` | не трогать поле |
+| `{"email": "new@x.com"}` | `true` | set the new value |
+| `{"email": null}` | `true` | clear the field (`null`) |
+| `{}` (key absent) | `false` | leave the field untouched |
 
-**Опт-ин:** только DTO, реализующие `PartialRequestInterface`, получают трекинг. Существующие DTO работают без изменений (полная обратная совместимость).
+**Opt-in:** only DTOs implementing `PartialRequestInterface` get tracking. Existing DTOs work without changes (full backward compatibility).
 
-Подробности и edge-кейсы — в [docs/partial_updates.md](./docs/partial_updates.md).
+Details and edge cases — in [docs/partial_updates.md](./docs/partial_updates.md).
 
 ---
 
-## Версионирование API
+## API Versioning
 
-Версия API определяется из URL (`/api/v1`, `/api/v2`) или явно через параметр `version` в атрибуте:
+API version is determined from the URL (`/api/v1`, `/api/v2`) or explicitly via the `version` parameter in the attribute:
 
 ```php
 #[JsonRPCAPI(methodName: 'getProduct', type: 'POST', version: 2)]
 ```
 
-Если `version` не указан, он извлекается из пространства имён класса (например, `App\RPC\V1` -> версия 1).
+If `version` is not specified, it's extracted from the class namespace (e.g., `App\RPC\V1` -> version 1).
 
 ---
 
-## Пакетные запросы (Batch)
+## Batch Requests
 
-Бандл поддерживает пакетные JSON-RPC запросы согласно спецификации:
+The bundle supports batch JSON-RPC requests per specification:
 
 ```bash
 curl -X POST http://localhost/api/v1 \
@@ -349,9 +350,9 @@ curl -X POST http://localhost/api/v1 \
 
 ---
 
-## Pre- и Post-процессоры
+## Pre- and Post-processors
 
-Процессоры позволяют выполнять логику до и после вызова метода API (логирование, аудит, уведомления и т.д.):
+Processors allow executing logic before and after API method calls (logging, audit, notifications, etc.):
 
 ```php
 use OV\JsonRPCAPIBundle\Core\PreProcessorInterface;
@@ -376,38 +377,38 @@ class GetProductMethod implements PreProcessorInterface, PostProcessorInterface
 
     public function logRequest(string $processorClass, ?object $request = null): void
     {
-        // Вызывается ПЕРЕД call()
+        // Called BEFORE call()
     }
 
     public function logResponse(string $processorClass, ?object $request = null, ?OvResponseInterface $response = null): void
     {
-        // Вызывается ПОСЛЕ call()
+        // Called AFTER call()
     }
 
     public function call(Request $request): Response
     {
-        // Основная логика
+        // Main logic
     }
 }
 ```
 
-Подробнее: [docs/examples/pre-and-post-processors.md](./docs/examples/pre-and-post-processors.md)
+Details: [docs/examples/pre-and-post-processors.md](./docs/examples/pre-and-post-processors.md)
 
 ---
 
 ## Swagger / OpenAPI
 
-### Генерация документации
+### Generating Documentation
 
 ```bash
 bin/console ov:swagger:generate
 ```
 
-Генерирует файл `public/openapi/api_v1.yaml`, который можно использовать в Swagger UI.
+Generates `public/openapi/api_v1.yaml` file for use with Swagger UI.
 
-### Аннотации для документации
+### Documentation Annotations
 
-**Скалярные свойства:**
+**Scalar properties:**
 
 ```php
 use OV\JsonRPCAPIBundle\Core\Annotation\SwaggerProperty;
@@ -422,7 +423,7 @@ class Response
 }
 ```
 
-**Массивы:**
+**Arrays:**
 
 ```php
 use OV\JsonRPCAPIBundle\Core\Annotation\SwaggerArrayProperty;
@@ -437,24 +438,24 @@ class Response
 }
 ```
 
-**Теги для группировки:**
+**Tags for grouping:**
 
 ```php
 #[JsonRPCAPI(methodName: 'getProduct', type: 'POST', tags: ['products'])]
 ```
 
-Подробнее:
-- [Теги](./docs/swagger/tags.md)
-- [Скалярные свойства](./docs/swagger/scalar.md)
-- [Массивы](./docs/swagger/array.md)
+Details:
+- [Tags](./docs/swagger/tags.md)
+- [Scalar properties](./docs/swagger/scalar.md)
+- [Arrays](./docs/swagger/array.md)
 
 ---
 
-## Безопасность
+## Security
 
-### Ролевой доступ
+### Role-Based Access
 
-Ограничение доступа к методам по ролям через атрибут `roles`:
+Restrict method access by roles via the `roles` attribute:
 
 ```php
 #[JsonRPCAPI(
@@ -468,116 +469,116 @@ class DeleteUserMethod implements ApiMethodInterface
 }
 ```
 
-При отсутствии нужной роли бандл возвращает обычный JSON-RPC error-объект с кодом `-32000` и HTTP-статусом 200 — **не** HTTP 403: `{"jsonrpc": "2.0", "error": {"code": -32000, "message": "Access denied."}, "id": ...}`.
+If the user lacks the required role, the bundle returns a normal JSON-RPC error object with code `-32000` and HTTP status 200 — **not** HTTP 403: `{"jsonrpc": "2.0", "error": {"code": -32000, "message": "Access denied."}, "id": ...}`.
 
-### Аутентификация
+### Authentication
 
-Бандл совместим с любым способом аутентификации Symfony:
+The bundle is compatible with any Symfony authentication method:
 
-- [JWT-токены через lexik/jwt-authentication-bundle](./docs/security/jwt_bundle.md)
-- [Кастомная токенная аутентификация](./docs/security/self_made_token.md)
-- [Ролевая модель](./docs/security/roles.md)
+- [JWT tokens via lexik/jwt-authentication-bundle](./docs/security/jwt_bundle.md)
+- [Custom token authentication](./docs/security/self_made_token.md)
+- [Role model](./docs/security/roles.md)
 
 ---
 
-## Тестирование
+## Testing
 
-Запуск тестов:
+Run the test suite:
 
 ```bash
 ./vendor/bin/phpunit tests/
 ```
 
-Покрытие требует драйвера (xdebug или pcov). В `phpunit.xml.dist` уже настроен `<source>`-блок для отчётов покрытия PHPUnit 10+.
+Coverage reports require a coverage driver (xdebug or pcov). The `phpunit.xml.dist` config already declares the `<source>` block for PHPUnit 10+ coverage output.
 
-Тестовый набор включает:
-- **Unit-тесты** — все Core-компоненты, сервисы, модели запросов/ответов, DI, Swagger-модели.
-- **Интеграционные тесты** — полный цикл обработки запросов через контроллер.
-- **Тесты команд** — генерация Swagger YAML.
-- **Security regression-тесты** (`tests/Security/`) — DoS-лимиты (payload, batch, DTO depth, array size), sanitization ошибок, CORS origin matching, проверки видимости сеттеров, path-containment команды.
+The bundled test suite covers:
+- **Unit tests** — every Core component, services, request/response models, DI, Swagger models.
+- **Integration tests** — full request lifecycle through the controller.
+- **Command tests** — Swagger YAML generation.
+- **Security regression tests** (`tests/Security/`) — DoS limits (payload, batch, DTO depth, array size), error sanitization, CORS origin matching, setter visibility, command path containment.
 
-Гайд по написанию тестов для собственных RPC-методов — [docs/testing.md](./docs/testing.md).
-
----
-
-## Конфигурация
-
-### Параметры `ov_json_rpc_api`
-
-| Параметр | По умолчанию | Описание |
-|----------|:------------:|----------|
-| `access_control_allow_origin_list` | `[]` | Разрешённые CORS-домены. `['*']` — wildcard; список конкретных origin'ов матчится с заголовком запроса `Origin`. Для origin'ов вне списка CORS-заголовок не отдаётся вообще — легаси comma-joined режима не существует. |
-| `cors_allowed_headers` | `['Content-Type']` | Заголовки, разрешённые в ответе на CORS preflight (`Access-Control-Allow-Headers`). Бандл обрабатывает `OPTIONS` самостоятельно. |
-| `strict_notifications` | `true` | Строгое следование JSON-RPC 2.0 для Notification-запросов (без `id`). При `true` — сервер не возвращает ответ (по спеку). При `false` — лояльный режим: ответ возвращается, если результат непустой (поведение 3.x). |
-| `allow_extra_fields` | `false` | При `false` — лишние поля в params, отсутствующие в Request DTO, вызывают `INVALID_PARAMS`. Можно переопределить per-method через `#[JsonRPCAPI(allowExtraFields: true)]`. |
-| `expose_internal_errors` | `false` | При `false` (production-safe) — uncaught non-`JRPCException` исключения возвращаются клиенту как `Internal error.`, а оригинал пишется в LoggerInterface. При `true` — сырое сообщение отдаётся клиенту (для dev). |
-| `max_payload_bytes` | `1048576` | Максимальный размер сырого тела запроса в байтах. Большие запросы — `INVALID_REQUEST`. |
-| `max_json_depth` | `64` | Максимальная глубина вложенности JSON при декодировании. Глубже — `PARSE_ERROR`. |
-| `max_batch_size` | `50` | Максимальное число запросов в одном JSON-RPC batch'е. Больше — единый `INVALID_REQUEST`. |
-| `max_dto_depth` | `10` | Максимальная глубина рекурсии при гидратации вложенных Request DTO. Защита от stack/memory exhaustion. |
-| `max_array_param_size` | `1000` | Максимальное число элементов массива-параметра, обрабатываемого через `addX()`-адеры. |
-| `logging.enabled` | `false` | Логирование запросов и ответов. Всё остальное в блоке `logging.*` действует только при `true`. |
-| `logging.request_level` | `'info'` | PSR-3 уровень записи входящего запроса. |
-| `logging.response_level` | `'info'` | PSR-3 уровень записи успешного ответа. |
-| `logging.error_response_level` | `'warning'` | PSR-3 уровень записи ответа с ошибкой. |
-| `logging.max_body_length` | `8192` | Обрезка тела запроса и ответа в логе, в символах. `0` — не обрезать. **В 4.x дефолт был `0`.** |
-| `logging.skip_plain_responses` | `true` | Не писать в лог тела `PlainResponseInterface`-ответов (файлы, потоки). |
-| `logging.logger_service` | `null` | ID сервиса PSR-3 логгера, в который пишет `JsonRpcCallLogger`. |
-| `logging.call_logger_service` | `null` | ID сервиса, целиком заменяющего реализацию `JsonRpcCallLoggerInterface`. |
-| `logging.masking.placeholder` | `'***'` | Чем заменяется значение поля, попавшего под маскирование. |
-| `logging.masking.key_patterns` | 29 паттернов | Регулярные выражения имён полей и заголовков, значения которых маскируются (`password`, `token`, `secret`, `authorization`, `jwt` и прочие). **В 4.x дефолт был `[]`, то есть маскирования не было.** Битое регулярное выражение роняет компиляцию контейнера. |
-| `swagger` | — | Конфигурация Swagger по версиям API |
-| `swagger.*.api_version` | `'1'` | Номер версии API |
-| `swagger.*.base_path` | — | URL production-сервера |
-| `swagger.*.test_path` | `null` | URL тестового сервера |
-| `swagger.*.base_path_variables` | `[]` | Переменные для подстановки в base_path |
-| `swagger.*.test_path_variables` | `[]` | Переменные для подстановки в test_path |
-| `swagger.*.auth_token_name` | — | Имя заголовка для токена авторизации |
-| `swagger.*.auth_token_test_value` | — | Тестовое значение токена. **Сейчас не используется:** в OpenAPI-схему попадает только имя заголовка (`auth_token_name`), значение никуда не подставляется. Ключ сохранён, чтобы не ломать существующие конфиги. |
-| `swagger.*.info` | — | Информация об API (title, description, contact, license) |
-
-> **Security hardening:** рекомендации по значениям, обоснование и тюнинг для high-volume API — [docs/security_hardening.md](./docs/security_hardening.md).
+See [docs/testing.md](./docs/testing.md) for guidance on writing tests for your own RPC methods.
 
 ---
 
-## Параметры атрибута `#[JsonRPCAPI]`
+## Configuration
 
-| Параметр | Тип | Обязательный | По умолчанию | Описание |
-|----------|-----|:------------:|:------------:|----------|
-| `methodName` | string | да | — | Имя JSON-RPC метода |
-| `type` | string | да | — | HTTP-метод (POST, GET, PUT, PATCH, DELETE) |
-| `version` | ?int | нет | `null` | Версия API (если null — определяется из namespace) |
-| `summary` | string | нет | `''` | Краткое описание для Swagger |
-| `description` | string | нет | `''` | Подробное описание для Swagger |
-| `tags` | ?array | нет | `null` | Теги для группировки в Swagger |
-| `roles` | array | нет | `[]` | Требуемые роли для доступа |
-| `ignoreInSwagger` | bool | нет | `false` | Исключить метод из Swagger-документации |
-| `group` | ?string | нет | `null` | Группа для пути в Swagger (например, `'products'` → `/products/get_product`) |
-| `allowExtraFields` | bool | нет | `false` | Разрешить в `params` поля, не объявленные в Request DTO. Переопределяет глобальный `allow_extra_fields` для этого метода и действует на любой глубине вложенности |
+### `ov_json_rpc_api` Parameters
+
+| Parameter | Default | Description |
+|-----------|:-------:|-------------|
+| `access_control_allow_origin_list` | `[]` | Allowed CORS origins. Use `['*']` for wildcard, or list exact origins for matching against the request `Origin` header. Origins outside the list receive no CORS header at all — the legacy comma-joined fallback no longer exists. |
+| `cors_allowed_headers` | `['Content-Type']` | Headers allowed in the CORS preflight response (`Access-Control-Allow-Headers`). The bundle handles `OPTIONS` preflight requests itself. |
+| `strict_notifications` | `true` | Strict JSON-RPC 2.0 Notification compliance. When `true` — server does not respond to notifications (per spec). When `false` — server returns a response even for notifications if the result is non-empty (legacy 3.x behaviour). |
+| `allow_extra_fields` | `false` | When `false`, request params containing fields not declared on the Request DTO are rejected with `INVALID_PARAMS`. Can be overridden per-method via the `#[JsonRPCAPI(allowExtraFields: true)]` attribute. |
+| `expose_internal_errors` | `false` | When `false` (production-safe), uncaught non-`JRPCException` throwables are replaced with a generic `Internal error.` payload and the original is sent to the logger. Set to `true` only in dev to expose raw exception messages. |
+| `max_payload_bytes` | `1048576` | Maximum bytes accepted for the raw request body. Larger requests are rejected with `INVALID_REQUEST`. |
+| `max_json_depth` | `64` | Maximum allowed JSON nesting depth when decoding the payload. Deeper inputs are rejected with `PARSE_ERROR`. |
+| `max_batch_size` | `50` | Maximum number of requests allowed in a single JSON-RPC batch. Larger batches return a single `INVALID_REQUEST` error. |
+| `max_dto_depth` | `10` | Maximum recursion depth when hydrating nested Request DTO objects. Prevents stack/memory exhaustion via deeply nested payloads. |
+| `max_array_param_size` | `1000` | Maximum element count for array parameters bound through `addX()` adders. |
+| `logging.enabled` | `false` | Request and response logging. Everything else under `logging.*` applies only when this is `true`. |
+| `logging.request_level` | `'info'` | PSR-3 level for the incoming request entry. |
+| `logging.response_level` | `'info'` | PSR-3 level for a successful response entry. |
+| `logging.error_response_level` | `'warning'` | PSR-3 level for an error response entry. |
+| `logging.max_body_length` | `8192` | Truncation of request and response bodies in the log, in characters. `0` disables truncation. **The 4.x default was `0`.** |
+| `logging.skip_plain_responses` | `true` | Do not log the body of `PlainResponseInterface` responses (files, streams). |
+| `logging.logger_service` | `null` | Service id of the PSR-3 logger `JsonRpcCallLogger` writes to. |
+| `logging.call_logger_service` | `null` | Service id replacing the `JsonRpcCallLoggerInterface` implementation outright. |
+| `logging.masking.placeholder` | `'***'` | What replaces the value of a masked field. |
+| `logging.masking.key_patterns` | 29 patterns | Regular expressions for field and header names whose values are masked (`password`, `token`, `secret`, `authorization`, `jwt` and others). **The 4.x default was `[]`, meaning no masking at all.** Supplying your own list replaces the defaults rather than adding to them. An invalid expression fails container compilation. |
+| `swagger` | — | Swagger configuration per API version. |
+| `swagger.*.api_version` | `'1'` | API version number. |
+| `swagger.*.base_path` | — | Production server URL. |
+| `swagger.*.test_path` | `null` | Test server URL. |
+| `swagger.*.base_path_variables` | `[]` | Variables for base_path substitution. |
+| `swagger.*.test_path_variables` | `[]` | Variables for test_path substitution. |
+| `swagger.*.auth_token_name` | — | Authorization token header name. |
+| `swagger.*.auth_token_test_value` | — | Test token value. **Currently unused:** only `auth_token_name` reaches the OpenAPI security scheme; the value is substituted nowhere. Kept so existing configs keep compiling. |
+| `swagger.*.info` | — | API information (title, description, contact, license). |
+
+> **Security hardening:** see [docs/security_hardening.md](./docs/security_hardening.md) for recommended values, rationale, and tuning tips for high-volume APIs.
 
 ---
 
-## Коды ошибок JSON-RPC
+## `#[JsonRPCAPI]` Attribute Parameters
 
-| Код | Константа | Описание |
-|-----|-----------|----------|
-| `-32700` | `PARSE_ERROR` | Ошибка парсинга JSON |
-| `-32600` | `INVALID_REQUEST` | Невалидный JSON-RPC запрос |
-| `-32601` | `METHOD_NOT_FOUND` | Метод не найден |
-| `-32602` | `INVALID_PARAMS` | Невалидные параметры |
-| `-32603` | `INTERNAL_ERROR` | Внутренняя ошибка |
-| `-32000` | `SERVER_ERROR` | Серверная ошибка |
+| Parameter | Type | Required | Default | Description |
+|-----------|------|:--------:|:-------:|-------------|
+| `methodName` | string | yes | — | JSON-RPC method name |
+| `type` | string | yes | — | HTTP method (POST, GET, PUT, PATCH, DELETE) |
+| `version` | ?int | no | `null` | API version (if null — determined from namespace) |
+| `summary` | string | no | `''` | Short description for Swagger |
+| `description` | string | no | `''` | Detailed description for Swagger |
+| `tags` | ?array | no | `null` | Tags for Swagger grouping |
+| `roles` | array | no | `[]` | Required roles for access |
+| `ignoreInSwagger` | bool | no | `false` | Exclude method from Swagger documentation |
+| `group` | ?string | no | `null` | Swagger path group (e.g., `'products'` -> `/products/get_product`) |
+| `allowExtraFields` | bool | no | `false` | Accept fields in `params` that the Request DTO does not declare. Overrides the global `allow_extra_fields` for this method and applies at every nesting level. |
 
 ---
 
-## Вклад в проект
+## JSON-RPC Error Codes
 
-См. [CONTRIBUTING.md](./CONTRIBUTING.md) — окружение, тесты, требования к PR. Об уязвимостях — см. [SECURITY.md](./SECURITY.md), не через публичный issue.
+| Code | Constant | Description |
+|------|----------|-------------|
+| `-32700` | `PARSE_ERROR` | JSON parsing error |
+| `-32600` | `INVALID_REQUEST` | Invalid JSON-RPC request |
+| `-32601` | `METHOD_NOT_FOUND` | Method not found |
+| `-32602` | `INVALID_PARAMS` | Invalid parameters |
+| `-32603` | `INTERNAL_ERROR` | Internal error |
+| `-32000` | `SERVER_ERROR` | Server error |
 
-## Лицензия
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the development setup, test requirements, and PR expectations. To report a vulnerability, see [SECURITY.md](./SECURITY.md) — please do not open a public issue.
+
+## License
 
 [MIT](https://opensource.org/licenses/MIT)
 
-## Автор
+## Author
 
 Leonid Groshev — [OtezVikentiy@gmail.com](mailto:OtezVikentiy@gmail.com) — [otezvikentiy.tech](https://otezvikentiy.tech)

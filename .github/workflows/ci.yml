@@ -4,6 +4,9 @@ on:
   push:
     branches: [master]
   pull_request:
+  # Lets the matrix be run against a commit that is already pushed - a released
+  # tag, for instance - without inventing an empty commit to trigger it.
+  workflow_dispatch:
   schedule:
     # Weekly run so newly published security advisories surface even
     # when nothing in the repository has changed.

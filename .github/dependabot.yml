@@ -1,0 +1,29 @@
+version: 2
+
+updates:
+  # Actions get pinned by major tag, so an update here is a deliberate bump
+  # rather than a silent one - which is the point of the allow-list in the
+  # repository's Actions settings.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "build"
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Only dev dependencies are pinned in composer.lock - the runtime constraints
+  # are ranges the consumer resolves, so version bumps here concern the tooling.
+  # Grouping keeps one pull request a month instead of five.
+  - package-ecosystem: composer
+    directory: "/"
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "build"
+    groups:
+      dev-tooling:
+        dependency-type: development
+        patterns: ["*"]
