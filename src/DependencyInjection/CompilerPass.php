@@ -487,19 +487,22 @@ final class CompilerPass implements CompilerPassInterface
         }
 
         foreach ($propertiesIdx as $name => $typeData) {
-            if ($typeData['type'] === 'bool' || $typeData['type'] === 'boolean') {
-                $getterName = 'is' . ucfirst($name);
-            } else {
-                $getterName = 'get' . ucfirst($name);
-            }
+            // Same candidate list as resolveGetter(), and for a reason: this loop runs first, so a
+            // single rigid name here decided the outcome no matter what resolveGetter() would have
+            // accepted. A boolean $isActive whose getter is isActive() aborted the build demanding
+            // isIsActive(), and the bare accessor the other resolver documents was unreachable in
+            // practice. One rule for what counts as a getter, applied in both places.
+            $getterName = $this->resolveGetter($requestReflection, $name);
 
-            if (!isset($methodsIdx[$getterName])) {
+            if ($getterName === null || !isset($methodsIdx[$getterName])) {
                 throw new Exception(
                     sprintf(
-                        'Property %s of class %s has no method %s',
+                        'Property %s of class %s has no accessible getter (expected one of get%s, is%s, or %s)',
                         $name,
                         $requestReflection->getName(),
-                        $getterName,
+                        ucfirst($name),
+                        ucfirst($name),
+                        $name,
                     ),
                 );
             }
