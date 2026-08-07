@@ -53,7 +53,7 @@ PHPUnit исключает `tests/Fixtures` — это обычные класс
 
 ## Паттерн интеграционного теста через `AbstractControllerTestCase`
 
-`tests/Controller/AbstractControllerTestCase.php` собирает минимальный controller-стек (RequestHandler, RequestRawDataHandler, ResponseService, замоканный Security, замоканный ValidatorInterface или реальный, замоканный Container). Для теста нужно описать `MethodSpec` руками и передать `executeControllerTest($payload, $methodSpec)`:
+`tests/Controller/AbstractControllerTestCase.php` собирает минимальный controller-стек (RequestHandler, RequestRawDataHandler, ResponseService, замоканный Security, замоканный ValidatorInterface или реальный, два замоканных `ServiceLocator` — под RPC-методы и под процессоры). В 4.x на этом месте был замоканный `Container`; начиная с 5.0 бандл контейнер не инжектит — см. [upgrade-5.0.md](./upgrade-5.0.md), п. 17. Для теста нужно описать `MethodSpec` руками и передать `executeControllerTest($payload, $methodSpec)`:
 
 ```php
 namespace App\Tests\RPC;
@@ -225,7 +225,7 @@ jobs:
                 php: [8.2, 8.3, 8.4]
         steps:
             - uses: actions/checkout@v4
-            - uses: shivammathur/setup-php@v4
+            - uses: shivammathur/setup-php@v2
               with:
                   php-version: ${{ matrix.php }}
                   coverage: pcov

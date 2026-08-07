@@ -515,6 +515,16 @@ class DeleteUserMethod implements ApiMethodInterface
 | `max_batch_size` | `50` | Максимальное число запросов в одном JSON-RPC batch'е. Больше — единый `INVALID_REQUEST`. |
 | `max_dto_depth` | `10` | Максимальная глубина рекурсии при гидратации вложенных Request DTO. Защита от stack/memory exhaustion. |
 | `max_array_param_size` | `1000` | Максимальное число элементов массива-параметра, обрабатываемого через `addX()`-адеры. |
+| `logging.enabled` | `false` | Логирование запросов и ответов. Всё остальное в блоке `logging.*` действует только при `true`. |
+| `logging.request_level` | `'info'` | PSR-3 уровень записи входящего запроса. |
+| `logging.response_level` | `'info'` | PSR-3 уровень записи успешного ответа. |
+| `logging.error_response_level` | `'warning'` | PSR-3 уровень записи ответа с ошибкой. |
+| `logging.max_body_length` | `8192` | Обрезка тела запроса и ответа в логе, в символах. `0` — не обрезать. **В 4.x дефолт был `0`.** |
+| `logging.skip_plain_responses` | `true` | Не писать в лог тела `PlainResponseInterface`-ответов (файлы, потоки). |
+| `logging.logger_service` | `null` | ID сервиса PSR-3 логгера, в который пишет `JsonRpcCallLogger`. |
+| `logging.call_logger_service` | `null` | ID сервиса, целиком заменяющего реализацию `JsonRpcCallLoggerInterface`. |
+| `logging.masking.placeholder` | `'***'` | Чем заменяется значение поля, попавшего под маскирование. |
+| `logging.masking.key_patterns` | 18 паттернов | Регулярные выражения имён полей и заголовков, значения которых маскируются (`password`, `token`, `secret`, `authorization`, `jwt` и прочие). **В 4.x дефолт был `[]`, то есть маскирования не было.** Битое регулярное выражение роняет компиляцию контейнера. |
 | `swagger` | — | Конфигурация Swagger по версиям API |
 | `swagger.*.api_version` | `'1'` | Номер версии API |
 | `swagger.*.base_path` | — | URL production-сервера |
