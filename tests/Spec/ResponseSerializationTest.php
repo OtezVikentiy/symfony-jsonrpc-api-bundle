@@ -17,6 +17,21 @@ final class NoGetterDto
     private string $passwordHash = 'super-secret-hash';
 }
 
+/**
+ * A getter that exists but is not public. Distinct from NoGetterDto: a check for the method's
+ * existence alone accepts this one, and calling it raises an Error rather than leaking quietly -
+ * so the visibility test is what stands between a private accessor and a fatal on every response.
+ */
+final class PrivateGetterDto
+{
+    private string $passwordHash = 'super-secret-hash';
+
+    private function getPasswordHash(): string
+    {
+        return $this->passwordHash;
+    }
+}
+
 final class WithGetterDto
 {
     private string $passwordHash = 'super-secret-hash';
@@ -101,6 +116,13 @@ final class ResponseSerializationTest extends TestCase
     public function testPropertyWithoutGetterIsOmittedFromResponse(): void
     {
         $response = new BaseResponse(result: new NoGetterDto());
+
+        $this->assertArrayNotHasKey('passwordHash', $response->toArray()['result']);
+    }
+
+    public function testPropertyWithNonPublicGetterIsOmittedFromResponse(): void
+    {
+        $response = new BaseResponse(result: new PrivateGetterDto());
 
         $this->assertArrayNotHasKey('passwordHash', $response->toArray()['result']);
     }

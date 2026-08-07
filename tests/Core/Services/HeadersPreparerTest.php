@@ -3,6 +3,7 @@
 namespace OV\JsonRPCAPIBundle\Tests\Core\Services;
 
 use OV\JsonRPCAPIBundle\Core\Services\HeadersPreparer;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -33,6 +34,38 @@ final class HeadersPreparerTest extends TestCase
 
         $this->assertSame('https://b.com', $headers['Access-Control-Allow-Origin']);
         $this->assertSame('Origin', $headers['Vary']);
+    }
+
+    /**
+     * The whitelist is matched for equality, and these are the origins that a looser comparison
+     * would wave through. testOriginNotInWhitelistEmitsNoCorsHeader() cannot catch a regression to
+     * substring or prefix matching, because the origin it sends shares nothing with the allowed one.
+     */
+    #[DataProvider('originsThatOnlyLookAllowed')]
+    public function testOriginResemblingAWhitelistedOneIsRejected(string $origin): void
+    {
+        $preparer = new HeadersPreparer(
+            ['https://app.example.com'],
+            $this->stackWithOrigin($origin),
+        );
+
+        $this->assertSame([], $preparer->prepareHeaders(), sprintf('%s must not receive a CORS header', $origin));
+    }
+
+    public static function originsThatOnlyLookAllowed(): array
+    {
+        return [
+            'attacker-controlled suffix' => ['https://app.example.com.evil.io'],
+            'whitelisted origin as a path' => ['https://evil.io/https://app.example.com'],
+            'whitelisted origin as a prefix' => ['https://app.example.competitor.io'],
+            'explicit port' => ['https://app.example.com:8443'],
+            'downgraded scheme' => ['http://app.example.com'],
+            'extra subdomain' => ['https://sub.app.example.com'],
+            'trailing slash' => ['https://app.example.com/'],
+            'uppercased host' => ['https://APP.EXAMPLE.COM'],
+            'two origins in one header' => ['https://app.example.com https://evil.io'],
+            'literal null origin' => ['null'],
+        ];
     }
 
     public function testOriginNotInWhitelistEmitsNoCorsHeader(): void
