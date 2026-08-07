@@ -94,8 +94,9 @@ final class CompilerPass implements CompilerPassInterface
             [$preProcessorExists, $postProcessorExists] = $this->detectProcessors($methodReflectionClass);
 
             $methodAlias            = $this->getMethodAlias($metadata['methodName'], $methodReflectionClass->getNamespaceName() . '\\' ?? '');
+            $serviceIdSuffix        = sprintf('%d_%s', $version, $methodAlias);
 
-            $requestMetadataId = uniqid('OV_JSON_RPC_API_REQ_' . $methodAlias, true);
+            $requestMetadataId = 'OV_JSON_RPC_API_REQ_' . $serviceIdSuffix;
             $container->register($requestMetadataId, RequestMetadata::class)
                 ->setArguments([
                     $requestAnalysis['requestClass'],
@@ -107,7 +108,7 @@ final class CompilerPass implements CompilerPassInterface
                     $requestAnalysis['validators'],
                 ])->setPublic(false);
 
-            $swaggerMetadataId = uniqid('OV_JSON_RPC_API_SWG_' . $methodAlias, true);
+            $swaggerMetadataId = 'OV_JSON_RPC_API_SWG_' . $serviceIdSuffix;
             $container->register($swaggerMetadataId, SwaggerMetadata::class)
                 ->setArguments([
                     $metadata['summary'],
@@ -117,7 +118,7 @@ final class CompilerPass implements CompilerPassInterface
                     $metadata['group'],
                 ])->setPublic(false);
 
-            $methodSpecDefinitionId = uniqid('OV_JSON_RPC_API_' . $methodAlias, true);
+            $methodSpecDefinitionId = 'OV_JSON_RPC_API_' . $serviceIdSuffix;
             $methodSpec             = $container->register($methodSpecDefinitionId, MethodSpec::class);
 
             $methodSpec->setArguments([
@@ -422,9 +423,31 @@ final class CompilerPass implements CompilerPassInterface
 
         $propertiesIdx = [];
         foreach ($properties as $property) {
+            $propertyType = $property->getType();
+
+            if ($propertyType === null) {
+                throw new Exception(
+                    sprintf(
+                        'Property %s of class %s has no declared type',
+                        $property->getName(),
+                        $requestReflection->getName(),
+                    ),
+                );
+            }
+
+            if ($propertyType instanceof ReflectionUnionType) {
+                throw new Exception(
+                    sprintf(
+                        'Property %s of class %s has a union type, which is not supported',
+                        $property->getName(),
+                        $requestReflection->getName(),
+                    ),
+                );
+            }
+
             $propertiesIdx[$property->getName()] = [
-                'type' => $property->getType()->getName(),
-                'allowsNull' => $property->getType()->allowsNull() || $property->hasDefaultValue(),
+                'type' => $propertyType->getName(),
+                'allowsNull' => $propertyType->allowsNull() || $property->hasDefaultValue(),
             ];
         }
 
@@ -435,11 +458,35 @@ final class CompilerPass implements CompilerPassInterface
 
         foreach ($propertiesIdx as $name => $typeData) {
             if ($typeData['type'] === 'bool' || $typeData['type'] === 'boolean') {
-                $getter = $methodsIdx['is' . ucfirst($name)];
+                $getterName = 'is' . ucfirst($name);
             } else {
-                $getter = $methodsIdx['get' . ucfirst($name)];
+                $getterName = 'get' . ucfirst($name);
             }
-            $setter = $methodsIdx['set' . ucfirst($name)];
+
+            if (!isset($methodsIdx[$getterName])) {
+                throw new Exception(
+                    sprintf(
+                        'Property %s of class %s has no method %s',
+                        $name,
+                        $requestReflection->getName(),
+                        $getterName,
+                    ),
+                );
+            }
+            $getter = $methodsIdx[$getterName];
+
+            $setterName = 'set' . ucfirst($name);
+            if (!isset($methodsIdx[$setterName])) {
+                throw new Exception(
+                    sprintf(
+                        'Property %s of class %s has no method %s',
+                        $name,
+                        $requestReflection->getName(),
+                        $setterName,
+                    ),
+                );
+            }
+            $setter = $methodsIdx[$setterName];
             $setterParamType = $setter->getParameters()[0]->getType();
             if ($setterParamType === null) {
                 continue;

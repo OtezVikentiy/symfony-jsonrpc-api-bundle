@@ -86,22 +86,6 @@ final class MethodSpecCollectionTest extends TestCase
         $this->assertCount(2, $all['1']);
     }
 
-    public function testGetMethodNames(): void
-    {
-        $collection = new MethodSpecCollection();
-        $spec1 = $this->createMethodSpec('method1');
-        $spec2 = $this->createMethodSpec('method2');
-
-        $collection->addMethodSpec('1', 'method1', $spec1);
-        $collection->addMethodSpec('2', 'method2', $spec2);
-
-        $names = $collection->getMethodNames();
-
-        // getMethodNames returns the version keys
-        $this->assertContains(1, $names);
-        $this->assertContains(2, $names);
-    }
-
     public function testMultipleVersions(): void
     {
         $collection = new MethodSpecCollection();
@@ -147,6 +131,5 @@ final class MethodSpecCollectionTest extends TestCase
         $collection = new MethodSpecCollection();
 
         $this->assertEquals([], $collection->getAllMethods());
-        $this->assertEquals([], $collection->getMethodNames());
     }
 }

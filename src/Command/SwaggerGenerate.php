@@ -51,7 +51,7 @@ final class SwaggerGenerate extends Command
                 continue;
             }
 
-            $target = $resolvedDir . DIRECTORY_SEPARATOR . $name . '.yaml';
+            $target = $resolvedDir . DIRECTORY_SEPARATOR . basename((string) $name) . '.yaml';
             file_put_contents($target, $yaml);
         }
 

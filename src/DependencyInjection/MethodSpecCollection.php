@@ -53,10 +53,4 @@ final class MethodSpecCollection
     {
         return $this->methodSpecs;
     }
-
-    /** @noinspection PhpUnused */
-    public function getMethodNames(): array
-    {
-        return array_keys($this->methodSpecs);
-    }
 }
