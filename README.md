@@ -2,10 +2,10 @@
 
 [English version](./README.en.md)
 
-[![PHP Version](https://img.shields.io/badge/php-%3E%3D8.2-8892BF.svg)](https://php.net/)
-[![Symfony Version](https://img.shields.io/badge/symfony-%3E%3D6.4-000000.svg)](https://symfony.com/)
+[![PHP Version](https://img.shields.io/badge/php-8.2%20--%208.4-8892BF.svg)](https://php.net/)
+[![Symfony Version](https://img.shields.io/badge/symfony-%5E6.4%20%7C%7C%20%5E7.0-000000.svg)](https://symfony.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-4.2-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
+[![Version](https://img.shields.io/badge/version-5.0-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
 [![Coverage](https://img.shields.io/badge/coverage-91%25-brightgreen.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
 
 Symfony-бандл для быстрого и удобного создания JSON-RPC 2.0 API приложений.
@@ -31,8 +31,8 @@ GitHub: https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle
 
 ## Требования
 
-- PHP >= 8.2
-- Symfony >= 6.4
+- PHP 8.2 – 8.4
+- Symfony ^6.4 || ^7.0
 
 ---
 
@@ -461,13 +461,13 @@ class Response
     type: 'POST',
     roles: ['ROLE_ADMIN', 'ROLE_SUPER_ADMIN']
 )]
-class DeleteUserMethod
+class DeleteUserMethod implements ApiMethodInterface
 {
     public function call(Request $request): Response { /* ... */ }
 }
 ```
 
-При отсутствии нужной роли бандл возвращает HTTP 403.
+При отсутствии нужной роли бандл возвращает обычный JSON-RPC error-объект с кодом `-32000` и HTTP-статусом 200 — **не** HTTP 403: `{"jsonrpc": "2.0", "error": {"code": -32000, "message": "Access denied."}, "id": ...}`.
 
 ### Аутентификация
 
@@ -505,8 +505,8 @@ class DeleteUserMethod
 
 | Параметр | По умолчанию | Описание |
 |----------|:------------:|----------|
-| `access_control_allow_origin_list` | `[]` | Разрешённые CORS-домены. `['*']` — wildcard; список конкретных origin'ов матчится с заголовком запроса `Origin`. |
-| `cors_strict` | `true` | При `true` — для origin'ов вне whitelist'а CORS-заголовок не отдаётся. При `false` — fallback к legacy comma-joined заголовку (невалидный, только для обратной совместимости). |
+| `access_control_allow_origin_list` | `[]` | Разрешённые CORS-домены. `['*']` — wildcard; список конкретных origin'ов матчится с заголовком запроса `Origin`. Для origin'ов вне списка CORS-заголовок не отдаётся вообще — легаси comma-joined режима не существует. |
+| `cors_allowed_headers` | `['Content-Type']` | Заголовки, разрешённые в ответе на CORS preflight (`Access-Control-Allow-Headers`). Бандл обрабатывает `OPTIONS` самостоятельно. |
 | `strict_notifications` | `true` | Строгое следование JSON-RPC 2.0 для Notification-запросов (без `id`). При `true` — сервер не возвращает ответ (по спеку). При `false` — лояльный режим: ответ возвращается, если результат непустой (поведение 3.x). |
 | `allow_extra_fields` | `false` | При `false` — лишние поля в params, отсутствующие в Request DTO, вызывают `INVALID_PARAMS`. Можно переопределить per-method через `#[JsonRPCAPI(allowExtraFields: true)]`. |
 | `expose_internal_errors` | `false` | При `false` (production-safe) — uncaught non-`JRPCException` исключения возвращаются клиенту как `Internal error.`, а оригинал пишется в LoggerInterface. При `true` — сырое сообщение отдаётся клиенту (для dev). |
@@ -557,6 +557,10 @@ class DeleteUserMethod
 | `-32000` | `SERVER_ERROR` | Серверная ошибка |
 
 ---
+
+## Вклад в проект
+
+См. [CONTRIBUTING.md](./CONTRIBUTING.md) — окружение, тесты, требования к PR. Об уязвимостях — см. [SECURITY.md](./SECURITY.md), не через публичный issue.
 
 ## Лицензия
 

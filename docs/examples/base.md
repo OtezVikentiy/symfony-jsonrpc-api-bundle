@@ -56,7 +56,7 @@ class Request
 
 ## Response
 
-Класс Response описывает структуру ответа. Все свойства с getter-методами автоматически сериализуются в JSON.
+Класс Response описывает структуру ответа. В JSON попадают **только** свойства, у которых есть публичный геттер (`getX()`, `isX()` или сам аксессор `x()`) — сериализация всегда идёт через геттер, никогда напрямую через Reflection по значению свойства. Свойство без геттера в ответ не попадёт, даже если оно публичное.
 
 > Для `bool`-свойств используйте префикс `is` (например, `isSuccess()`), для остальных — `get`.
 
@@ -111,7 +111,7 @@ class Response
 
 ## Метод API
 
-Класс метода помечается атрибутом `#[JsonRPCAPI]` и содержит метод `call()`, в который передаётся объект Request.
+Класс метода должен **реализовывать `ApiMethodInterface`** и быть помечен атрибутом `#[JsonRPCAPI]`. Оба условия обязательны: бандл регистрирует только классы, реализующие интерфейс (тег `ov.rpc.method` вешается автоматически через `#[AutoconfigureTag]` на самом интерфейсе), а атрибут описывает метаданные метода. Класс без интерфейса не зарегистрируется вовсе — запрос к нему вернёт `-32601 Method not found`, даже если атрибут указан верно. Класс содержит метод `call()`, в который передаётся объект Request.
 
 Версия API определяется автоматически из пространства имён (`App\RPC\V1` -> версия 1).
 При необходимости можно указать версию явно: `#[JsonRPCAPI(methodName: 'getProduct', type: 'POST', version: 1)]`.
@@ -123,11 +123,12 @@ class Response
 namespace App\RPC\V1;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use App\RPC\V1\GetProduct\Request;
 use App\RPC\V1\GetProduct\Response;
 
 #[JsonRPCAPI(methodName: 'getProduct', type: 'POST')]
-class GetProductMethod
+class GetProductMethod implements ApiMethodInterface
 {
     public function call(Request $request): Response
     {

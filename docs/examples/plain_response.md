@@ -93,13 +93,14 @@ class ErrorResponse
 namespace App\RPC\V1;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use App\RPC\V1\GetProductDocument\Request;
 use App\RPC\V1\GetProductDocument\PlainResponse;
 use App\RPC\V1\GetProductDocument\ErrorResponse;
 use App\Repository\ProductRepository;
 
 #[JsonRPCAPI(methodName: 'getProductDocument', type: 'POST')]
-class GetProductDocumentMethod
+class GetProductDocumentMethod implements ApiMethodInterface
 {
     public function __construct(
         private readonly ProductRepository $productRepository

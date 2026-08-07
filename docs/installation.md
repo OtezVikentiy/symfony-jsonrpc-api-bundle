@@ -47,7 +47,7 @@ ov_json_rpc_api:
         - localhost
         - api.localhost
         - '*'
-    strict_notifications: false # true — строго по JSON-RPC 2.0 (Notification без ответа)
+    strict_notifications: true # значение по умолчанию; false — вернуть ответ и на Notification, если результат непустой
     swagger:
         api_v1:
             api_version: '1'
@@ -80,7 +80,7 @@ ov_json_rpc_api:
 | Параметр | Описание |
 |----------|----------|
 | `access_control_allow_origin_list` | Список разрешённых CORS-доменов. Используйте `'*'` для разрешения всех |
-| `strict_notifications` | При `true` — Notification (запрос без `id`) не получает ответ (строго по JSON-RPC 2.0). При `false` (по умолчанию) — ответ возвращается, если результат непустой |
+| `strict_notifications` | При `true` (по умолчанию) — Notification (запрос без `id`) не получает ответ (строго по JSON-RPC 2.0), даже если `call()` бросил исключение. При `false` — ответ возвращается с `id: null`, если результат непустой |
 | `swagger.*.api_version` | Номер версии API для генерации Swagger |
 | `swagger.*.base_path` | URL production-сервера |
 | `swagger.*.base_path_description` | Описание production-сервера в Swagger |
@@ -149,6 +149,8 @@ curl -X POST http://localhost/api/v1 \
 ```
 
 Это означает, что бандл установлен и работает корректно.
+
+> **Важно:** заголовок `Content-Type: application/json` в примере выше — не косметика, а требование. Для запросов с телом (POST/PUT/PATCH/DELETE) бандл принимает только `application/json`; form-encoded (`application/x-www-form-urlencoded`) и `multipart/form-data` отклоняются с `-32600 Invalid Request` ещё до попытки прочитать тело как JSON-RPC payload. Это закрывает CSRF-вектор: form-encoded — это "simple request" по CORS-спеке, и без этой проверки вредоносная HTML-форма на стороннем сайте могла бы вызывать ваши RPC-методы от имени залогиненного пользователя, используя его cookies, без preflight-запроса.
 
 ## Следующие шаги
 

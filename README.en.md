@@ -2,10 +2,10 @@
 
 [Русская версия](./README.md)
 
-[![PHP Version](https://img.shields.io/badge/php-%3E%3D8.2-8892BF.svg)](https://php.net/)
-[![Symfony Version](https://img.shields.io/badge/symfony-%3E%3D6.4-000000.svg)](https://symfony.com/)
+[![PHP Version](https://img.shields.io/badge/php-8.2%20--%208.4-8892BF.svg)](https://php.net/)
+[![Symfony Version](https://img.shields.io/badge/symfony-%5E6.4%20%7C%7C%20%5E7.0-000000.svg)](https://symfony.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-4.2-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
+[![Version](https://img.shields.io/badge/version-5.0-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
 [![Coverage](https://img.shields.io/badge/coverage-91%25-brightgreen.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
 
 A Symfony bundle for fast and convenient creation of JSON-RPC 2.0 API applications.
@@ -31,8 +31,8 @@ GitHub: https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle
 
 ## Requirements
 
-- PHP >= 8.2
-- Symfony >= 6.4
+- PHP 8.2 – 8.4
+- Symfony ^6.4 || ^7.0
 
 ---
 
@@ -461,13 +461,13 @@ Restrict method access by roles via the `roles` attribute:
     type: 'POST',
     roles: ['ROLE_ADMIN', 'ROLE_SUPER_ADMIN']
 )]
-class DeleteUserMethod
+class DeleteUserMethod implements ApiMethodInterface
 {
     public function call(Request $request): Response { /* ... */ }
 }
 ```
 
-Returns HTTP 403 if the user lacks the required role.
+If the user lacks the required role, the bundle returns a normal JSON-RPC error object with code `-32000` and HTTP status 200 — **not** HTTP 403: `{"jsonrpc": "2.0", "error": {"code": -32000, "message": "Access denied."}, "id": ...}`.
 
 ### Authentication
 
@@ -505,8 +505,8 @@ See [docs/testing.md](./docs/testing.md) for guidance on writing tests for your 
 
 | Parameter | Default | Description |
 |-----------|:-------:|-------------|
-| `access_control_allow_origin_list` | `[]` | Allowed CORS origins. Use `['*']` for wildcard, or list exact origins for matching against the request `Origin` header. |
-| `cors_strict` | `true` | When `true`, origins not in the whitelist receive no CORS header. When `false`, falls back to the legacy comma-joined header (non-compliant; for backwards compatibility only). |
+| `access_control_allow_origin_list` | `[]` | Allowed CORS origins. Use `['*']` for wildcard, or list exact origins for matching against the request `Origin` header. Origins outside the list receive no CORS header at all — the legacy comma-joined fallback no longer exists. |
+| `cors_allowed_headers` | `['Content-Type']` | Headers allowed in the CORS preflight response (`Access-Control-Allow-Headers`). The bundle handles `OPTIONS` preflight requests itself. |
 | `strict_notifications` | `true` | Strict JSON-RPC 2.0 Notification compliance. When `true` — server does not respond to notifications (per spec). When `false` — server returns a response even for notifications if the result is non-empty (legacy 3.x behaviour). |
 | `allow_extra_fields` | `false` | When `false`, request params containing fields not declared on the Request DTO are rejected with `INVALID_PARAMS`. Can be overridden per-method via the `#[JsonRPCAPI(allowExtraFields: true)]` attribute. |
 | `expose_internal_errors` | `false` | When `false` (production-safe), uncaught non-`JRPCException` throwables are replaced with a generic `Internal error.` payload and the original is sent to the logger. Set to `true` only in dev to expose raw exception messages. |
@@ -557,6 +557,10 @@ See [docs/testing.md](./docs/testing.md) for guidance on writing tests for your 
 | `-32000` | `SERVER_ERROR` | Server error |
 
 ---
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the development setup, test requirements, and PR expectations. To report a vulnerability, see [SECURITY.md](./SECURITY.md) — please do not open a public issue.
 
 ## License
 

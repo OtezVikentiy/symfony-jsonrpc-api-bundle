@@ -8,7 +8,7 @@
 ./vendor/bin/phpunit tests/
 ```
 
-Все 327+ тестов должны быть зелёными. Если упало после `composer update` — это потенциальный регресс, заведите issue.
+Весь набор тестов бандла должен быть зелёным (используйте `--testdox` или `--colors` для наглядности; точное число тестов растёт от релиза к релизу — не полагайтесь на него как на инвариант). Если упало после `composer update` — это потенциальный регресс, заведите issue.
 
 ### Coverage
 
@@ -210,7 +210,9 @@ final class CreateUserMethodTest extends KernelTestCase
 
 ## CI
 
-Минимальный workflow для GitHub Actions:
+Сам бандл собирается через `.github/workflows/ci.yml`: матрица PHP 8.2/8.3/8.4 × Symfony `^6.4`/`^7.0`, отдельный job на lowest-разрешённые зависимости, coverage-gate (минимум 90% line coverage), `composer validate --strict` + `composer audit` по расписанию (еженедельно, чтобы новая security-advisory всплыла даже без коммитов), и non-blocking канарейка на Symfony 8. Смотрите файл целиком как референс, если настраиваете CI для проекта, использующего бандл.
+
+Минимальный workflow для вашего собственного проекта, чтобы просто гонять тесты, использующие бандл:
 
 ```yaml
 name: tests
@@ -223,7 +225,7 @@ jobs:
                 php: [8.2, 8.3, 8.4]
         steps:
             - uses: actions/checkout@v4
-            - uses: shivammathur/setup-php@v2
+            - uses: shivammathur/setup-php@v4
               with:
                   php-version: ${{ matrix.php }}
                   coverage: pcov

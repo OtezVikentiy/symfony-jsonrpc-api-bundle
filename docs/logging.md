@@ -124,7 +124,7 @@ services:
         alias: App\Infrastructure\Logger\MyCustomLogger
 ```
 
-Если заданы оба — побеждает `logger_service` (применяется после YAML на этапе компиляции). Сервис должен реализовывать `Psr\Log\LoggerInterface`. Бандл по-прежнему отвечает за pairing, маскировку, обрезку body и формирование message/context/level через `JsonRpcLogFormatterInterface`; кастомный логгер получает финальный `log($level, $message, $context)` со всеми его handler/processor.
+Если заданы оба — побеждает alias в `services.yaml` (проектный `services.yaml` разрешается раньше, чем компилируется расширение бандла, и подставленный там alias накладывается поверх результата компиляции — подробности и полная таблица приоритетов ниже, в разделе «Приоритет override-механизмов»). Сервис должен реализовывать `Psr\Log\LoggerInterface`. Бандл по-прежнему отвечает за pairing, маскировку, обрезку body и формирование message/context/level через `JsonRpcLogFormatterInterface`; кастомный логгер получает финальный `log($level, $message, $context)` со всеми его handler/processor.
 
 ### Разделение по monolog-каналам
 
@@ -157,25 +157,30 @@ services:
         alias: App\Logging\MyJsonRpcCallLogger
 ```
 
-`logging.enabled: false` остаётся **kill-switch**: при выключенном логировании бандл всегда подставит `NullJsonRpcCallLogger`, игнорируя оба override. Если задано и через config, и через alias — выигрывает `call_logger_service`.
+`logging.enabled: false` — kill-switch **только пока вы не задали alias вручную в `services.yaml`**: если alias на `JsonRpcCallLoggerInterface` прописан в проектном `services.yaml`, он победит даже при `enabled: false`. Если задано и через config (`call_logger_service`), и через alias в `services.yaml` — выигрывает alias. Подробности — в разделе «Приоритет override-механизмов» ниже.
 
 Контракт интерфейса (`logRequest` / `logRawRequest` / `logResponse`) — см. `src/Core/Logging/JsonRpcCallLoggerInterface.php`. При своей реализации `JsonRpcLogFormatterInterface`, `SensitiveDataMaskerInterface`, `ContextIdGeneratorInterface` бандлом не используются — вы их можете подключать или нет на своё усмотрение.
 
 ## Приоритет override-механизмов
 
+> **Важно, если вы полагаетесь на `logging.enabled: false` как на способ гарантированно выключить логирование:** alias, заданный в вашем собственном `config/services.yaml`, побеждает **всё**, включая kill-switch. Ниже — фактический порядок, проверенный интеграционным тестом на реальном `ContainerBuilder` (а не только предположением о том, как должен вести себя Symfony DI).
+
+Причина в механике Symfony DI: `config/services.yaml` проекта обрабатывается и попадает в контейнер раньше, чем компилируется расширение бандла. `MergeExtensionConfigurationPass` запоминает уже существующие definitions/aliases контейнера **до** вызова `OVJsonRPCAPIExtension::load()`, а после мерджа результатов extension обратно накладывает эти исходные aliases поверх — так что то, что явно прописано в вашем `services.yaml`, всегда оказывается «последним словом», независимо от того, что решил сделать бандл.
+
 PSR-3 logger (`ov_json_rpc_api.logger`):
 
-1. `logging.enabled: false` → не имеет значения, в любом случае `NullJsonRpcCallLogger` ничего не пишет.
-2. `logging.logger_service` (config) — выигрывает.
-3. `ov_json_rpc_api.logger` alias в `services.yaml` — fallback.
-4. Default — `@logger`.
+1. **`ov_json_rpc_api.logger` alias в вашем `services.yaml` — выигрывает всегда**, даже если конфиг ничего не задаёт.
+2. `logging.logger_service` (config) — применяется, если alias в `services.yaml` не переопределён.
+3. Default — `@logger` (регистрируется bundle-собственным `config/services.yaml`).
 
 `JsonRpcCallLoggerInterface`:
 
-1. `logging.enabled: false` → `NullJsonRpcCallLogger`, kill-switch.
-2. `logging.call_logger_service` (config) — выигрывает.
-3. `JsonRpcCallLoggerInterface` alias в `services.yaml` — fallback.
-4. Default — `JsonRpcCallLogger`.
+1. **`JsonRpcCallLoggerInterface` alias в вашем `services.yaml` — выигрывает всегда**, даже над `logging.enabled: false`. Если вы вручную прописали alias на свой логгер, выключить его через `enabled: false` не получится — удалите alias из `services.yaml`, если нужен настоящий kill-switch.
+2. `logging.enabled: false` → `NullJsonRpcCallLogger`, kill-switch, если alias в `services.yaml` не задан.
+3. `logging.call_logger_service` (config) — применяется, если `enabled: true` и alias в `services.yaml` не задан.
+4. Default — `JsonRpcCallLogger` (при `enabled: true`).
+
+Другими словами: `services.yaml` — это ручной, явный override, который стоит **выше** и config-ключей, и kill-switch'а. Config-ключи (`logger_service` / `call_logger_service`) — способ переопределить sink без ручного вмешательства в `services.yaml`; `logging.enabled` — дефолтный переключатель на случай, когда ни то, ни другое не задано.
 
 ## Производительность
 

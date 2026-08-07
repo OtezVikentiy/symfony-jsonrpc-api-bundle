@@ -168,6 +168,20 @@ curl -X POST http://localhost/api/v1 \
   -d '{"jsonrpc": "2.0", "method": "getProduct", "params": {"id": 1}, "id": 1}'
 ```
 
+## Браузерные клиенты и CORS preflight
+
+Если запрос шлёт браузер (не серверный клиент и не curl), а не same-origin — заголовок `X-AUTH-TOKEN` не входит в список [CORS-safelisted request headers](https://developer.mozilla.org/en-US/docs/Glossary/CORS-safelisted_request_header), поэтому браузер сначала отправит preflight `OPTIONS`. Бандл сам отвечает на preflight (см. [cors.md](../cors.md)), но `Access-Control-Allow-Headers` по умолчанию содержит только `Content-Type` — без явного добавления `X-AUTH-TOKEN` в `cors_allowed_headers` preflight его не разрешит, и браузер заблокирует реальный запрос ещё до того, как он уйдёт на сервер:
+
+```yaml
+# config/packages/ov_json_rpc_api.yaml
+ov_json_rpc_api:
+    cors_allowed_headers:
+        - 'Content-Type'
+        - 'X-AUTH-TOKEN'
+```
+
+Это отдельная настройка от самого firewall'а — `custom_authenticators` в `security.yaml` заставит сервер понимать заголовок, а `cors_allowed_headers` заставит браузер клиента вообще этот заголовок отправить.
+
 ## Дополнительно
 
 - Документация Symfony: [Custom Authenticator](https://symfony.com/doc/current/security/custom_authenticator.html)

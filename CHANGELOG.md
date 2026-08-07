@@ -6,10 +6,47 @@
 
 ---
 
+## [5.0] - 2026-08-07
+
+Спецификация-conformance релиз: постоянный набор тестов на соответствие [JSON-RPC 2.0 spec](https://www.jsonrpc.org/specification) нашёл семнадцать отклонений, шестнадцать из которых исправлены здесь. Подробный гайд по миграции — [docs/upgrade-5.0.md](./docs/upgrade-5.0.md).
+
+### Добавлено
+- **Permanent conformance suite** — двадцать девять тестов на разделы 4, 4.1, 4.2, 5, 5.1, 6 спецификации, включая все примеры из раздела Examples. Регресс против спека теперь падает в CI, а не проходит незамеченным.
+- **CORS preflight (`OPTIONS`) обрабатывается бандлом** — маршрут `/api/v{version}` принимает `OPTIONS`, `ApiController` отвечает `204 No Content` с `Access-Control-Allow-Methods`, `Access-Control-Allow-Headers` и `Access-Control-Max-Age: 86400` до JSON-RPC-парсинга. Внешний CORS-бандл/reverse-proxy больше не обязателен.
+- **`cors_allowed_headers`** (default `['Content-Type']`) — список заголовков, отражаемых в `Access-Control-Allow-Headers` preflight-ответа.
+- **CI-матрица** — PHP 8.2/8.3/8.4 × Symfony 6.4/7.x, job с lowest-разрешёнными зависимостями, coverage-gate (90% минимум), `composer audit`/`composer validate --strict` еженедельно, non-blocking канарейка на Symfony 8.
+
+### Изменено (BC-breaking)
+- **Content-Type обязателен для запросов с телом.** POST/PUT/PATCH/DELETE без `Content-Type: application/json` — `-32600 Invalid Request`, даже если тело — валидный JSON. Form-encoded и multipart отклоняются на этом же основании: form-encoded — «simple request» по CORS-спеке, и без проверки сторонняя HTML-форма могла вызывать RPC-методы от имени залогиненного пользователя без preflight (CSRF). Заодно закрывает обход `max_payload_bytes`, который раньше проверял только «сырое» тело, а form-encoded PHP кладёт не туда.
+- **Скалярные параметры больше не приводятся.** `"42"` для поля `int` — `-32602 Invalid params`, а не тихое приведение. Любой `TypeError`, всплывающий из-за клиентского ввода (конструктор DTO, сеттер, аддер, вложенный DTO), теперь превращается в `-32602` вместо `-32603`/необработанного исключения в логе.
+- **Ответ сериализуется только через публичные геттеры.** `getFoo()` / `isFoo()` / `foo()` — единственный путь, которым поле response-класса попадает в JSON. Свойство без геттера в ответ не попадает, даже публичное. Раньше сериализация читала свойства напрямую через Reflection — приватное поле без геттера (пароль, внутренний токен) уходило клиенту, а поле, унаследованное от родительского класса, терялось (`ReflectionClass::getProperties()` не возвращает приватные свойства родителя).
+- **Циклический граф объектов в ответе — `-32603`, а не падение воркера.** Двунаправленная связь (заказ → пользователь → его заказы) раньше приводила к segfault: ни ответа, ни лога, `ErrorSanitizer` не успевал сработать, потому что переполнение стека — не исключение.
+- **`DateTimeInterface` сериализуется в ISO 8601.** И в ответе (`BaseResponse`, раньше вообще не имел спецобработки — `DateTime`/`DateTimeImmutable` разваливались на пустой массив внутренних свойств), и в `JsonRpcRequest::toArray()` (раньше распознавал только `DateTime`, не `DateTimeImmutable`).
+- **Методы DTO привязываются к свойствам по точному имени**, не по подстроке. `getUserId()` больше не может случайно удовлетворить и `userId`, и `id`. Аддеры коллекций резолвятся по имени свойства через `Symfony\Component\String\Inflector\EnglishInflector` (`children` → `addChild`), а не отбрасыванием последней буквы (`children` → `childre`, молча ничего не добавляя).
+- **`allow_extra_fields` теперь одинаково применяется на любой глубине.** Раньше флаг проверялся один раз на верхнем уровне, а рекурсивная гидратация вложенных DTO отклоняла лишние поля безусловно.
+- **Batch определяется по форме контейнера**, а не по первому элементу. Любой непустой JSON-массив-список — batch, даже если часть элементов невалидна. Раньше невалидный первый элемент откатывал всю обработку к single-request режиму, и валидные вызовы дальше в массиве терялись без следа.
+- **`{"id": null}` — полноценный запрос**, получает ответ с `"id": null`. Notification — это отсутствие поля `id`, а не `null`-значение; раньше `isset()` не различал эти случаи. Notification теперь не получает ответа вообще, включая ошибочный результат (кроме случая, когда конверт запроса настолько повреждён, что нельзя достоверно установить, был ли это notification).
+- **`params: null` отклоняется** (`-32600`), а не тихо трактуется как «параметров нет» — та же `isset()`-ловушка, что и для `id`.
+- **Отказ по ролям — `-32000` в JSON-RPC error-объекте, HTTP 200**, не HTTP 403 с голой строкой. Раньше внутри batch эта голая строка портила JSON-структуру элемента и теряла `id`.
+- **Коды ошибок вне допустимых JSON-RPC диапазонов нормализуются в `-32603`.** Произвольный `Throwable` с кодом `0` (или любым другим вне стандартных значений и `-32000..-32099`) больше не долетает до клиента как есть, даже при `expose_internal_errors: true`.
+- **Имена схем OpenAPI не сталкиваются.** Схема ответа — `{methodName}Response`, вложенные DTO — по полному имени класса (`\` → `.`). Раньше короткое имя класса (`Response`, `Request`) собирало все одноимённые DTO проекта в одну схему, тихо затирая предыдущую.
+- **`cors_strict` удалён.** Поведение всегда как было при `cors_strict: true` в 4.x — легаси comma-joined режима не существует. Оставшийся в конфиге ключ `cors_strict` теперь ошибка компиляции контейнера, а не молчаливо игнорируемое значение.
+- **Границы зависимостей в манифесте.** `composer.json` теперь объявляет верхние границы (`^6.4 || ^7.0` для Symfony-компонентов, `8.2.* || 8.3.* || 8.4.*` для PHP) вместо открытых `>=`. `doctrine/annotations` убран из require — ничего в `src/`/`config/` на него не полагалось.
+
+### Исправлено
+- Well-formed JSON, не являющийся Request-объектом (`"42"`, голая строка, `true`, `null`) — теперь `-32600 Invalid Request` по разделу 5.1 спека, а не `-32700 Parse error`. Невалидный JSON по-прежнему `-32700`.
+- `ResponseService` теперь требует `ErrorSanitizer` явно в конструкторе — раньше тестовый харнесс мог собрать `ResponseService` без него, и тесты валидировали конфигурацию, никогда не существовавшую в проде.
+- GET-ветка теперь применяет `max_payload_bytes` и `max_json_depth` — раньше оба лимита обходились переносом payload'а в query string. **Асимметрия:** на GET-ветке `max_json_depth` фактически ограничен `max_input_nesting_level` из `php.ini` (default 64) — PHP разбирает query string раньше, чем бандл получает управление, и обрезает более глубокие структуры сам. На POST-ветке лимит honours полностью.
+
+### Известные ограничения
+- `id`, превышающий `PHP_INT_MAX`, не возвращается байт-в-байт: `json_decode()` превращает его во `float` с потерей точности.
+
+---
+
 ## [4.2] - 2026-05-19
 
 ### Добавлено
-- **Pluggable PSR-3 logger** — два новых конфига `logging.logger_service` и `logging.call_logger_service` плюс bundle-scoped alias `ov_json_rpc_api.logger`. Позволяют подменять либо внутренний PSR-3 sink, который `JsonRpcCallLogger` использует для записи (`logger_service` / alias `ov_json_rpc_api.logger`), либо целиком реализацию `JsonRpcCallLoggerInterface` (`call_logger_service` / alias `JsonRpcCallLoggerInterface`). Override через config выигрывает у alias; `logging.enabled: false` остаётся kill-switch выше всех override. Override-точка для `JsonRpcLogFormatterInterface` из 4.1 не изменена. Подробности и precedence — [docs/logging.md](./docs/logging.md).
+- **Pluggable PSR-3 logger** — два новых конфига `logging.logger_service` и `logging.call_logger_service` плюс bundle-scoped alias `ov_json_rpc_api.logger`. Позволяют подменять либо внутренний PSR-3 sink, который `JsonRpcCallLogger` использует для записи (`logger_service` / alias `ov_json_rpc_api.logger`), либо целиком реализацию `JsonRpcCallLoggerInterface` (`call_logger_service` / alias `JsonRpcCallLoggerInterface`). Alias, заданный вручную в проектном `services.yaml`, выигрывает у config-ключа и даже у `logging.enabled: false` kill-switch — Symfony DI мерджит проектный `services.yaml` в контейнер раньше, чем компилируется расширение бандла. Override-точка для `JsonRpcLogFormatterInterface` из 4.1 не изменена. Подробности и полная таблица precedence — [docs/logging.md](./docs/logging.md).
 
 ---
 
