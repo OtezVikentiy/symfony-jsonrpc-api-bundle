@@ -19,7 +19,7 @@ use ReflectionProperty;
 use SplObjectStorage;
 
 /**
- * Turns an object graph into arrays, reading values only through public accessors.
+ * Turns an object graph into arrays, exporting only what the class makes public.
  *
  * Response serialisation and JsonRpcRequest::toArray() both walk arbitrary user DTOs, and both used
  * to do it with their own copy of the logic - which meant the response side could be hardened while
@@ -29,12 +29,15 @@ use SplObjectStorage;
  * so a graph with a back-reference recursed until the stack overflowed and took the worker with it,
  * leaving no response and no log entry, because a stack overflow is not an exception one can catch.
  *
- * A property is exported only when a public getter for it exists. Both directions of the trade were
- * weighed: a property whose getter is private stays out of the payload, which is the point.
+ * A property is exported when the class exposes it: through a public getter, or by being public
+ * itself. The line is visibility, not ceremony. The defect this exists to stop was a *private* field
+ * escaping through Reflection, and that stays stopped - a private property with no getter, or with a
+ * private one, never leaves. Requiring a getter on top of that would protect nothing and would drop
+ * the promoted public properties that are the shortest honest way to write a response DTO.
  *
  * @internal
  */
-trait SerialisesThroughPublicGetters
+trait SerialisesPublicSurface
 {
     private const DATE_FORMAT = DATE_ATOM;
     private const GETTER_PREFIXES = ['get', 'is'];
@@ -122,7 +125,19 @@ trait SerialisesThroughPublicGetters
             }
 
             $getter = $this->resolveGetter($reflection, $name);
+
             if ($getter === null) {
+                // No getter, but the property itself is public - which is the author declaring it
+                // part of the object's surface, in as many words. Promoted constructor properties
+                // make that the shortest way to write a response DTO, and dropping them protects
+                // nobody: the leak this serialiser exists to stop was a *private* field escaping
+                // through Reflection, and a private field with no getter still does not leave.
+                if (!$property->isPublic()) {
+                    continue;
+                }
+
+                $result[$name] = $this->normaliseValue($property->getValue($object), $visited, $depth + 1);
+
                 continue;
             }
 

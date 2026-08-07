@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace OV\JsonRPCAPIBundle\Core\Request;
 
 use OV\JsonRPCAPIBundle\Core\JRPCException;
-use OV\JsonRPCAPIBundle\Core\Serialization\SerialisesThroughPublicGetters;
+use OV\JsonRPCAPIBundle\Core\Serialization\SerialisesPublicSurface;
 use SplObjectStorage;
 
 abstract class JsonRpcRequest
 {
-    use SerialisesThroughPublicGetters;
+    use SerialisesPublicSurface;
 
     /**
      * @return array<string, mixed>

@@ -13,12 +13,12 @@ declare(strict_types=1);
 namespace OV\JsonRPCAPIBundle\Core\Response;
 
 use OV\JsonRPCAPIBundle\Core\JRPCException;
-use OV\JsonRPCAPIBundle\Core\Serialization\SerialisesThroughPublicGetters;
+use OV\JsonRPCAPIBundle\Core\Serialization\SerialisesPublicSurface;
 use SplObjectStorage;
 
 final readonly class BaseResponse implements OvResponseInterface, BaseJsonResponseInterface
 {
-    use SerialisesThroughPublicGetters;
+    use SerialisesPublicSurface;
 
     public function __construct(
         private mixed $result,

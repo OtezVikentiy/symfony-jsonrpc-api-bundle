@@ -33,6 +33,13 @@ final class PrivateGetterRequest extends JsonRpcRequest
     }
 }
 
+final class PublicFieldRequest extends JsonRpcRequest
+{
+    public string $login = 'alice';
+
+    private string $passwordHash = 'do-not-serialise-me';
+}
+
 final class LinkedRequest extends JsonRpcRequest
 {
     public ?LinkedRequest $peer = null;
@@ -80,6 +87,15 @@ final class RequestSerializationTest extends TestCase
         $exported = (new LeakyRequest())->toArray();
 
         self::assertSame(['login' => 'alice'], $exported);
+    }
+
+    /**
+     * The same line as on the response side: public is exported, private is not, and no getter is
+     * required for the first.
+     */
+    public function testAPublicPropertyIsExportedAndAPrivateOneIsNot(): void
+    {
+        self::assertSame(['login' => 'alice'], (new PublicFieldRequest())->toArray());
     }
 
     public function testPropertyWithNonPublicGetterIsNotExported(): void

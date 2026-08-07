@@ -32,6 +32,28 @@ final class PrivateGetterDto
     }
 }
 
+/**
+ * Promoted public properties and no getters at all - the shortest honest way to write a response
+ * DTO, and the shape most affected by where the line is drawn.
+ */
+final class PublicPropertyDto
+{
+    public function __construct(
+        public array $items = ['a'],
+        public bool $truncated = false,
+    ) {
+    }
+}
+
+final class MixedVisibilityDto
+{
+    public string $exposed = 'yes';
+
+    protected string $shielded = 'no';
+
+    private string $hidden = 'no';
+}
+
 final class WithGetterDto
 {
     private string $passwordHash = 'super-secret-hash';
@@ -125,6 +147,25 @@ final class ResponseSerializationTest extends TestCase
         $response = new BaseResponse(result: new PrivateGetterDto());
 
         $this->assertArrayNotHasKey('passwordHash', $response->toArray()['result']);
+    }
+
+    /**
+     * A public property is the author saying the field is part of the object's surface, in as many
+     * words. Requiring a getter on top of that protects nothing - the leak this serialiser exists to
+     * stop is a *private* field escaping - and would drop the promoted properties above.
+     */
+    public function testPublicPropertyWithoutAGetterIsIncludedInResponse(): void
+    {
+        $result = (new BaseResponse(result: new PublicPropertyDto()))->toArray()['result'];
+
+        self::assertSame(['items' => ['a'], 'truncated' => false], $result);
+    }
+
+    public function testOnlyThePublicHalfOfAMixedDtoIsIncluded(): void
+    {
+        $result = (new BaseResponse(result: new MixedVisibilityDto()))->toArray()['result'];
+
+        self::assertSame(['exposed' => 'yes'], $result, 'protected and private stay in');
     }
 
     public function testPropertyWithGetterIsIncludedInResponse(): void
