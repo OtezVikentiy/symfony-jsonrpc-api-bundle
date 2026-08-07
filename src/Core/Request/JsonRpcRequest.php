@@ -4,78 +4,43 @@ declare(strict_types=1);
 
 namespace OV\JsonRPCAPIBundle\Core\Request;
 
-use DateTimeInterface;
-use ReflectionClass;
-use ReflectionNamedType;
+use OV\JsonRPCAPIBundle\Core\JRPCException;
+use OV\JsonRPCAPIBundle\Core\Serialization\SerialisesThroughPublicGetters;
+use SplObjectStorage;
 
 abstract class JsonRpcRequest
 {
-    private const DATE_FORMAT = DATE_ATOM;
+    use SerialisesThroughPublicGetters;
 
+    /**
+     * @return array<string, mixed>
+     *
+     * @throws JRPCException
+     */
     public function toArray(): array
     {
-        return $this->objectToArray($this);
+        return $this->objectToArray($this, new SplObjectStorage());
     }
 
-    private function processValue(mixed $value): mixed
+    /**
+     * A nested value carrying its own toArray() decides its own shape - long-standing behaviour of
+     * request DTOs, and the reason a child can appear under keys its properties are not named after.
+     *
+     * Another JsonRpcRequest is excluded on purpose. It inherits toArray(), so delegating to it
+     * would restart the walk with an empty visited set, and two DTOs referring to each other would
+     * recurse until the stack overflowed - the very failure the shared traversal exists to catch.
+     * Such a value is walked inline instead, under the visited set already in flight.
+     *
+     * @return array<mixed>|null
+     */
+    private function customArrayRepresentation(object $value): ?array
     {
-        if (is_object($value)) {
-            if ($value instanceof DateTimeInterface) {
-                return $value->format(self::DATE_FORMAT);
-            }
-
-            if (method_exists($value, 'toArray')) {
-                return $value->toArray();
-            }
-
-            return $this->objectToArray($value);
+        if ($value instanceof self || !method_exists($value, 'toArray')) {
+            return null;
         }
 
-        if (is_array($value)) {
-            $processedArray = [];
-            foreach ($value as $key => $item) {
-                $processedArray[$key] = $this->processValue($item);
-            }
+        $representation = $value->toArray();
 
-            return $processedArray;
-        }
-
-        return $value;
-    }
-
-    private function objectToArray(object $object): array
-    {
-        $reflection = new ReflectionClass($object);
-        $properties = $reflection->getProperties();
-        $result = [];
-
-        foreach ($properties as $property) {
-            $propertyName = $property->getName();
-            $type = $property->getType();
-            $typeName = $type instanceof ReflectionNamedType ? $type->getName() : null;
-
-            $getterName = $this->createGetter($propertyName, $typeName);
-
-            if (method_exists($object, $getterName) && $property->isInitialized($object)) {
-                $value = $object->$getterName();
-            } elseif ($property->isInitialized($object)) {
-                $value = $property->getValue($object);
-            } else {
-                continue;
-            }
-
-            $result[$propertyName] = $this->processValue($value);
-        }
-
-        return $result;
-    }
-
-    private function createGetter(string $propertyName, ?string $propertyType): string
-    {
-        if ($propertyType === 'bool' || $propertyType === 'boolean') {
-            return 'is' . ucfirst($propertyName);
-        }
-
-        return 'get' . ucfirst($propertyName);
+        return is_array($representation) ? $representation : null;
     }
 }
