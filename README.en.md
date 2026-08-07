@@ -261,6 +261,7 @@ Classes marked with the `#[JsonRPCAPI]` attribute are automatically discovered a
 | [JsonRpcRequest Base Class](./docs/json_rpc_request.md) | `toArray()` method, recursive serialization |
 | [Partial updates (JSON Merge Patch)](./docs/partial_updates.md) | `PartialRequestInterface`, `wasProvided()`, RFC 7396 semantics |
 | [Troubleshooting / FAQ](./docs/troubleshooting.md) | Common problems and their solutions |
+| [**Upgrade Guide 4.x → 5.0**](./docs/upgrade-5.0.en.md) | **Every BC-breaking change in 5.0, what breaks and what to do about it** |
 | [CHANGELOG](./CHANGELOG.md) | Version history |
 
 ---
