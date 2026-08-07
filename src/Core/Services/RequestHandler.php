@@ -33,6 +33,9 @@ use TypeError;
 final class RequestHandler
 {
     private const INVALID_TYPE_MESSAGE_FORMAT = '[%s] - This value should be of type %s';
+    private const CONSTRUCTOR_FAILURE_MESSAGE = 'One or more parameters have an unexpected type.';
+    private const CONSTRUCTOR_ARGUMENT_POSITION_PATTERN = '/Argument #(\d+)/';
+    private const POSITIONAL_PARAMS_FIELD = 'params';
     private const FINALLY_FAILURE_MESSAGE = 'JSON-RPC post-response stage failed';
     private const ACCESS_DENIED_MESSAGE = 'Access denied.';
     private const PLAIN_RESPONSE_IN_BATCH_MESSAGE = 'Internal error.';
@@ -271,9 +274,35 @@ final class RequestHandler
             throw new JRPCException(
                 'Invalid params.',
                 JRPCException::INVALID_PARAMS,
-                $e->getMessage(),
+                $this->describeConstructorFailure($e, $methodSpec->getRequiredParameters()),
             );
         }
+    }
+
+    /**
+     * Turns an engine-generated constructor error into a message safe to hand back to the caller.
+     *
+     * The raw text carries the absolute path of the file that performed the call and the fully
+     * qualified name of the request DTO, and it reaches the client untouched: ErrorSanitizer lets
+     * JRPCException through by design, so expose_internal_errors never gets a say. Only the
+     * argument position is taken from the message - everything the caller sees is then rebuilt from
+     * the method specification, in the same format the hydration path already uses.
+     *
+     * @param array<int, array{name: string, type: string}> $requiredParameters
+     */
+    private function describeConstructorFailure(Throwable $failure, array $requiredParameters): string
+    {
+        if (preg_match(self::CONSTRUCTOR_ARGUMENT_POSITION_PATTERN, $failure->getMessage(), $matches) !== 1) {
+            return self::CONSTRUCTOR_FAILURE_MESSAGE;
+        }
+
+        $parameter = $requiredParameters[((int) $matches[1]) - 1] ?? null;
+
+        if ($parameter === null) {
+            return self::CONSTRUCTOR_FAILURE_MESSAGE;
+        }
+
+        return sprintf(self::INVALID_TYPE_MESSAGE_FORMAT, $parameter['name'], $parameter['type']);
     }
 
     private function hydrateRequest(object $requestInstance, MethodSpec $methodSpec, BaseRequest $baseRequest): object
@@ -291,7 +320,7 @@ final class RequestHandler
                 $wasProvided = true;
             } elseif (array_key_exists('defaultValue', $allParameter)) {
                 $value = $allParameter['defaultValue'];
-            } elseif ($name === 'params') {
+            } elseif ($name === self::POSITIONAL_PARAMS_FIELD) {
                 $value = $baseRequest->getParams();
             } else {
                 continue;
@@ -389,7 +418,7 @@ final class RequestHandler
                     }
                 }
 
-                if (is_null($value) && $name === 'params') {
+                if (is_null($value) && $name === self::POSITIONAL_PARAMS_FIELD) {
                     $value = $baseRequest->getParams();
                 }
 
@@ -437,11 +466,11 @@ final class RequestHandler
         if (is_string($values)) {
             try {
                 return new $class($values);
-            } catch (InvalidArgumentException|TypeError $e) {
+            } catch (InvalidArgumentException|TypeError) {
                 throw new JRPCException(
                     'Invalid params.',
                     JRPCException::INVALID_PARAMS,
-                    $e->getMessage(),
+                    self::CONSTRUCTOR_FAILURE_MESSAGE,
                 );
             }
         }
@@ -489,11 +518,38 @@ final class RequestHandler
     }
 
     /**
+     * Presents by-position parameters to the validator the way hydration already sees them.
+     *
+     * Spec section 4.2 allows params to be an Array, and a request DTO receives that array through a
+     * single property named `params`. hydrateRequest() has always understood that pseudo-field; the
+     * validator did not, so it saw a list keyed 0..n, reported `params` as missing and every element
+     * as unexpected, and rejected every by-position call with -32602. The wrapping happens only when
+     * the method actually declares the pseudo-field and the payload carries no literal `params` key,
+     * which is the same precedence hydration applies.
+     *
+     * @return array<mixed>
+     */
+    private function mapParamsOntoValidatedFields(MethodSpec $methodSpec, BaseRequest $baseRequest): array
+    {
+        $params = $baseRequest->getParams();
+
+        if (!array_key_exists(self::POSITIONAL_PARAMS_FIELD, $methodSpec->getValidators())) {
+            return $params;
+        }
+
+        if (array_key_exists(self::POSITIONAL_PARAMS_FIELD, $params)) {
+            return $params;
+        }
+
+        return [self::POSITIONAL_PARAMS_FIELD => $params];
+    }
+
+    /**
      * @throws JRPCException
      */
     private function processValidatorsForRequestInstance(MethodSpec $methodSpec, BaseRequest $baseRequest, mixed $requestInstance): void
     {
-        $requestData = $baseRequest->getParams();
+        $requestData = $this->mapParamsOntoValidatedFields($methodSpec, $baseRequest);
 
         foreach ($methodSpec->getValidators() as $field => $validatorItem) {
             if (class_exists($validatorItem['type'], false)) {

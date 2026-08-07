@@ -23,6 +23,16 @@ use OV\JsonRPCAPIBundle\Tests\Controller\AbstractControllerTestCase;
  */
 final class JsonRpcSpecConformanceTest extends AbstractControllerTestCase
 {
+    /**
+     * Must stay true. The harness defaults to a ValidatorInterface mock that returns an empty
+     * violation list for any input, which makes every assertion here pass no matter what the
+     * validation stage actually does - and that is not hypothetical: it hid the fact that by-position
+     * params (spec section 4.2) were rejected with -32602 by every real deployment, while the very
+     * example from the spec sat green in this file. A conformance suite that skips a stage of the
+     * pipeline attests to nothing.
+     */
+    protected bool $useRealValidator = true;
+
     private static function paramsArraySpec(string $class, string $requestClass): MethodSpec
     {
         return new MethodSpec(
