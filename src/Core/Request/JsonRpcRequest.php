@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace OV\JsonRPCAPIBundle\Core\Request;
 
+use DateTimeInterface;
+
 abstract class JsonRpcRequest
 {
+    private const DATE_FORMAT = DATE_ATOM;
+
     public function toArray(): array
     {
         return $this->objectToArray($this);
@@ -14,10 +18,10 @@ abstract class JsonRpcRequest
     private function processValue(mixed $value): mixed
     {
         if (is_object($value)) {
-            if ($value instanceof \DateTime) {
-                return $value;
+            if ($value instanceof DateTimeInterface) {
+                return $value->format(self::DATE_FORMAT);
             }
-            
+
             if (method_exists($value, 'toArray')) {
                 return $value->toArray();
             }
