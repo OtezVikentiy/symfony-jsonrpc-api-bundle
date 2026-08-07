@@ -364,24 +364,37 @@ final class CompilerPass implements CompilerPassInterface
         return null;
     }
 
+    /**
+     * Decides whether call() can return a response that must bypass JSON-RPC wrapping.
+     *
+     * Both shapes of return type are examined. Only unions used to be, so the simplest way to write
+     * such a method - `public function call(Request $r): Png` with a single named type - was never
+     * recognised, and the binary response was quietly serialised into JSON as an object with
+     * `content`, `statusCode` and `charset` members. No error, no warning; the caller received a
+     * JSON envelope where a file was expected. The documented example happens to use a union, which
+     * is why this went unnoticed, and every test set the resulting flag by hand rather than letting
+     * this method produce it.
+     */
     private function detectPlainResponse(ReflectionClass $methodReflectionClass): bool
     {
         $callResponseType = $methodReflectionClass->getMethod('call')->getReturnType();
-        if ($callResponseType instanceof ReflectionUnionType) {
-            foreach ($callResponseType->getTypes() as $type) {
-                if (!$type instanceof ReflectionNamedType) {
-                    continue;
-                }
-                $typeName = $type->getName();
-                if (!class_exists($typeName)) {
-                    continue;
-                }
-                $responseTypeReflection = new ReflectionClass($typeName);
-                foreach ($responseTypeReflection->getInterfaces() as $interface) {
-                    if ($interface->getName() === PlainResponseInterface::class) {
-                        return true;
-                    }
-                }
+
+        $candidates = $callResponseType instanceof ReflectionUnionType
+            ? $callResponseType->getTypes()
+            : [$callResponseType];
+
+        foreach ($candidates as $type) {
+            if (!$type instanceof ReflectionNamedType) {
+                continue;
+            }
+
+            $typeName = $type->getName();
+            if (!class_exists($typeName) && !interface_exists($typeName)) {
+                continue;
+            }
+
+            if (is_a($typeName, PlainResponseInterface::class, true)) {
+                return true;
             }
         }
 
