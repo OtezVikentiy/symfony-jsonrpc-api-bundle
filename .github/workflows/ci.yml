@@ -27,8 +27,10 @@ jobs:
   # the same Symfony version six times over and call it a matrix. Each
   # cell pins the symfony/* requirements to its own branch in its own
   # ephemeral checkout (nothing is committed) before installing, the
-  # same technique the Symfony 8 canary job below uses. Verified locally
-  # that ^6.4 resolves to 6.4.x and ^7.0 resolves to a distinct 7.x.
+  # same technique the Symfony 8 canary job below uses. The list of
+  # packages to pin is derived from composer.json rather than written
+  # out, because a written-out one had already fallen five packages
+  # behind the manifest and left their 6.4 branch untested.
   tests:
     name: 'PHP ${{ matrix.php }} / Symfony ${{ matrix.symfony }}'
     runs-on: ubuntu-latest
@@ -67,15 +69,15 @@ jobs:
           $path = "composer.json";
           $json = json_decode(file_get_contents($path), true);
           $constraint = getenv("SYMFONY_CONSTRAINT");
-          $symfonyPackages = [
-              "symfony/framework-bundle",
-              "symfony/yaml",
-              "symfony/validator",
-              "symfony/serializer",
-              "symfony/console",
-              "symfony/security-bundle",
-              "symfony/string",
-          ];
+          // Derived from the manifest, never listed by hand: a hardcoded list silently stops
+          // covering a package the moment one is added to require, and that is exactly what
+          // happened - config, dependency-injection, http-foundation, http-kernel and routing
+          // were absent, so a "6.4" cell resolved them to 7.4 and the 6.4 branch of those five
+          // was never exercised by any job.
+          $symfonyPackages = array_values(array_filter(
+              array_keys($json["require"]),
+              static fn (string $package): bool => str_starts_with($package, "symfony/")
+          ));
           foreach ($symfonyPackages as $package) {
               $json["require"][$package] = $constraint;
           }
@@ -120,7 +122,7 @@ jobs:
       - name: Run test suite
         run: vendor/bin/phpunit
 
-  # Line coverage ratchet. Current coverage is 91.76%; the gate sits a
+  # Line coverage ratchet. Current coverage is 91.84%; the gate sits a
   # few points under that so incidental noise doesn't fail PRs, but any
   # real regression below the floor fails the job.
   coverage:
@@ -256,15 +258,15 @@ jobs:
           php -r '
           $path = "composer.json";
           $json = json_decode(file_get_contents($path), true);
-          $symfonyPackages = [
-              "symfony/framework-bundle",
-              "symfony/yaml",
-              "symfony/validator",
-              "symfony/serializer",
-              "symfony/console",
-              "symfony/security-bundle",
-              "symfony/string",
-          ];
+          // Derived from the manifest, never listed by hand: a hardcoded list silently stops
+          // covering a package the moment one is added to require, and that is exactly what
+          // happened - config, dependency-injection, http-foundation, http-kernel and routing
+          // were absent, so a "6.4" cell resolved them to 7.4 and the 6.4 branch of those five
+          // was never exercised by any job.
+          $symfonyPackages = array_values(array_filter(
+              array_keys($json["require"]),
+              static fn (string $package): bool => str_starts_with($package, "symfony/")
+          ));
           foreach ($symfonyPackages as $package) {
               $json["require"][$package] = "^8.0";
           }

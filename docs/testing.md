@@ -55,6 +55,8 @@ PHPUnit исключает `tests/Fixtures` — это обычные класс
 
 `tests/Controller/AbstractControllerTestCase.php` собирает минимальный controller-стек (RequestHandler, RequestRawDataHandler, ResponseService, замоканный Security, замоканный ValidatorInterface или реальный, два замоканных `ServiceLocator` — под RPC-методы и под процессоры). В 4.x на этом месте был замоканный `Container`; начиная с 5.0 бандл контейнер не инжектит — см. [upgrade-5.0.md](./upgrade-5.0.md), п. 17.
 
+> ⚠️ **Этого класса нет в установленном пакете.** `.gitattributes` помечает `/tests` как `export-ignore`, а `OV\JsonRPCAPIBundle\Tests\` объявлен в `autoload-dev` — то есть в `vendor/` каталог `tests/` не попадает и неймспейс не автозагружается. Наследоваться от `AbstractControllerTestCase` из своего проекта **нельзя**, будет `Class not found`. Ниже показано, как выглядит харнесс, — **скопируйте его в свой проект** под своим неймспейсом. Если копировать не хочется, берите [рецепт через `KernelTestCase`](#интеграционный-тест-через-kerneltestcase) — он работает без копирования и не зависит от внутренностей бандла.
+
 > **Этот харнесс опирается на внутренности осознанно.** С 5.0 `@internal` помечены и классы стека (`RequestHandler`, `RequestRawDataHandler`, `ResponseService`, `HeadersPreparer`), и метаданные метода (`MethodSpec`, `RequestMetadata`, `SwaggerMetadata`), которые ниже описываются руками. Их сигнатуры могут поменяться в минорном релизе 5.x. Копируйте харнесс, если вам нужна скорость и полный контроль над стеком, но будьте готовы поправить его при обновлении — это размен, а не бесплатная скорость. Тест через `KernelTestCase` (ниже) от этого свободен: там и стек, и `MethodSpec` собирает контейнер.
 >
 > Отдельно про ручной `MethodSpec`: он должен совпадать с тем, что генерирует `CompilerPass`, иначе тест проверяет конфигурацию, которой в проде не существует. Легко забыть, что для свойства со значением по умолчанию компилятор кладёт `defaultValue` в `allParameters` и ставит `allowsNull: true` в `validators`, а для коллекции с аддером переписывает `type` на тип **элемента**. Расхождение здесь даёт зелёный тест при сломанном проде.
@@ -67,7 +69,7 @@ namespace App\Tests\RPC;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
-use OV\JsonRPCAPIBundle\Tests\Controller\AbstractControllerTestCase;
+use App\Tests\RPC\Support\AbstractControllerTestCase;   // ваша копия харнесса, см. предупреждение выше
 use App\RPC\V1\GetProduct\Request;
 use App\RPC\V1\GetProductMethod;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -174,7 +176,9 @@ public function testProcessorsRunInOrder(): void
 
 ## Тестирование с реальной БД
 
-Если RPC-метод обращается к БД через Doctrine — используйте `KernelTestCase` для интеграционного теста с реальным контейнером:
+## Интеграционный тест через `KernelTestCase`
+
+Этот путь ничего не требует от бандла, кроме публичного контракта: контейнер сам собирает стек и `MethodSpec`, копировать нечего, и правки внутренностей в минорных релизах его не задевают. Он же нужен, если RPC-метод обращается к БД через Doctrine:
 
 ```php
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;

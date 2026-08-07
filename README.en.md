@@ -515,6 +515,16 @@ See [docs/testing.md](./docs/testing.md) for guidance on writing tests for your 
 | `max_batch_size` | `50` | Maximum number of requests allowed in a single JSON-RPC batch. Larger batches return a single `INVALID_REQUEST` error. |
 | `max_dto_depth` | `10` | Maximum recursion depth when hydrating nested Request DTO objects. Prevents stack/memory exhaustion via deeply nested payloads. |
 | `max_array_param_size` | `1000` | Maximum element count for array parameters bound through `addX()` adders. |
+| `logging.enabled` | `false` | Request and response logging. Everything else under `logging.*` applies only when this is `true`. |
+| `logging.request_level` | `'info'` | PSR-3 level for the incoming request entry. |
+| `logging.response_level` | `'info'` | PSR-3 level for a successful response entry. |
+| `logging.error_response_level` | `'warning'` | PSR-3 level for an error response entry. |
+| `logging.max_body_length` | `8192` | Truncation of request and response bodies in the log, in characters. `0` disables truncation. **The 4.x default was `0`.** |
+| `logging.skip_plain_responses` | `true` | Do not log the body of `PlainResponseInterface` responses (files, streams). |
+| `logging.logger_service` | `null` | Service id of the PSR-3 logger `JsonRpcCallLogger` writes to. |
+| `logging.call_logger_service` | `null` | Service id replacing the `JsonRpcCallLoggerInterface` implementation outright. |
+| `logging.masking.placeholder` | `'***'` | What replaces the value of a masked field. |
+| `logging.masking.key_patterns` | 29 patterns | Regular expressions for field and header names whose values are masked (`password`, `token`, `secret`, `authorization`, `jwt` and others). **The 4.x default was `[]`, meaning no masking at all.** Supplying your own list replaces the defaults rather than adding to them. An invalid expression fails container compilation. |
 | `swagger` | — | Swagger configuration per API version. |
 | `swagger.*.api_version` | `'1'` | API version number. |
 | `swagger.*.base_path` | — | Production server URL. |
@@ -522,7 +532,7 @@ See [docs/testing.md](./docs/testing.md) for guidance on writing tests for your 
 | `swagger.*.base_path_variables` | `[]` | Variables for base_path substitution. |
 | `swagger.*.test_path_variables` | `[]` | Variables for test_path substitution. |
 | `swagger.*.auth_token_name` | — | Authorization token header name. |
-| `swagger.*.auth_token_test_value` | — | Test token value. |
+| `swagger.*.auth_token_test_value` | — | Test token value. **Currently unused:** only `auth_token_name` reaches the OpenAPI security scheme; the value is substituted nowhere. Kept so existing configs keep compiling. |
 | `swagger.*.info` | — | API information (title, description, contact, license). |
 
 > **Security hardening:** see [docs/security_hardening.md](./docs/security_hardening.md) for recommended values, rationale, and tuning tips for high-volume APIs.

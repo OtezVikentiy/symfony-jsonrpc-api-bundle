@@ -9,10 +9,23 @@
 ov_json_rpc_api:
     logging:
         enabled: true
+```
+
+Этого достаточно: с 5.0 маскирование работает из коробки — `key_patterns` содержит 29 паттернов, а тела обрезаются до 8192 символов.
+
+> ⚠️ **`key_patterns` — замена списка, а не дополнение.** Задав свой список, вы выключаете все 29 дефолтных. И задавайте паттерны **без якорей**: `~^password$~i` не поймает `user_password`, `pwd_hash` или `X-Auth-Token` — то есть ровно те имена, за которыми секреты обычно и прячутся. Дефолтный список неякорный намеренно, разбор причины — в docblock `Configuration::DEFAULT_MASKING_KEY_PATTERNS`. Если нужно добавить своё, скопируйте дефолты и дополните:
+
+```yaml
+ov_json_rpc_api:
+    logging:
+        enabled: true
         masking:
             key_patterns:
-                - '~^(password|secret|token|authorization)$~i'
-                - '~^card_number$~i'
+                # ... сюда скопируйте нужные из Configuration::DEFAULT_MASKING_KEY_PATTERNS ...
+                - '~password~i'
+                - '~token~i'
+                # ... и добавьте свои, тоже без якорей
+                - '~internal_ref~i'
 ```
 
 ## Дефолтный формат

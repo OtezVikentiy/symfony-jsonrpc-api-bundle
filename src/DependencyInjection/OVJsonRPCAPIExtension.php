@@ -63,6 +63,10 @@ final class OVJsonRPCAPIExtension extends Extension
 
         // --- logging ---
         $loggingCfg = $config['logging'];
+        // Nothing inside the bundle reads this one: the decision it drives is taken here, by
+        // aliasing NullJsonRpcCallLogger instead. It is still exported, because an application has
+        // no other way to ask whether bundle logging is on - and because dropping a published
+        // container parameter would break anyone already referencing it.
         $container->setParameter($this->getAlias() . '.logging.enabled', $loggingCfg['enabled']);
         $container->setParameter($this->getAlias() . '.logging.request_level', $loggingCfg['request_level']);
         $container->setParameter($this->getAlias() . '.logging.response_level', $loggingCfg['response_level']);
