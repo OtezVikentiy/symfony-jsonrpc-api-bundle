@@ -226,6 +226,23 @@ The reason: `finally` runs **after** the response has been formed, and in batch 
 **What breaks:** a PostProcessor that threw on purpose — to fail an audit, to refuse to release a response, to roll back a transaction — no longer affects anything. The client receives a successful response and the refusal survives only as a log line.
 **What to do:** if a PostProcessor decides whether a response is released, move that logic into the method itself or into a PreProcessor — somewhere the decision is taken before the response exists. If your PostProcessor only writes logs, emits metrics or releases resources, do nothing: that is the case this isolation exists for.
 
+### 23. Scalars from a query string are read as the declared type
+
+**4.x:** PHP's weak typing coerced query-string values on the way through the setter - incidentally and beyond anyone's control.
+**5.0:** the conversion is explicit and confined to the GET branch. A query string carries no types by nature - PHP parses one into strings - so a value is read the way the declared property type asks:
+
+```
+GET  ?params[id]=5&params[active]=true   ->  int 5, bool true
+POST {"params":{"id":"5"}}               ->  -32602, a string where an int belongs
+```
+
+The distinction is whether the caller had any way to express the type. JSON has types, so `"42"` instead of `42` is a real mistake (item 2). A query string offers nothing to get wrong.
+
+`int`, `float` and `bool` are read; strings stay strings. Only unambiguous representations are recognised - booleans use PHP's own filter, so `1/true/on/yes` and `0/false/off/no`, and numbers must be numbers in full. Anything else is passed through untouched and refused by the validator exactly as before: `?params[id]=abc` is still -32602, and so is `1.5` for an int. The conversion applies at every depth: nested DTOs, collection elements and constructor parameters.
+
+**What breaks:** nothing that worked. GET methods with `int`, `bool` or `float` fields worked in 4.x through weak typing, stopped working in early 5.0 builds, and work again now - this time by design.
+**What to do:** nothing.
+
 ## What does not break
 
 - The `#[JsonRPCAPI]` attribute — every parameter and the versioning semantics are unchanged.
@@ -253,6 +270,7 @@ The reason: `finally` runs **after** the response has been formed, and in batch 
 10. If logging is enabled, check `key_patterns` and `max_body_length` against your expectations — masking now works out of the box (item 18).
 11. Check whether any client sends a composite `id` (an object or an array); such requests are now rejected (item 19).
 12. If a PostProcessor of yours throws on purpose, that logic no longer affects the response — move it into the method or a PreProcessor (item 22).
+13. GET methods with `int`, `bool` or `float` fields keep working — query-string values are read as the declared type (item 23). Nothing to do.
 
 ## Rolling back
 

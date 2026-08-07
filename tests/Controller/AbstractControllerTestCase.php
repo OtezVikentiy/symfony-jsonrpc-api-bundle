@@ -18,6 +18,7 @@ use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\HttpFoundation\HeaderBag;
 use Symfony\Component\HttpFoundation\InputBag;
+use Symfony\Component\HttpFoundation\ServerBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Serializer\DataCollector\SerializerDataCollector;
 use Symfony\Component\Serializer\Debug\TraceableNormalizer;
@@ -129,14 +130,26 @@ abstract class AbstractControllerTestCase extends TestCase
 
     private function prepareRequest(array|string $data, ?MethodSpec $methodSpec = null, int $version = 1): void
     {
+        $methodType = !is_null($methodSpec) ? $methodSpec->getRequestType() : 'POST';
+
+        // A GET method takes its payload from the query string, not from a body, so a harness that
+        // always fills the body can only ever exercise half the transports the bundle supports -
+        // and a GET spec used to reach RequestRawDataHandler with an empty query bag and fail with
+        // -32603 for reasons that had nothing to do with the test.
+        $isGet = $methodType === Request::METHOD_GET;
+        $queryData = is_array($data) ? $data : (json_decode($data, true) ?? []);
+
         $request = $this->createMock(Request::class);
         $request->request = new InputBag([]);
         $request->headers = new HeaderBag(['Content-Type' => 'application/json']);
-        $request->query = new InputBag([]);
+        $request->query = new InputBag($isGet && is_array($queryData) ? $queryData : []);
+        $request->server = new ServerBag(
+            $isGet ? ['QUERY_STRING' => http_build_query(is_array($queryData) ? $queryData : [])] : []
+        );
         $request
             ->expects($this->any())
             ->method('getMethod')
-            ->willReturn(!is_null($methodSpec) ? $methodSpec->getRequestType() : 'POST');
+            ->willReturn($methodType);
         $request
             ->expects($this->any())
             ->method('getPathInfo')

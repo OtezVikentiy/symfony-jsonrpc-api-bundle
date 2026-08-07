@@ -39,6 +39,7 @@ final class RequestHandler
     private const CONSTRUCTOR_FAILURE_MESSAGE = 'One or more parameters have an unexpected type.';
     private const CONSTRUCTOR_ARGUMENT_POSITION_PATTERN = '/Argument #(\d+)/';
     private const POSITIONAL_PARAMS_FIELD = 'params';
+    private const UNTYPED_TRANSPORT_METHOD = 'GET';
     private const FINALLY_FAILURE_MESSAGE = 'JSON-RPC post-response stage failed';
     private const ACCESS_DENIED_MESSAGE = 'Access denied.';
     private const PLAIN_RESPONSE_IN_BATCH_MESSAGE = 'Internal error.';
@@ -271,9 +272,13 @@ final class RequestHandler
 
     private function instantiateRequest(MethodSpec $methodSpec, BaseRequest $baseRequest, string $requestClass): object
     {
+        $untypedTransport = $this->transportIsUntyped($methodSpec);
         $constructorParams = [];
         foreach ($methodSpec->getRequiredParameters() as $requiredParameter) {
-            $constructorParams[] = $baseRequest->getParams()[$requiredParameter['name']] ?? ($requiredParameter['defaultValue'] ?? null);
+            $value = $baseRequest->getParams()[$requiredParameter['name']] ?? ($requiredParameter['defaultValue'] ?? null);
+            $constructorParams[] = $untypedTransport
+                ? $this->coerceFromUntypedTransport($value, $requiredParameter['type'])
+                : $value;
         }
 
         try {
@@ -325,6 +330,44 @@ final class RequestHandler
         return $name === self::POSITIONAL_PARAMS_FIELD && array_is_list($baseRequest->getParams());
     }
 
+    /**
+     * Whether the payload arrived over a transport that cannot express types.
+     *
+     * A GET request has no body: its payload comes from the query string, and PHP parses a query
+     * string into strings, every value of it. Refusing `?id=5` for an `int $id` would punish the
+     * caller for a limitation of the transport rather than for a mistake - there is nothing in a
+     * query string a caller could have typed correctly. A JSON body is the opposite case: it carries
+     * real types, so `"42"` where `42` belongs is a genuine client error and stays an error.
+     */
+    private function transportIsUntyped(MethodSpec $methodSpec): bool
+    {
+        return $methodSpec->getRequestType() === self::UNTYPED_TRANSPORT_METHOD;
+    }
+
+    /**
+     * Reads a string the way the declared type would have been written in JSON.
+     *
+     * Deliberately narrow. Only an unambiguous representation is converted, and anything else is
+     * handed on untouched so the validator refuses it exactly as before - `?id=abc` for an int must
+     * still be -32602, because that one really is the caller's mistake. Booleans use PHP's own
+     * filter, so the spellings accepted are the familiar 1/true/on/yes and 0/false/off/no.
+     */
+    private function coerceFromUntypedTransport(mixed $value, string $type): mixed
+    {
+        if (!is_string($value)) {
+            return $value;
+        }
+
+        $coerced = match ($type) {
+            'int', 'integer' => filter_var($value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE),
+            'float', 'double' => filter_var($value, FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE),
+            'bool', 'boolean' => filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE),
+            default => null,
+        };
+
+        return $coerced ?? $value;
+    }
+
     private function hydrateRequest(object $requestInstance, MethodSpec $methodSpec, BaseRequest $baseRequest): object
     {
         $tracksProvided = $requestInstance instanceof PartialRequestInterface;
@@ -351,6 +394,10 @@ final class RequestHandler
                 $value = $baseRequest->getParams();
             } else {
                 continue;
+            }
+
+            if ($this->transportIsUntyped($methodSpec)) {
+                $value = $this->coerceFromUntypedTransport($value, $allParameter['type']);
             }
 
             $requestAdder = $methodSpec->getRequestAdders()[$name] ?? null;
@@ -421,7 +468,7 @@ final class RequestHandler
                         }
 
                         try {
-                            $elemVal = $this->prepareParametersFromClass($allParameter['type'], $elem, $allowExtraFields);
+                            $elemVal = $this->prepareParametersFromClass($allParameter['type'], $elem, $allowExtraFields, 0, $this->transportIsUntyped($methodSpec));
                         } catch (InvalidArgumentException|TypeError) {
                             $invalidTypeErrors[] = sprintf(
                                 self::INVALID_TYPE_MESSAGE_FORMAT,
@@ -470,7 +517,7 @@ final class RequestHandler
                 if (class_exists($allParameter['type'])) {
                     if ($value !== null) {
                         try {
-                            $value = $this->prepareParametersFromClass($allParameter['type'], $value, $allowExtraFields);
+                            $value = $this->prepareParametersFromClass($allParameter['type'], $value, $allowExtraFields, 0, $this->transportIsUntyped($methodSpec));
                         } catch (InvalidArgumentException|TypeError) {
                             $invalidTypeErrors[] = sprintf(
                                 self::INVALID_TYPE_MESSAGE_FORMAT,
@@ -517,7 +564,7 @@ final class RequestHandler
     /**
      * @param class-string $class
      */
-    private function prepareParametersFromClass(string $class, array|string $values, bool $allowExtraFields = false, int $depth = 0): object
+    private function prepareParametersFromClass(string $class, array|string $values, bool $allowExtraFields = false, int $depth = 0, bool $untypedTransport = false): object
     {
         if ($depth > $this->maxDtoDepth) {
             throw new JRPCException(
@@ -559,7 +606,9 @@ final class RequestHandler
             $setterParamType = $setter->getParameters()[0]->getType();
             $setterArgumentType = $setterParamType instanceof ReflectionNamedType ? $setterParamType->getName() : 'mixed';
             if ($setterParamType !== null && class_exists($setterArgumentType)) {
-                $value = $this->prepareParametersFromClass($setterArgumentType, $value, $allowExtraFields, $depth + 1);
+                $value = $this->prepareParametersFromClass($setterArgumentType, $value, $allowExtraFields, $depth + 1, $untypedTransport);
+            } elseif ($untypedTransport) {
+                $value = $this->coerceFromUntypedTransport($value, $setterArgumentType);
             }
 
             try {
@@ -634,6 +683,17 @@ final class RequestHandler
     private function processValidatorsForRequestInstance(MethodSpec $methodSpec, BaseRequest $baseRequest, mixed $requestInstance): void
     {
         $requestData = $this->mapParamsOntoValidatedFields($methodSpec, $baseRequest);
+
+        // The validator inspects the payload, not the hydrated object, so it has to see the same
+        // values hydration will. Without this a coerced field passed into the DTO correctly and was
+        // then rejected by the validator that was still looking at the original string.
+        if ($this->transportIsUntyped($methodSpec)) {
+            foreach ($methodSpec->getValidators() as $field => $validatorItem) {
+                if (array_key_exists($field, $requestData)) {
+                    $requestData[$field] = $this->coerceFromUntypedTransport($requestData[$field], $validatorItem['type']);
+                }
+            }
+        }
 
         foreach ($methodSpec->getValidators() as $field => $validatorItem) {
             if (!class_exists($validatorItem['type'], false)) {
