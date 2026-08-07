@@ -8,7 +8,7 @@
 
 ## TL;DR
 
-Unlike 4.0, there is **no single YAML switch that restores the old behaviour**. Most of what changed — getter-only serialisation, exact DTO name binding, batch detection by container shape, id/notification semantics, `-32000` instead of HTTP 403, the mandatory `Content-Type` — is protocol and data-handling behaviour, not a tuning knob. The one exception used to be a config key: `cors_strict` is **removed without a replacement**, and the legacy comma-joined CORS mode no longer exists at any setting.
+Unlike 4.0, there is **no single YAML switch that restores the old behaviour**. Most of what changed — serialising only what a class makes public, exact DTO name binding, batch detection by container shape, id/notification semantics, `-32000` instead of HTTP 403, the mandatory `Content-Type` — is protocol and data-handling behaviour, not a tuning knob. The one exception used to be a config key: `cors_strict` is **removed without a replacement**, and the legacy comma-joined CORS mode no longer exists at any setting.
 
 ```bash
 composer require otezvikentiy/json-rpc-api:^5.0
@@ -44,18 +44,20 @@ Update the dependency, run your tests, read the output, then work through the li
 **What to do:**
 - Send values of the correct JSON type: numbers unquoted, booleans as `true` / `false`.
 
-### 3. Responses are serialised through public getters only
+### 3. Responses serialise what the class makes public
 
-**4.x:** response serialisation read properties straight off the object with `ReflectionProperty::getValue()`.
-**5.0:** a value reaches the JSON only if a public getter exists for it (`getFoo()`, `isFoo()`, `foo()`). A property without one is not serialised, even if the property itself is public.
+**4.x:** response serialisation read properties straight off the object with `ReflectionProperty::getValue()` - private ones included.
+**5.0:** a value reaches the JSON when the class exposes it: through a public getter (`getFoo()`, `isFoo()`, `foo()`) or by being a public property. The line is visibility, not ceremony.
+
+A private or protected property with no public getter never reaches the payload, and that was the defect: a DTO holding a `passwordHash` or an internal token handed it to the client, because Reflection reads a private property as happily as a public one. A private getter does not qualify either - nothing outside the class can call it.
 
 **What breaks:**
-- Response classes with public properties and no getters — those fields disappear from the payload.
-- Response classes inheriting fields from a parent without a getter of their own, if you relied on Reflection reading the parent's private property directly. Unlikely, but possible: it used to work by accident rather than by contract.
+- Response classes with **private** fields and no public getter - those fields disappear. If a field belongs in the response, give it a getter or make the property public.
+- A getter named after something other than its property (`private array $items` with `getItemsList()`) does not satisfy the exact-name rule; rename it to `getItems()`.
 
 **What to do:**
-- Add a getter for every property that belongs in the response.
-- Review your response DTOs for "accidentally visible" private fields. This direction is the point of the change: a field the developer never meant to expose no longer leaves the server. If a field was **deliberately** exposed without an explicit getter, add one.
+- Go through your response DTOs and decide, for each private field without a getter, whether it should reach the client. The ones that should not are the reason for this change.
+- Public properties, promoted constructor parameters among them, need no attention: they serialise as before.
 
 ### 4. A cyclic object graph in a response is `-32603`, not a dead worker
 
@@ -163,7 +165,9 @@ A new key, `cors_allowed_headers` (default `['Content-Type']`), lists the header
 ### 16. Dependency bounds in the manifest
 
 **4.x:** `composer.json` declared dependencies with no upper bound (`>=X`), including `php: ">=8.2"`.
-**5.0:** `symfony/*: ^6.4 || ^7.0` and `php: 8.2.* || 8.3.* || 8.4.*`. `doctrine/annotations` is dropped from require. Every Symfony component the source actually imports, along with `psr/log`, is now declared directly instead of arriving transitively.
+**5.0:** `symfony/*: ^6.4 || ^7.0 || ^8.0` and `php: 8.2.* || 8.3.* || 8.4.* || 8.5.*`. `doctrine/annotations` is dropped from require. Every Symfony component the source actually imports, along with `psr/log`, is now declared directly instead of arriving transitively.
+
+The upper bound states what CI verifies rather than what happens to install: the matrix runs ten combinations of PHP 8.2/8.3/8.4/8.5 against Symfony 6.4/7.x/8.x, minus Symfony 8 below PHP 8.4 - a combination that cannot exist, since Symfony 8 requires PHP >= 8.4.1.
 
 **What breaks:** `composer require` can no longer quietly pull in an untested Symfony 8 or PHP 9. If you are already on one of those, upgrading to 5.0 means aligning your infrastructure versions first.
 **What to do:** usually nothing — the upper bounds only state what the bundle is actually tested against. If you relied on `doctrine/annotations` arriving transitively through this bundle, declare it in your own project.
@@ -254,15 +258,15 @@ The distinction is whether the caller had any way to express the type. JSON has 
 - The error shape `{jsonrpc, error: {code, message}, id}` is unchanged.
 - Extension points — `ApiMethodInterface`, `PreProcessorInterface`, `PostProcessorInterface`, `PlainResponseInterface`, `PartialRequestInterface`, `JsonRpcRequest`, `BaseResponse`, `JRPCException` and the logging interfaces — did not get the `@internal` marking and remain part of the public contract.
 
-> **A caveat on that last point.** "Remains public contract" is a statement about the marking, not about behaviour being unchanged. Two of them did change: `BaseResponse` serialises through public getters only (item 3), and `JsonRpcRequest::toArray()` now does the same and can throw `JRPCException` on a cyclic graph — see the BC-breaking section of [CHANGELOG.md](../CHANGELOG.md) and [json_rpc_request.md](./json_rpc_request.md). The others changed in neither signature nor behaviour.
+> **A caveat on that last point.** "Remains public contract" is a statement about the marking, not about behaviour being unchanged. Two of them did change: `BaseResponse` serialises what the class makes public (item 3), and `JsonRpcRequest::toArray()` now does the same and can throw `JRPCException` on a cyclic graph — see the BC-breaking section of [CHANGELOG.md](../CHANGELOG.md) and [json_rpc_request.md](./json_rpc_request.md). The others changed in neither signature nor behaviour.
 
 ## Upgrade checklist
 
 1. `composer require otezvikentiy/json-rpc-api:^5.0`.
 2. Remove `cors_strict` from your config if it is there, or the container will not compile.
-3. Run your tests. Most failures will be about strict typing, getter-only serialisation, or changed OpenAPI schema names.
+3. Run your tests. Most failures will be about strict typing, private fields no longer serialised, or changed OpenAPI schema names.
 4. Go through your clients: is `Content-Type: application/json` set on every request with a body, and are any parameters being sent as stringified numbers?
-5. Check response DTOs for properties without getters that used to be serialised silently through Reflection.
+5. Check response DTOs for **private** properties with no public getter - those stop reaching the client (item 3). Public properties need no attention.
 6. Regenerate Swagger and any OpenAPI client code — the schema names changed.
 7. If you monitor role denials by HTTP status, switch to `error.code === -32000`.
 8. Review DTOs with similar property names (`id` / `userId`) and irregular collection plurals (`children`, `people`) — these could previously have masked a bug.

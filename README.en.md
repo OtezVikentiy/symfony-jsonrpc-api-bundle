@@ -2,8 +2,8 @@
 
 [Русская версия](./README.md)
 
-[![PHP Version](https://img.shields.io/badge/php-8.2%20--%208.4-8892BF.svg)](https://php.net/)
-[![Symfony Version](https://img.shields.io/badge/symfony-%5E6.4%20%7C%7C%20%5E7.0-000000.svg)](https://symfony.com/)
+[![PHP Version](https://img.shields.io/badge/php-8.2%20--%208.5-8892BF.svg)](https://php.net/)
+[![Symfony Version](https://img.shields.io/badge/symfony-%5E6.4%20%7C%7C%20%5E7.0%20%7C%7C%20%5E8.0-000000.svg)](https://symfony.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version](https://img.shields.io/badge/version-5.0-blue.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
 [![Coverage](https://img.shields.io/badge/coverage-91%25-brightgreen.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle)
@@ -31,8 +31,8 @@ GitHub: https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle
 
 ## Requirements
 
-- PHP 8.2 – 8.4
-- Symfony ^6.4 || ^7.0
+- PHP 8.2 – 8.5
+- Symfony ^6.4 || ^7.0 || ^8.0
 
 ---
 

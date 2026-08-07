@@ -19,26 +19,34 @@ env:
   PHP_EXTENSIONS: intl, mbstring
 
 jobs:
-  # Support matrix: every PHP version we claim to support against both
-  # Symfony branches we claim to support. composer.json declares
-  # "^6.4 || ^7.0" for each symfony/* package, which is correct for
-  # publishing but leaves composer free to resolve either branch for
+  # Support matrix: every PHP version we claim to support against every
+  # Symfony branch we claim to support. composer.json declares
+  # "^6.4 || ^7.0 || ^8.0" for each symfony/* package, which is correct
+  # for publishing but leaves composer free to resolve any branch for
   # every cell - so a naive `composer update` here would silently run
-  # the same Symfony version six times over and call it a matrix. Each
-  # cell pins the symfony/* requirements to its own branch in its own
-  # ephemeral checkout (nothing is committed) before installing, the
-  # same technique the Symfony 8 canary job below uses. The list of
-  # packages to pin is derived from composer.json rather than written
-  # out, because a written-out one had already fallen five packages
-  # behind the manifest and left their 6.4 branch untested.
+  # the same Symfony version a dozen times over and call it a matrix.
+  # Each cell pins the symfony/* requirements to its own branch in its
+  # own ephemeral checkout (nothing is committed) before installing. The
+  # list of packages to pin is derived from composer.json rather than
+  # written out, because a written-out one had already fallen five
+  # packages behind the manifest and left their 6.4 branch untested.
+  #
+  # Symfony 8 requires PHP >= 8.4.1, so its cells on 8.2 and 8.3 are not
+  # a gap in coverage - they are combinations that cannot exist, and
+  # leaving them in would fail the build for the wrong reason.
   tests:
     name: 'PHP ${{ matrix.php }} / Symfony ${{ matrix.symfony }}'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.2', '8.3', '8.4']
-        symfony: ['^6.4', '^7.0']
+        php: ['8.2', '8.3', '8.4', '8.5']
+        symfony: ['^6.4', '^7.0', '^8.0']
+        exclude:
+          - php: '8.2'
+            symfony: '^8.0'
+          - php: '8.3'
+            symfony: '^8.0'
 
     steps:
       - name: Checkout
@@ -230,14 +238,13 @@ jobs:
       - name: Audit dependencies for known advisories
         run: composer audit
 
-  # Non-blocking canary: previews Symfony 8 compatibility before it's a
-  # supported target. composer.json declares "^6.4 || ^7.0" for each
-  # symfony/* package (no separate conflict block), so this job raises
-  # those constraints to ^8.0 in its own ephemeral checkout only -
-  # nothing is committed - to see what would break, using the same
-  # inline-patch technique as the tests job above.
-  symfony8-canary:
-    name: 'Canary: Symfony 8 (non-blocking)'
+  # Symfony 9 canary: the same technique the matrix uses, pointed at a
+  # branch that is not a supported target yet. It exists to see a breaking
+  # change coming rather than to gate anything, so it does not fail the
+  # build. Symfony 8 used to sit here; it is a matrix cell now, which is
+  # what this job is for - promoting a branch once it actually passes.
+  symfony9-canary:
+    name: 'Canary: Symfony 9 (non-blocking)'
     runs-on: ubuntu-latest
     continue-on-error: true
 
@@ -248,27 +255,22 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: '8.5'
           extensions: ${{ env.PHP_EXTENSIONS }}
           coverage: none
           tools: composer:v2
 
-      - name: Point composer.json at Symfony 8
+      - name: Point composer.json at Symfony 9
         run: |
           php -r '
           $path = "composer.json";
           $json = json_decode(file_get_contents($path), true);
-          // Derived from the manifest, never listed by hand: a hardcoded list silently stops
-          // covering a package the moment one is added to require, and that is exactly what
-          // happened - config, dependency-injection, http-foundation, http-kernel and routing
-          // were absent, so a "6.4" cell resolved them to 7.4 and the 6.4 branch of those five
-          // was never exercised by any job.
           $symfonyPackages = array_values(array_filter(
               array_keys($json["require"]),
               static fn (string $package): bool => str_starts_with($package, "symfony/")
           ));
           foreach ($symfonyPackages as $package) {
-              $json["require"][$package] = "^8.0";
+              $json["require"][$package] = "^9.0";
           }
           file_put_contents($path, json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
           '
