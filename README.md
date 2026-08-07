@@ -552,6 +552,7 @@ class DeleteUserMethod implements ApiMethodInterface
 | `roles` | array | нет | `[]` | Требуемые роли для доступа |
 | `ignoreInSwagger` | bool | нет | `false` | Исключить метод из Swagger-документации |
 | `group` | ?string | нет | `null` | Группа для пути в Swagger (например, `'products'` → `/products/get_product`) |
+| `allowExtraFields` | bool | нет | `false` | Разрешить в `params` поля, не объявленные в Request DTO. Переопределяет глобальный `allow_extra_fields` для этого метода и действует на любой глубине вложенности |
 
 ---
 

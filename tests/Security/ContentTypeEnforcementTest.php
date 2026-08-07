@@ -6,6 +6,7 @@ namespace OV\JsonRPCAPIBundle\Tests\Security;
 
 use OV\JsonRPCAPIBundle\Core\JRPCException;
 use OV\JsonRPCAPIBundle\Core\Services\RequestRawDataHandler;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -34,24 +35,40 @@ final class ContentTypeEnforcementTest extends TestCase
         $this->assertSame('m', $data['method']);
     }
 
-    /**
-     * trim()'s default character list includes NUL, so a media type padded with one used to survive
-     * the comparison. No HTTP client emits such a header, but a hand-written or proxied request can,
-     * and nothing about a media type makes a stray control byte worth forgiving.
-     */
-    public function testJsonContentTypePaddedWithControlBytesIsRejected(): void
-    {
-        $this->expectException(JRPCException::class);
-        $this->expectExceptionCode(JRPCException::INVALID_REQUEST);
-
-        (new RequestRawDataHandler())->prepareData($this->request("application/json\0"));
-    }
-
     public function testJsonContentTypePaddedWithTabsIsStillAccepted(): void
     {
         $data = (new RequestRawDataHandler())->prepareData($this->request("\tapplication/json\t"));
 
         $this->assertSame('m', $data['method']);
+    }
+
+    /**
+     * Spaces and tabs are what RFC 7230 allows around a field value, and they are all that is
+     * stripped. A trailing CR or LF therefore makes the header malformed rather than merely padded -
+     * a stricter reading than trim()'s default, and a deliberate one: line terminators cannot reach
+     * a Content-Type through any conforming server, since obs-fold is deprecated in HTTP/1.1 and
+     * absent from HTTP/2, so anything carrying them was assembled by hand.
+     *
+     * @param string $contentType a media type with a byte that is not RFC 7230 optional whitespace
+     */
+    #[DataProvider('mediaTypesWithNonWhitespacePadding')]
+    public function testMediaTypePaddedWithSomethingOtherThanSpaceOrTabIsRejected(string $contentType): void
+    {
+        $this->expectException(JRPCException::class);
+        $this->expectExceptionCode(JRPCException::INVALID_REQUEST);
+
+        (new RequestRawDataHandler())->prepareData($this->request($contentType));
+    }
+
+    public static function mediaTypesWithNonWhitespacePadding(): array
+    {
+        return [
+            'NUL byte' => ["application/json\0"],
+            'carriage return and line feed' => ["application/json\r\n"],
+            'carriage return' => ["application/json\r"],
+            'line feed' => ["application/json\n"],
+            'vertical tab' => ["application/json\x0B"],
+        ];
     }
 
     public function testFormEncodedBodyIsRejected(): void

@@ -313,6 +313,18 @@ final class RequestHandler
         return sprintf(self::INVALID_TYPE_MESSAGE_FORMAT, $parameter['name'], $parameter['type']);
     }
 
+    /**
+     * Whether this field is the by-position pseudo-field and the caller actually sent by-position.
+     *
+     * Same test the validator side uses: section 4.2 says by-position means an Array, which
+     * json_decode gives as a list. An empty payload is a list too, and hydrating `params` from it
+     * yields the empty array the default would have produced anyway.
+     */
+    private function isPositionalPayloadFor(string $name, BaseRequest $baseRequest): bool
+    {
+        return $name === self::POSITIONAL_PARAMS_FIELD && array_is_list($baseRequest->getParams());
+    }
+
     private function hydrateRequest(object $requestInstance, MethodSpec $methodSpec, BaseRequest $baseRequest): object
     {
         $tracksProvided = $requestInstance instanceof PartialRequestInterface;
@@ -325,6 +337,13 @@ final class RequestHandler
 
             if (array_key_exists($name, $baseRequest->getParams())) {
                 $value = $baseRequest->getParams()[$name];
+                $wasProvided = true;
+            } elseif ($this->isPositionalPayloadFor($name, $baseRequest)) {
+                // Ahead of the default, because a caller who sent by-position parameters sent a
+                // value - and a DTO written the natural way, `private array $params = []`, carries
+                // a default that used to win. Every positional argument was then dropped for the
+                // empty array, silently: no error, no log, just a method called with nothing.
+                $value = $baseRequest->getParams();
                 $wasProvided = true;
             } elseif (array_key_exists('defaultValue', $allParameter)) {
                 $value = $allParameter['defaultValue'];

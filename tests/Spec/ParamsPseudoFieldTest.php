@@ -8,6 +8,8 @@ use OV\JsonRPCAPIBundle\Core\JRPCException;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
+use OV\JsonRPCAPIBundle\RPC\V1\DefaultedParams\DefaultedParamsRequest;
+use OV\JsonRPCAPIBundle\RPC\V1\DefaultedParamsMethod;
 use OV\JsonRPCAPIBundle\RPC\V1\ObjectCollection\Bag;
 use OV\JsonRPCAPIBundle\RPC\V1\ObjectCollection\Item;
 use OV\JsonRPCAPIBundle\RPC\V1\ObjectCollection\ObjectCollectionRequest;
@@ -60,6 +62,28 @@ final class ParamsPseudoFieldTest extends AbstractControllerTestCase
     }
 
     /**
+     * A default on the pseudo-field used to beat the payload. `private array $params = []` is how
+     * anyone would write the property - it makes the DTO usable before hydration - and CompilerPass
+     * records that default, which hydration then preferred over the by-position payload. Every
+     * argument was dropped for the empty array with no error and no log: the method simply ran with
+     * nothing. A caller sending [1,2,4] must get [1,2,4].
+     */
+    public function testPositionalParametersSurviveADefaultOnThePseudoField(): void
+    {
+        $payload = $this->call([1, 2, 4], $this->defaultedParamsSpec());
+
+        self::assertSame(7, $payload['result']['sum'] ?? null, json_encode($payload));
+        self::assertSame(3, $payload['result']['count']);
+    }
+
+    public function testAbsentParametersStillFallBackToTheDefault(): void
+    {
+        $payload = $this->call([], $this->defaultedParamsSpec());
+
+        self::assertSame(0, $payload['result']['count'] ?? null, json_encode($payload));
+    }
+
+    /**
      * An adder appends, so an empty list leaves the property unset and the empty-collection branch
      * calls the setter to say "none". When the collection lives in an object - a Doctrine
      * ArrayCollection, or any custom type - that setter refuses the empty array, and the branch this
@@ -106,8 +130,7 @@ final class ParamsPseudoFieldTest extends AbstractControllerTestCase
             methodName: 'optionalParams',
             requestMetadata: new RequestMetadata(
                 request: OptionalParamsRequest::class,
-                // defaultValue mirrors what CompilerPass emits for a property that has one -
-                // hydration prefers it over the by-position pseudo-field branch
+                // defaultValue mirrors what CompilerPass emits for a property that has one
                 allParameters: [
                     ['name' => 'params', 'type' => 'array', 'defaultValue' => []],
                     ['name' => 'other', 'type' => 'string'],
@@ -121,6 +144,25 @@ final class ParamsPseudoFieldTest extends AbstractControllerTestCase
                     'params' => ['allowsNull' => true, 'type' => 'array'],
                     'other' => ['allowsNull' => false, 'type' => 'string'],
                 ],
+            ),
+            swaggerMetadata: new SwaggerMetadata(summary: '', description: '', ignoreInSwagger: true),
+        );
+    }
+
+    private function defaultedParamsSpec(): MethodSpec
+    {
+        return new MethodSpec(
+            methodClass: DefaultedParamsMethod::class,
+            requestType: 'POST',
+            methodName: 'defaultedParams',
+            requestMetadata: new RequestMetadata(
+                request: DefaultedParamsRequest::class,
+                allParameters: [['name' => 'params', 'type' => 'array', 'defaultValue' => []]],
+                requiredParameters: [],
+                requestGetters: ['params' => 'getParams'],
+                requestSetters: ['params' => 'setParams'],
+                requestAdders: [],
+                validators: ['params' => ['allowsNull' => true, 'type' => 'array']],
             ),
             swaggerMetadata: new SwaggerMetadata(summary: '', description: '', ignoreInSwagger: true),
         );

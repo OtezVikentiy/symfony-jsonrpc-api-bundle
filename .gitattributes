@@ -1,7 +1,15 @@
+# What a consumer never needs at runtime stays out of the installed package.
+#
+# docs/ is deliberately NOT here: the shipped README, CHANGELOG and SECURITY files
+# carry sixty-five links into it, and excluding it left every one of them dead inside
+# vendor/. Twenty-four markdown files are a cheap price for documentation that works
+# where the code is.
 /tests export-ignore
-/docs export-ignore
 /.github export-ignore
 /phpunit.xml.dist export-ignore
+/phpstan.neon export-ignore
+/.php-cs-fixer.dist.php export-ignore
 /composer.lock export-ignore
 /.gitignore export-ignore
+/.gitattributes export-ignore
 /CLAUDE.md export-ignore

@@ -16,6 +16,7 @@ use OV\JsonRPCAPIBundle\RPC\V1\SubtractMethod;
 use OV\JsonRPCAPIBundle\RPC\V1\SumMethod;
 use OV\JsonRPCAPIBundle\RPC\V1\UpdateMethod;
 use OV\JsonRPCAPIBundle\Tests\Controller\AbstractControllerTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Asserts the letter of https://www.jsonrpc.org/specification.
@@ -135,6 +136,38 @@ final class JsonRpcSpecConformanceTest extends AbstractControllerTestCase
         $this->assertIsArray($decoded);
         $this->assertArrayHasKey('result', $decoded, 'id:null must still yield a Response object with a result member');
         $this->assertNull($decoded['id']);
+    }
+
+    /**
+     * Section 5 requires a null id "if there was an error in detecting the id in the Request Object
+     * (e.g. Parse error/Invalid Request)". The two halves of that sentence can be read against each
+     * other: the clause is about failing to *detect* the id, while the parenthetical names Invalid
+     * Request as an example. Here the envelope is invalid but the id itself is a perfectly good
+     * scalar, sitting exactly where it belongs - nothing failed to detect it.
+     *
+     * The bundle echoes it, and this test exists to say that is a decision rather than an accident:
+     * a client that pipelines requests can match the error to the call that caused it, which is the
+     * whole reason an id travels with a request. When the id genuinely cannot be established -
+     * unparseable JSON, or an id of a type section 4 does not allow - it comes back null, and the
+     * tests below cover that side.
+     */
+    #[DataProvider('invalidEnvelopesCarryingAUsableId')]
+    public function testInvalidEnvelopeStillEchoesAnIdThatCouldBeDetected(string $payload): void
+    {
+        $decoded = json_decode($this->call($payload), true);
+
+        $this->assertSame(-32600, $decoded['error']['code'] ?? null);
+        $this->assertSame(7, $decoded['id'], 'the id was detectable, so it identifies the failed call');
+    }
+
+    public static function invalidEnvelopesCarryingAUsableId(): array
+    {
+        return [
+            'jsonrpc missing' => ['{"method":"update","params":[1],"id":7}'],
+            'jsonrpc is 1.0' => ['{"jsonrpc":"1.0","method":"update","params":[1],"id":7}'],
+            'method is not a string' => ['{"jsonrpc":"2.0","method":1,"params":[1],"id":7}'],
+            'params is null' => ['{"jsonrpc":"2.0","method":"update","params":null,"id":7}'],
+        ];
     }
 
     // ---- §4 id MUST be String, Number or Null ----
@@ -365,7 +398,7 @@ final class JsonRpcSpecConformanceTest extends AbstractControllerTestCase
             $this->assertSame('2.0', $decoded['jsonrpc']);
             $this->assertTrue(
                 array_key_exists('result', $decoded) xor array_key_exists('error', $decoded),
-                "exactly one of result/error required, got: " . json_encode(array_keys($decoded))
+                'exactly one of result/error required, got: ' . json_encode(array_keys($decoded))
             );
         }
     }

@@ -158,7 +158,7 @@ curl -X POST http://localhost/api/v1 \
         "title": "Iphone 15",
         "price": 2000
     },
-    "id": "1"
+    "id": 1
 }
 ```
 

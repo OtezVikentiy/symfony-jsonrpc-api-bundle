@@ -552,6 +552,7 @@ See [docs/testing.md](./docs/testing.md) for guidance on writing tests for your 
 | `roles` | array | no | `[]` | Required roles for access |
 | `ignoreInSwagger` | bool | no | `false` | Exclude method from Swagger documentation |
 | `group` | ?string | no | `null` | Swagger path group (e.g., `'products'` -> `/products/get_product`) |
+| `allowExtraFields` | bool | no | `false` | Accept fields in `params` that the Request DTO does not declare. Overrides the global `allow_extra_fields` for this method and applies at every nesting level. |
 
 ---
 
