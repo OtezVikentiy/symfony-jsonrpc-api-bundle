@@ -1,0 +1,7 @@
+/tests export-ignore
+/docs export-ignore
+/.github export-ignore
+/phpunit.xml.dist export-ignore
+/composer.lock export-ignore
+/.gitignore export-ignore
+/CLAUDE.md export-ignore

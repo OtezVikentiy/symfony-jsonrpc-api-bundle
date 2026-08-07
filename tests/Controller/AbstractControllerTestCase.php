@@ -2,7 +2,6 @@
 
 namespace OV\JsonRPCAPIBundle\Tests\Controller;
 
-use Doctrine\Common\Annotations\AnnotationReader;
 use OV\JsonRPCAPIBundle\Controller\ApiController;
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
@@ -153,7 +152,6 @@ abstract class AbstractControllerTestCase extends TestCase
 
     private function prepareMethodSpecCollection(array $methodSpecs): void
     {
-        $annotationReader = new AnnotationReader();
         $methodSpecCollection = new MethodSpecCollection();
 
         $container = $this->createMock(Container::class);
@@ -161,16 +159,11 @@ abstract class AbstractControllerTestCase extends TestCase
         foreach ($methodSpecs as $methodSpec) {
             $class = $methodSpec->getMethodClass();
             $methodReflectionClass = new \ReflectionClass(new $class());
-            $classAnnotation = $annotationReader->getClassAnnotation($methodReflectionClass, JsonRPCAPI::class);
             $methodName = null;
-            if (!is_null($classAnnotation)) {
-                $methodName = $classAnnotation->getMethodName();
-            } else {
-                $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
-                foreach ($attributes as $attribute) {
-                    if ($attribute->getName() === JsonRPCAPI::class) {
-                        $methodName = $attribute->getArguments()['methodName'];
-                    }
+            $attributes = $methodReflectionClass->getAttributes(JsonRPCAPI::class);
+            foreach ($attributes as $attribute) {
+                if ($attribute->getName() === JsonRPCAPI::class) {
+                    $methodName = $attribute->getArguments()['methodName'];
                 }
             }
 
