@@ -9,6 +9,9 @@ use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
 use Symfony\Component\HttpFoundation\Response;
 use UnexpectedValueException;
 
+/**
+ * @internal
+ */
 final class MultiBatchStrategy implements HandleBatchInterface
 {
     private const NON_JSON_BATCH_ELEMENT_MESSAGE = 'A batch element produced non-JSON content instead of a JSON-RPC response.';

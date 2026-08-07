@@ -25,6 +25,9 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Throwable;
 
+/**
+ * @internal
+ */
 final class ApiController extends AbstractController
 {
     private const HANDLED_JSON_RPC_METHODS = [

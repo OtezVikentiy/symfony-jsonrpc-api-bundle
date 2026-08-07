@@ -7,6 +7,9 @@ namespace OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 use OV\JsonRPCAPIBundle\Core\Response\JsonResponse;
 use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
 
+/**
+ * @internal
+ */
 final class SingleBatchStrategy implements HandleBatchInterface
 {
     public function handleBatch(array $batch, int $version, string $methodType, callable $batchProcessor): OvResponseInterface

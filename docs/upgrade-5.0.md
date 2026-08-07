@@ -169,7 +169,11 @@ composer require otezvikentiy/json-rpc-api:^5.0
 **Что сломается:** сервис вашего приложения с конструктором вида `__construct(private Container $container)` перестанет собираться — `Cannot autowire service ...: argument $container of type Symfony\Component\DependencyInjection\Container`. Достучаться до RPC-метода через боевой контейнер (`$container->get(MyMethod::class)`) больше нельзя — `ServiceNotFoundException: ... has been removed or inlined`.
 **Что делать:** **замены алиасу нет намеренно** — инжектируйте нужные сервисы напрямую вместо контейнера целиком. В тестах доступ к приватным сервисам сохраняется: `KernelTestCase` + `self::getContainer()->get(MyMethod::class)` работает как раньше, потому что тестовый контейнер отдаёт приватные сервисы.
 
-Заодно девятнадцать классов в `src/DependencyInjection/` и `src/Swagger/` помечены `@internal` — они никогда не задумывались точками расширения, и метка нужна, чтобы дорабатывать их внутри 5.x, не дожидаясь следующего мажора. `MethodSpecCollection::getMethodNames()` удалён: он возвращал номера версий API, а не имена методов, и единственным его вызывающим был собственный тест.
+Заодно двадцать девять классов помечены `@internal` — весь `src/DependencyInjection/`, весь `src/Swagger/`, а также конвейер обработки запроса: `ApiController`, `RequestHandler`, `RequestRawDataHandler`, `ResponseService`, `HeadersPreparer`, `ErrorSanitizer`, `BatchStrategyFactory`, обе batch-стратегии и `HandleBatchInterface`. Ни один из них приложение не конструирует само — это делает контейнер; метка нужна, чтобы дорабатывать их внутри 5.x, не дожидаясь следующего мажора. `MethodSpecCollection::getMethodNames()` удалён: он возвращал номера версий API, а не имена методов, и единственным его вызывающим был собственный тест.
+
+Что метку **не** получило и остаётся публичным контрактом: `ApiMethodInterface`, `PreProcessorInterface`, `PostProcessorInterface`, `PlainResponseInterface`, `OvResponseInterface`, `PartialRequestInterface`, `JsonRpcRequest`, `BaseRequest`, `BaseResponse`, `JRPCException`, атрибут `#[JsonRPCAPI]`, логирующие интерфейсы и ключи конфигурации.
+
+Практическое следствие: если ваш тестовый харнесс собирает `RequestHandler`/`ResponseService`/`HeadersPreparer` руками (как показано в [testing.md](./testing.md)), он опирается на внутренности осознанно, и их сигнатуры могут поменяться в минорном релизе 5.x. Интеграционный тест через `KernelTestCase` от этого свободен.
 
 ### 18. Маскирование логов включено по умолчанию
 

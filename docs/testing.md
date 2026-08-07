@@ -53,7 +53,9 @@ PHPUnit исключает `tests/Fixtures` — это обычные класс
 
 ## Паттерн интеграционного теста через `AbstractControllerTestCase`
 
-`tests/Controller/AbstractControllerTestCase.php` собирает минимальный controller-стек (RequestHandler, RequestRawDataHandler, ResponseService, замоканный Security, замоканный ValidatorInterface или реальный, два замоканных `ServiceLocator` — под RPC-методы и под процессоры). В 4.x на этом месте был замоканный `Container`; начиная с 5.0 бандл контейнер не инжектит — см. [upgrade-5.0.md](./upgrade-5.0.md), п. 17. Для теста нужно описать `MethodSpec` руками и передать `executeControllerTest($payload, $methodSpec)`:
+`tests/Controller/AbstractControllerTestCase.php` собирает минимальный controller-стек (RequestHandler, RequestRawDataHandler, ResponseService, замоканный Security, замоканный ValidatorInterface или реальный, два замоканных `ServiceLocator` — под RPC-методы и под процессоры). В 4.x на этом месте был замоканный `Container`; начиная с 5.0 бандл контейнер не инжектит — см. [upgrade-5.0.md](./upgrade-5.0.md), п. 17.
+
+> **Этот харнесс опирается на внутренности осознанно.** С 5.0 `RequestHandler`, `RequestRawDataHandler`, `ResponseService` и `HeadersPreparer` помечены `@internal`: их конструкторы могут поменяться в минорном релизе 5.x. Копируйте харнесс, если вам нужна скорость и полный контроль над стеком, но будьте готовы поправить его при обновлении. Тест через `KernelTestCase` (ниже) от этого свободен — он собирает стек контейнером и переживает такие изменения молча. Для теста нужно описать `MethodSpec` руками и передать `executeControllerTest($payload, $methodSpec)`:
 
 ```php
 namespace App\Tests\RPC;

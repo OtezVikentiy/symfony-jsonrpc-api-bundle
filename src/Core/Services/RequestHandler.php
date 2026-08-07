@@ -30,6 +30,9 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
 use TypeError;
 
+/**
+ * @internal
+ */
 final class RequestHandler
 {
     private const INVALID_TYPE_MESSAGE_FORMAT = '[%s] - This value should be of type %s';

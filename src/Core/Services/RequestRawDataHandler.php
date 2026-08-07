@@ -8,6 +8,9 @@ use JsonException;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
 use Symfony\Component\HttpFoundation\Request;
 
+/**
+ * @internal
+ */
 final class RequestRawDataHandler
 {
     private const CONTENT_TYPE_JSON = 'application/json';

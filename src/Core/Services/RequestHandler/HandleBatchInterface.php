@@ -6,6 +6,9 @@ namespace OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 
 use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
 
+/**
+ * @internal
+ */
 interface HandleBatchInterface
 {
     /**

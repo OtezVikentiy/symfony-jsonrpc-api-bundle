@@ -6,6 +6,9 @@ namespace OV\JsonRPCAPIBundle\Core\Services;
 
 use Symfony\Component\HttpFoundation\RequestStack;
 
+/**
+ * @internal
+ */
 final readonly class HeadersPreparer
 {
     private const HEADER_ALLOW_ORIGIN = 'Access-Control-Allow-Origin';

@@ -12,6 +12,9 @@ use Symfony\Component\HttpFoundation\JsonResponse as SymfonyJsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
+/**
+ * @internal
+ */
 final readonly class ResponseService
 {
     public function __construct(

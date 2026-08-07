@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
 
+/**
+ * @internal
+ */
 final class BatchStrategyFactory
 {
     public static function createBatchStrategy(array $data): HandleBatchInterface
