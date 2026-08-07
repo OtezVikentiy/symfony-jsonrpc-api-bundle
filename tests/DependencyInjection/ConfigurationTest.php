@@ -51,6 +51,29 @@ final class ConfigurationTest extends TestCase
         $this->assertEquals(['https://example.com', 'https://app.example.com'], $config['access_control_allow_origin_list']);
     }
 
+    /**
+     * The wildcard is checked before any named origin, so it wins outright: such a list reads as a
+     * whitelist and behaves as its opposite, and nothing about the running application shows the
+     * difference. Compilation is the only moment this is cheap to notice.
+     */
+    public function testWildcardMixedWithNamedOriginsIsRejected(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+
+        (new Processor())->processConfiguration(new Configuration(), [
+            ['access_control_allow_origin_list' => ['https://app.example.com', '*']],
+        ]);
+    }
+
+    public function testWildcardOnItsOwnIsStillAllowed(): void
+    {
+        $config = (new Processor())->processConfiguration(new Configuration(), [
+            ['access_control_allow_origin_list' => ['*']],
+        ]);
+
+        $this->assertEquals(['*'], $config['access_control_allow_origin_list']);
+    }
+
     public function testCorsAllowedHeadersDefaultsToContentTypeOnly(): void
     {
         $configuration = new Configuration();

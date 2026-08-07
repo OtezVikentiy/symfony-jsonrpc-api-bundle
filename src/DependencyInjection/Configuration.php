@@ -69,6 +69,8 @@ final class Configuration implements ConfigurationInterface
      */
     private const DEFAULT_LOGGING_MAX_BODY_LENGTH = 8192;
 
+    private const ORIGIN_WILDCARD = '*';
+
     /** @noinspection PhpUnused */
     public function getConfigTreeBuilder(): TreeBuilder
     {
@@ -118,6 +120,10 @@ final class Configuration implements ConfigurationInterface
                 ->end()
                 ->arrayNode('access_control_allow_origin_list')
                     ->prototype('scalar')->end()
+                    ->validate()
+                        ->ifTrue(static fn (array $origins): bool => self::mixesWildcardWithNamedOrigins($origins))
+                        ->thenInvalid('ov_json_rpc_api: access_control_allow_origin_list mixes the "*" wildcard with named origins, which silently allows every origin. List the origins you mean, or use "*" on its own.')
+                    ->end()
                 ->end()
                 ->arrayNode('cors_allowed_headers')
                     ->prototype('scalar')->end()
@@ -172,6 +178,20 @@ final class Configuration implements ConfigurationInterface
         ;
 
         return $treeBuilder;
+    }
+
+    /**
+     * A wildcard sitting next to named origins is almost always a leftover, and it wins: the
+     * wildcard is checked first, so `['https://app.example.com', '*']` answers every origin with
+     * `Access-Control-Allow-Origin: *`. The list reads as a whitelist and behaves as its opposite,
+     * and nothing about the running application shows the difference until someone looks. Refusing
+     * to compile is the only moment this is cheap to notice.
+     *
+     * @param array<int, mixed> $origins
+     */
+    private static function mixesWildcardWithNamedOrigins(array $origins): bool
+    {
+        return in_array(self::ORIGIN_WILDCARD, $origins, true) && count($origins) > 1;
     }
 
     /**

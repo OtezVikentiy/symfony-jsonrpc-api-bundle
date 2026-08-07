@@ -55,7 +55,12 @@ final readonly class HeadersPreparer
             ];
         }
 
-        return [];
+        // Vary is emitted on the way out too, not only on a match. Whether this response carries a
+        // CORS header depends on the request's Origin, so a shared cache that does not know to key
+        // on it can hand the header-less version of a response to a caller whose origin is allowed -
+        // or, worse, hand one origin's header to another. A denial has to declare the same
+        // dependency the grant does.
+        return [self::HEADER_VARY => self::HEADER_ORIGIN];
     }
 
     /**

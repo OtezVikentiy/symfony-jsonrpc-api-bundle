@@ -49,7 +49,11 @@ final class HeadersPreparerTest extends TestCase
             $this->stackWithOrigin($origin),
         );
 
-        $this->assertSame([], $preparer->prepareHeaders(), sprintf('%s must not receive a CORS header', $origin));
+        $this->assertArrayNotHasKey(
+            'Access-Control-Allow-Origin',
+            $preparer->prepareHeaders(),
+            sprintf('%s must not receive a CORS header', $origin),
+        );
     }
 
     public static function originsThatOnlyLookAllowed(): array
@@ -77,7 +81,8 @@ final class HeadersPreparerTest extends TestCase
 
         $headers = $preparer->prepareHeaders();
 
-        $this->assertSame([], $headers);
+        $this->assertArrayNotHasKey('Access-Control-Allow-Origin', $headers);
+        $this->assertSame('Origin', $headers['Vary'], 'a denial depends on Origin just as a grant does, so caches must be told');
     }
 
     public function testWildcardOrigin(): void

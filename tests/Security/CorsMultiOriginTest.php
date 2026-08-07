@@ -29,7 +29,7 @@ final class CorsMultiOriginTest extends TestCase
             $this->stack('https://evil.com'),
         );
 
-        $this->assertSame([], $preparer->prepareHeaders());
+        $this->assertArrayNotHasKey('Access-Control-Allow-Origin', $preparer->prepareHeaders());
     }
 
     public function testMissingOriginHeaderEmitsNothing(): void
@@ -39,7 +39,7 @@ final class CorsMultiOriginTest extends TestCase
             $this->stack(null),
         );
 
-        $this->assertSame([], $preparer->prepareHeaders());
+        $this->assertArrayNotHasKey('Access-Control-Allow-Origin', $preparer->prepareHeaders());
     }
 
     public function testWildcardOverridesMatching(): void
