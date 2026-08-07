@@ -238,8 +238,12 @@ jobs:
       - name: Validate composer.json
         run: composer validate --strict
 
+      # --locked, because this job deliberately never installs: it checks the
+      # manifest and the lockfile, not a vendor tree. Without the flag composer
+      # audit refuses outright ("No installed packages found") and the job fails
+      # for want of a directory rather than for anything it found.
       - name: Audit dependencies for known advisories
-        run: composer audit
+        run: composer audit --locked
 
   # Symfony 9 canary: the same technique the matrix uses, pointed at a
   # branch that is not a supported target yet. It exists to see a breaking
