@@ -12,6 +12,7 @@ final class RequestRawDataHandler
 {
     private const CONTENT_TYPE_JSON = 'application/json';
     private const CONTENT_TYPE_SEPARATOR = ';';
+    private const MEDIA_TYPE_PADDING = " \t";
     private const SERVER_QUERY_STRING_KEY = 'QUERY_STRING';
 
     public function __construct(
@@ -116,7 +117,12 @@ final class RequestRawDataHandler
     private function assertJsonContentType(Request $request): void
     {
         $contentType = (string) $request->headers->get('Content-Type');
-        $mimeType = strtolower(trim(explode(self::CONTENT_TYPE_SEPARATOR, $contentType)[0]));
+
+        // Trimmed for whitespace only. trim()'s default character list also includes NUL, so
+        // "application/json\0" - a header no HTTP client produces, but one a hand-written or
+        // proxied request can carry - was accepted as if it were the real thing. Nothing here should
+        // be forgiving about bytes that cannot legitimately appear in a media type.
+        $mimeType = strtolower(trim(explode(self::CONTENT_TYPE_SEPARATOR, $contentType)[0], self::MEDIA_TYPE_PADDING));
 
         if ($mimeType !== self::CONTENT_TYPE_JSON) {
             throw new JRPCException(

@@ -34,6 +34,26 @@ final class ContentTypeEnforcementTest extends TestCase
         $this->assertSame('m', $data['method']);
     }
 
+    /**
+     * trim()'s default character list includes NUL, so a media type padded with one used to survive
+     * the comparison. No HTTP client emits such a header, but a hand-written or proxied request can,
+     * and nothing about a media type makes a stray control byte worth forgiving.
+     */
+    public function testJsonContentTypePaddedWithControlBytesIsRejected(): void
+    {
+        $this->expectException(JRPCException::class);
+        $this->expectExceptionCode(JRPCException::INVALID_REQUEST);
+
+        (new RequestRawDataHandler())->prepareData($this->request("application/json\0"));
+    }
+
+    public function testJsonContentTypePaddedWithTabsIsStillAccepted(): void
+    {
+        $data = (new RequestRawDataHandler())->prepareData($this->request("\tapplication/json\t"));
+
+        $this->assertSame('m', $data['method']);
+    }
+
     public function testFormEncodedBodyIsRejected(): void
     {
         $this->expectException(JRPCException::class);
