@@ -120,7 +120,7 @@ jobs:
       - name: Run test suite
         run: vendor/bin/phpunit
 
-  # Line coverage ratchet. Current coverage is 91.83%; the gate sits a
+  # Line coverage ratchet. Current coverage is 91.76%; the gate sits a
   # few points under that so incidental noise doesn't fail PRs, but any
   # real regression below the floor fails the job.
   coverage:

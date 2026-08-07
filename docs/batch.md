@@ -19,12 +19,14 @@ curl -X POST http://localhost/api/v1 \
 Ответ:
 ```json
 [
-    {"jsonrpc": "2.0", "result": 7, "id": "1"},
-    {"jsonrpc": "2.0", "result": 19, "id": "2"}
+    {"jsonrpc": "2.0", "result": {"result": 7}, "id": "1"},
+    {"jsonrpc": "2.0", "result": {"result": 19}, "id": "2"}
 ]
 ```
 
 Запрос `notify_hello` — notification (без `id`) и в строгом режиме ответа не получает.
+
+> **Почему `result` вложен.** Спецификация не задаёт форму `result` — там лежит то, что вернул метод. Метод возвращает Response-DTO, и бандл сериализует его через публичные геттеры, поэтому в `result` оказывается объект со свойствами этого DTO. В примерах выше у DTO одно свойство, тоже названное `result`, отсюда `{"result": {"result": 7}}`. Если Response-DTO объявляет `success`, `title`, `price` — в `result` будут они; развёрнутый пример есть в [README](../README.md). Скаляр прямо в `result` (`"result": 7`) бандл не отдаёт никогда.
 
 ## Размер batch'а
 
@@ -103,7 +105,7 @@ curl -X POST http://localhost/api/v1 \
 ```json
 [
     {"jsonrpc": "2.0", "error": {"code": -32601, "message": "Method not found"}, "id": 1},
-    {"jsonrpc": "2.0", "result": 3, "id": 2}
+    {"jsonrpc": "2.0", "result": {"result": 3}, "id": 2}
 ]
 ```
 
