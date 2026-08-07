@@ -42,7 +42,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/GetDataResponseResponse'
+                                $ref: '#/components/schemas/get_dataResponse'
     /notify_hello:
         post:
             summary: ''
@@ -59,7 +59,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/NotifyHelloResponseResponse'
+                                $ref: '#/components/schemas/notify_helloResponse'
     /notify_sum:
         post:
             summary: ''
@@ -76,7 +76,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/NotifySumResponseResponse'
+                                $ref: '#/components/schemas/notify_sumResponse'
             tags:
                 - math
     /subtract_2:
@@ -95,7 +95,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/Subtract2ResponseResponse'
+                                $ref: '#/components/schemas/subtract2Response'
             tags:
                 - math
     /subtract:
@@ -114,7 +114,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/SubtractResponseResponse'
+                                $ref: '#/components/schemas/subtractResponse'
             tags:
                 - mathematic
     /sum:
@@ -133,7 +133,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/SumResponseResponse'
+                                $ref: '#/components/schemas/sumResponse'
             tags:
                 - mathematic
     /test:
@@ -152,7 +152,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/TestResponseResponse'
+                                $ref: '#/components/schemas/testResponse'
             tags:
                 - test
     /update:
@@ -171,7 +171,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/UpdateResponseResponse'
+                                $ref: '#/components/schemas/updateResponse'
 components:
     schemas:
         get_dataRequest:
@@ -194,7 +194,7 @@ components:
                 - jsonrpc
                 - method
                 - params
-        GetDataResponseResponse:
+        get_dataResponse:
             type: object
             properties:
                 jsonrpc:
@@ -228,7 +228,7 @@ components:
                 - jsonrpc
                 - method
                 - params
-        NotifyHelloResponseResponse:
+        notify_helloResponse:
             type: object
             properties:
                 jsonrpc:
@@ -259,7 +259,7 @@ components:
                 - jsonrpc
                 - method
                 - params
-        NotifySumResponseResponse:
+        notify_sumResponse:
             type: object
             properties:
                 jsonrpc:
@@ -292,7 +292,7 @@ components:
                 - jsonrpc
                 - method
                 - params
-        Subtract2ResponseResponse:
+        subtract2Response:
             type: object
             properties:
                 jsonrpc:
@@ -326,7 +326,7 @@ components:
                 - jsonrpc
                 - method
                 - params
-        SubtractResponseResponse:
+        subtractResponse:
             type: object
             properties:
                 jsonrpc:
@@ -360,7 +360,7 @@ components:
                 - jsonrpc
                 - method
                 - params
-        SumResponseResponse:
+        sumResponse:
             type: object
             properties:
                 jsonrpc:
@@ -403,7 +403,7 @@ components:
                 - method
                 - params
                 - id
-        TestRequest:
+        OV.JsonRPCAPIBundle.RPC.V1.Test.TestRequest:
             type: object
             properties:
                 id:
@@ -412,14 +412,14 @@ components:
                     type: string
             required:
                 - id
-        Test:
+        OV.JsonRPCAPIBundle.RPC.V1.Test.Test:
             type: object
             properties:
                 name:
                     type: string
             required:
                 - name
-        TestResponseResponse:
+        testResponse:
             type: object
             properties:
                 jsonrpc:
@@ -436,12 +436,12 @@ components:
                     default: ''
                     format: '/[A-Za-z0-9]+/]/'
                 request:
-                    $ref: '#/components/schemas/TestRequest'
+                    $ref: '#/components/schemas/OV.JsonRPCAPIBundle.RPC.V1.Test.TestRequest'
                 tests:
                     type: array
                     items:
                         type: object
-                        $ref: '#/components/schemas/Test'
+                        $ref: '#/components/schemas/OV.JsonRPCAPIBundle.RPC.V1.Test.Test'
                 errors:
                     type: array
                     items:
@@ -476,7 +476,7 @@ components:
                 - jsonrpc
                 - method
                 - params
-        UpdateResponseResponse:
+        updateResponse:
             type: object
             properties:
                 jsonrpc:

@@ -178,8 +178,8 @@ final class SwaggerSchemaBuilder
                 $responseProperties = $responseClassRef->getProperties();
                 $requiredPropertiesOfResponse = $this->getRequiredPropertiesList($responseClassRef);
 
-                $responseSchemaName = $responseClassRef->getShortName();
-                $responseSchema = new Schema(sprintf('%sResponse', $responseSchemaName));
+                $responseSchemaName = sprintf('%sResponse', $name);
+                $responseSchema = new Schema($responseSchemaName);
                 $jsonrpcResp = $this->jsonrpcProperty();
                 $responseSchema->addProperty($jsonrpcResp);
                 $responseSchema->addRequired($jsonrpcResp);
@@ -196,7 +196,7 @@ final class SwaggerSchemaBuilder
 
                 $this->components[] = $responseSchema;
 
-                $response = new Response('200', sprintf('%sResponse', $responseSchemaName));
+                $response = new Response('200', $responseSchemaName);
 
                 $pathName = '/' . $this->camelToSnake($method->getMethodName(), '_');
                 if ($method->getGroup() !== null) {
@@ -321,22 +321,22 @@ final class SwaggerSchemaBuilder
         bool $required,
         bool $schemaItem = false
     ): void {
-        $shortName = (new ReflectionClass($name))->getShortName();
+        $schemaName = $this->schemaNameFromClassName($name);
 
         if (isset($this->processedClasses[$name])) {
             if ($schemaItem) {
                 $schemaProperty
                     ->setType('array')
-                    ->setItems(new SchemaItem(type: 'object', ref: $shortName));
+                    ->setItems(new SchemaItem(type: 'object', ref: $schemaName));
             } else {
-                $schemaProperty->setRef($shortName);
+                $schemaProperty->setRef($schemaName);
             }
             $schema->addPropertyWithRequired($schemaProperty, $required);
             return;
         }
         $this->processedClasses[$name] = true;
 
-        $innerSchema = new Schema($shortName);
+        $innerSchema = new Schema($schemaName);
         $reflection = new ReflectionClass($name);
         $requiredPropertiesOfResponse = $this->getRequiredPropertiesList($reflection);
         foreach ($reflection->getProperties() as $reflectionProperty) {
@@ -350,11 +350,16 @@ final class SwaggerSchemaBuilder
         if ($schemaItem) {
             $schemaProperty
                 ->setType('array')
-                ->setItems(new SchemaItem(type: 'object', ref: $shortName));
+                ->setItems(new SchemaItem(type: 'object', ref: $schemaName));
         } else {
-            $schemaProperty->setRef($shortName);
+            $schemaProperty->setRef($schemaName);
         }
         $schema->addPropertyWithRequired($schemaProperty, $required);
+    }
+
+    private function schemaNameFromClassName(string $className): string
+    {
+        return str_replace('\\', '.', $className);
     }
 
     private function addJsonRpcErrorResponseSchema(): void
