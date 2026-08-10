@@ -132,4 +132,4 @@ discover them yourself.
   names at all — reaches the log as it is. See
   [docs/logging.md](./docs/logging.md).
 
-The full history is in [CHANGELOG.md](./CHANGELOG.md) (in Russian).
+The full history is in [CHANGELOG.md](./CHANGELOG.md).

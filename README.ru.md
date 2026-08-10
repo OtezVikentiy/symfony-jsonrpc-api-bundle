@@ -263,7 +263,7 @@ src/RPC/V1/
 | [Partial updates (JSON Merge Patch)](./docs/partial_updates.md) | `PartialRequestInterface`, `wasProvided()`, RFC 7396 семантика |
 | [Troubleshooting / FAQ](./docs/troubleshooting.md) | Типичные проблемы и их решения |
 | [**Гайд по миграции 4.x → 5.0**](./docs/upgrade-5.0.md) | **Все ломающие изменения 5.0: что сломается и что с этим делать** |
-| [CHANGELOG](./CHANGELOG.md) | История изменений по версиям |
+| [CHANGELOG](./CHANGELOG.ru.md) | История изменений по версиям |
 
 ---
 

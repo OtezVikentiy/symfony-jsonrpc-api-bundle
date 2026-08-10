@@ -75,14 +75,14 @@ specification describes.
   "improving" pull request that undoes a fix.
 - Code and comments in `src/`, `tests/` and `config/` are in English.
   Documentation is bilingual: English is the primary version, Russian carries
-  the `.ru.md` suffix. `CHANGELOG.md` is currently Russian only.
+  the `.ru.md` suffix.
 
 ## Documentation
 
 If a pull request changes observable behaviour — a new config key, a different
 default, a different error format, a BC break — update the corresponding file
-in `docs/` and add an entry to `CHANGELOG.md` following
-[Keep a Changelog](https://keepachangelog.com/en/1.0.0/). A pull request that
+in `docs/` and add an entry to **both** `CHANGELOG.md` and `CHANGELOG.ru.md`,
+following [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). A pull request that
 changes behaviour without updating the documentation will not be accepted:
 documentation that disagrees with the code is worse than no documentation,
 because it misleads silently.

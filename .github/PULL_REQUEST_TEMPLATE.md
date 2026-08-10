@@ -17,5 +17,5 @@ behaviour is harder to review and harder to revert.
 - [ ] Tests pass locally (`composer ci`)
 - [ ] A test covers the change — for a behaviour change, one that fails without it
 - [ ] Documentation in `docs/` updated, or not applicable
-- [ ] `CHANGELOG.md` entry added, or not applicable
+- [ ] `CHANGELOG.md` and `CHANGELOG.ru.md` entries added, or not applicable
 - [ ] This changes observable behaviour (a BC break) — if so, `docs/upgrade-X.0.md` says what breaks and what to do
