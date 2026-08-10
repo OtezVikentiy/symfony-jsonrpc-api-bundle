@@ -69,7 +69,7 @@ final class SwaggerSchemaBuilder
             new Server($testPath, $item['test_path_description'] ?? ''),
         ];
 
-        $authTokenName = $item['auth_token_name'];
+        $authTokenName = $item['auth_token_name'] ?? '';
 
         [$tags, $paths] = $this->generateApis((int) $item['api_version']);
 
@@ -81,8 +81,8 @@ final class SwaggerSchemaBuilder
             tags: $tags,
             paths: $paths,
             components: $this->components,
-            securitySchemeName: 'ApiKeyAuth',
-            securityScheme: [
+            securitySchemeName: $authTokenName === '' ? null : 'ApiKeyAuth',
+            securityScheme: $authTokenName === '' ? null : [
                 'type' => 'apiKey',
                 'in' => 'header',
                 'name' => $authTokenName,

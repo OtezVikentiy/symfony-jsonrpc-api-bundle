@@ -267,12 +267,39 @@ final class SwaggerSchemaBuilderContractTest extends TestCase
         $this->generate([MissingClassMethod::class]);
     }
 
+    public function testAnAbsentAuthTokenNameOmitsTheSecurityBlocks(): void
+    {
+        $document = $this->generate([VisibleMethod::class], authTokenName: null);
+
+        self::assertArrayNotHasKey('security', $document);
+        self::assertArrayNotHasKey('securitySchemes', $document['components'] ?? []);
+    }
+
+    public function testAnEmptyAuthTokenNameOmitsTheSecurityBlocks(): void
+    {
+        $document = $this->generate([VisibleMethod::class], authTokenName: '');
+
+        self::assertArrayNotHasKey('security', $document);
+        self::assertArrayNotHasKey('securitySchemes', $document['components'] ?? []);
+    }
+
+    public function testAConfiguredAuthTokenNamePublishesTheSecurityScheme(): void
+    {
+        $document = $this->generate([VisibleMethod::class]);
+
+        self::assertSame([['ApiKeyAuth' => []]], $document['security']);
+        self::assertSame(
+            ['type' => 'apiKey', 'in' => 'header', 'name' => 'X-AUTH-TOKEN'],
+            $document['components']['securitySchemes']['ApiKeyAuth'],
+        );
+    }
+
     /**
      * @param list<class-string> $methodClasses
      *
      * @return array<string, mixed>
      */
-    private function generate(array $methodClasses, int $apiVersion = 1): array
+    private function generate(array $methodClasses, int $apiVersion = 1, ?string $authTokenName = 'X-AUTH-TOKEN'): array
     {
         $container = new ContainerBuilder();
         foreach ($methodClasses as $class) {
@@ -286,7 +313,7 @@ final class SwaggerSchemaBuilderContractTest extends TestCase
         /** @var MethodSpecCollection $collection */
         $collection = $container->get(MethodSpecCollection::class);
 
-        $yaml = (new SwaggerSchemaBuilder($collection))->build([
+        $item = [
             'api_version' => (string) $apiVersion,
             'base_path' => 'https://api.example',
             'base_path_description' => '',
@@ -294,7 +321,6 @@ final class SwaggerSchemaBuilderContractTest extends TestCase
             'test_path' => 'https://test.example',
             'test_path_description' => '',
             'test_path_variables' => [],
-            'auth_token_name' => 'X-AUTH-TOKEN',
             'info' => [
                 'title' => 't',
                 'description' => 'd',
@@ -303,7 +329,12 @@ final class SwaggerSchemaBuilderContractTest extends TestCase
                 'license' => 'l',
                 'licenseUrl' => 'lu',
             ],
-        ]);
+        ];
+        if ($authTokenName !== null) {
+            $item['auth_token_name'] = $authTokenName;
+        }
+
+        $yaml = (new SwaggerSchemaBuilder($collection))->build($item);
 
         return Yaml::parse($yaml);
     }

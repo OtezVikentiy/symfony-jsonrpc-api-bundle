@@ -45,8 +45,8 @@ The bundle registers a single route, `/api/v{version}`, through which every JSON
 # config/packages/ov_json_rpc_api.yaml
 ov_json_rpc_api:
     access_control_allow_origin_list:
-        - localhost
-        - api.localhost
+        - 'https://app.example.com'
+        - 'https://admin.example.com'
         - '*'
     strict_notifications: true # the default; false returns a response to a Notification too, when the result is non-empty
     swagger:
@@ -76,7 +76,7 @@ ov_json_rpc_api:
                 licenseUrl: 'https://john-doe.test/mit-license'
 ```
 
-Note that `'*'` cannot be combined with specific origins — see [cors.md](./cors.md). The example above lists both for illustration; in a real configuration choose one or the other.
+Note that `'*'` cannot be combined with specific origins — see [cors.md](./cors.md). The example above lists both for illustration; in a real configuration choose one or the other. Each entry must be a full origin — `scheme://host[:port]`, exactly as the browser sends it in the `Origin` header; a bare hostname such as `localhost` never matches anything.
 
 #### The configuration keys
 
@@ -91,7 +91,7 @@ Note that `'*'` cannot be combined with specific origins — see [cors.md](./cor
 | `swagger.*.test_path_description` | The test server's description in Swagger |
 | `swagger.*.base_path_variables` | Variables substituted into `base_path` |
 | `swagger.*.test_path_variables` | Variables substituted into `test_path` |
-| `swagger.*.auth_token_name` | The name of the HTTP header carrying the authorisation token |
+| `swagger.*.auth_token_name` | The name of the HTTP header carrying the authorisation token. Optional — leave it out and the generated document carries no security scheme at all |
 | `swagger.*.auth_token_test_value` | A test value for the token. **Currently unused** — the generator takes only `auth_token_name` from the authorisation block. The key is accepted and validated but affects nothing |
 | `swagger.*.info` | Information about the API: title, description, contact, license |
 

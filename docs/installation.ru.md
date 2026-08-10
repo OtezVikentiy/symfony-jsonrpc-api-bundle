@@ -46,8 +46,8 @@ ov_json_rpc_api:
 # config/packages/ov_json_rpc_api.yaml
 ov_json_rpc_api:
     access_control_allow_origin_list:
-        - localhost
-        - api.localhost
+        - 'https://app.example.com'
+        - 'https://admin.example.com'
         - '*'
     strict_notifications: true # значение по умолчанию; false — вернуть ответ и на Notification, если результат непустой
     swagger:
@@ -81,7 +81,7 @@ ov_json_rpc_api:
 
 | Параметр | Описание |
 |----------|----------|
-| `access_control_allow_origin_list` | Список разрешённых CORS-доменов. Используйте `'*'` для разрешения всех |
+| `access_control_allow_origin_list` | Список разрешённых CORS-ориджинов. Каждый элемент — полный origin вида `scheme://host[:port]`, ровно как браузер шлёт его в заголовке `Origin`; голое имя хоста вроде `localhost` не совпадёт никогда. Используйте `'*'` (строго отдельно, без сочетания с конкретными ориджинами — см. [cors.ru.md](./cors.ru.md)) для разрешения всех; пример выше перечисляет оба варианта только для иллюстрации |
 | `strict_notifications` | При `true` (по умолчанию) — Notification (запрос без `id`) не получает ответ (строго по JSON-RPC 2.0), даже если `call()` бросил исключение. При `false` — ответ возвращается с `id: null`, если результат непустой |
 | `swagger.*.api_version` | Номер версии API для генерации Swagger |
 | `swagger.*.base_path` | URL production-сервера |
@@ -90,7 +90,7 @@ ov_json_rpc_api:
 | `swagger.*.test_path_description` | Описание тестового сервера в Swagger |
 | `swagger.*.base_path_variables` | Переменные для подстановки в `base_path` |
 | `swagger.*.test_path_variables` | Переменные для подстановки в `test_path` |
-| `swagger.*.auth_token_name` | Имя HTTP-заголовка для токена авторизации |
+| `swagger.*.auth_token_name` | Имя HTTP-заголовка для токена авторизации. Необязателен — если ключ не указан, в сгенерированном документе не будет схемы безопасности вовсе |
 | `swagger.*.auth_token_test_value` | Тестовое значение токена. **Сейчас не используется** — генератор берёт из блока авторизации только `auth_token_name`. Ключ принимается и валидируется, но ни на что не влияет |
 | `swagger.*.info` | Информация об API: title, description, contact, license |
 
