@@ -15,6 +15,17 @@ GitHub: https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle
 
 ---
 
+## Design Goals
+
+- **Strict JSON-RPC 2.0 compliance.** Requests, batches, notifications, error objects and `id` semantics follow [the specification](https://www.jsonrpc.org/specification) precisely, and the test suite pins that behaviour down.
+- **Attribute-driven, DTO-first.** An API method is a single class with a `#[JsonRPCAPI]` attribute; its request and response are plain PHP objects with typed properties. No per-method routing configuration, no schema files to keep in sync with the code.
+- **Safe defaults.** Payload, nesting and batch limits, error sanitization, CORS whitelisting and log masking work out of the box; every deliberate trade-off is written down in [SECURITY.md](./SECURITY.md).
+- **Documentation from the same source of truth.** OpenAPI/Swagger documentation is generated from the same attributes and DTOs the runtime uses, so it cannot drift away from the actual behaviour.
+- **Small dependency footprint.** Only `symfony/*` components and `psr/log` — nothing else is pulled into your project.
+- **Every supported combination is tested.** CI runs the full matrix of PHP 8.2–8.5 against Symfony 6.4, 7 and 8, plus a lowest-dependencies build, a coverage gate and a mutation-testing gate.
+
+---
+
 ## Features
 
 - Full [JSON-RPC 2.0](https://www.jsonrpc.org/specification) specification compliance
@@ -491,6 +502,12 @@ Run the test suite:
 
 Coverage reports require a coverage driver (xdebug or pcov). The `phpunit.xml.dist` config already declares the `<source>` block for PHPUnit 10+ coverage output.
 
+Mutation testing (also requires a coverage driver):
+
+```bash
+composer infection
+```
+
 The bundled test suite covers:
 - **Unit tests** — every Core component, services, request/response models, DI, Swagger models.
 - **Integration tests** — full request lifecycle through the controller.
@@ -568,6 +585,28 @@ See [docs/testing.md](./docs/testing.md) for guidance on writing tests for your 
 | `-32602` | `INVALID_PARAMS` | Invalid parameters |
 | `-32603` | `INTERNAL_ERROR` | Internal error |
 | `-32000` | `SERVER_ERROR` | Server error |
+
+---
+
+## Versioning and Backward Compatibility
+
+The bundle follows [Semantic Versioning](https://semver.org/):
+
+- **Major** releases (`4.0`, `5.0`, ...) may change behaviour and the public API. Every breaking change is listed in [CHANGELOG.md](./CHANGELOG.md) and comes with an upgrade guide ([docs/upgrade-5.0.md](./docs/upgrade-5.0.md), [docs/upgrade-4.0.md](./docs/upgrade-4.0.md)).
+- **Minor** releases add functionality without breaking existing integrations; behaviour under existing configuration defaults does not change.
+- **Patch** releases contain bug and security fixes only.
+
+The backward-compatibility promise covers everything an integrator touches:
+
+- the configuration schema under `ov_json_rpc_api.*` and its defaults;
+- the `#[JsonRPCAPI]` attribute and its parameters;
+- the wire format — JSON-RPC 2.0 request, response, error and batch shapes;
+- the interfaces the integrator implements or consumes: `ApiMethodInterface`, `PreProcessorInterface`, `PostProcessorInterface`, `PlainResponseInterface`, `JsonRpcCallLoggerInterface`, `JsonRpcLogFormatterInterface`, `SensitiveDataMaskerInterface`, `ContextIdGeneratorInterface`;
+- the `ov:swagger:generate` command and the structure of the OpenAPI output.
+
+Internal service classes not listed above are implementation detail and may change in a minor release. Functionality scheduled for removal in the next major is, when feasible, deprecated in a preceding minor release and noted in the CHANGELOG.
+
+The list of versions currently receiving fixes is in [SECURITY.md](./SECURITY.md#supported-versions).
 
 ---
 

@@ -1,12 +1,16 @@
 {
   "name": "otezvikentiy/json-rpc-api",
-  "description": "Symfony Json RPC API bundle",
+  "description": "Symfony bundle for building JSON-RPC 2.0 APIs: attribute-driven methods, DTO validation, batch requests, API versioning, OpenAPI/Swagger generation and hardened security defaults",
   "keywords": [
     "symfony",
-    "bundle",
-    "JsonRPC",
-    "API",
-    "Swagger"
+    "symfony-bundle",
+    "json-rpc",
+    "json-rpc-2.0",
+    "jsonrpc",
+    "rpc",
+    "api",
+    "openapi",
+    "swagger"
   ],
   "type": "symfony-bundle",
   "license": "MIT",
@@ -45,6 +49,7 @@
   },
   "require-dev": {
     "friendsofphp/php-cs-fixer": "^3.95",
+    "infection/infection": "^0.34.2",
     "phpstan/phpstan": "^2.0",
     "phpunit/phpunit": "11.*",
     "symfony/property-access": "^6.4 || ^7.0 || ^8.0"
@@ -58,13 +63,17 @@
     }
   ],
   "config": {
-    "sort-packages": true
+    "sort-packages": true,
+    "allow-plugins": {
+      "infection/extension-installer": true
+    }
   },
   "scripts": {
     "test": "phpunit --no-coverage",
     "lint": "find src tests -name '*.php' -print0 | xargs -0 -n1 php -l",
     "stan": "phpstan analyse --no-progress",
     "cs": "php-cs-fixer fix --dry-run --diff",
+    "infection": "infection --threads=max",
     "ci": [
       "@lint",
       "@stan",

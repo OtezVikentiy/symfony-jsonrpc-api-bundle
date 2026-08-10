@@ -133,9 +133,9 @@ jobs:
       - name: Run test suite
         run: vendor/bin/phpunit
 
-  # Line coverage ratchet. Current coverage is 91.84%; the gate sits a
-  # few points under that so incidental noise doesn't fail PRs, but any
-  # real regression below the floor fails the job.
+  # Line coverage ratchet. Current coverage is 99.11%; the gate sits a
+  # couple of points under that so incidental noise doesn't fail PRs, but
+  # any real regression below the floor fails the job.
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
@@ -168,7 +168,7 @@ jobs:
       - name: Enforce coverage threshold
         run: |
           php -r '
-          $threshold = 90.0;
+          $threshold = 97.0;
           $xml = simplexml_load_file("clover.xml");
           $metrics = $xml->project->metrics;
           $statements = (int) $metrics["statements"];
@@ -180,6 +180,41 @@ jobs:
               exit(1);
           }
           '
+
+  # Mutation testing gate, same ratchet philosophy as the coverage job:
+  # line coverage says a statement was executed, a killed mutant says a test
+  # actually noticed it misbehaving. Current MSI is 76% (1543 mutants, full
+  # run ~2 min); the floor sits a point under so mutator noise between
+  # Infection releases doesn't fail PRs, while a change that ships logic
+  # without a test asserting on it does.
+  mutation:
+    name: Mutation testing
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: ${{ env.PHP_EXTENSIONS }}
+          coverage: pcov
+          tools: composer:v2
+
+      - name: Cache Composer packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ runner.os }}-php8.4-mutation-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php8.4-mutation-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Run Infection
+        run: vendor/bin/infection --threads=max --no-progress --min-msi=75
 
   # Static analysis: PHPStan against src/ (tests/ are excluded — they
   # deliberately lean on mocks, reflection and inline-FQCN that would just

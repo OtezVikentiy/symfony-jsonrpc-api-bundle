@@ -8,6 +8,7 @@
 /.github export-ignore
 /phpunit.xml.dist export-ignore
 /phpstan.neon export-ignore
+/infection.json5 export-ignore
 /.php-cs-fixer.dist.php export-ignore
 /composer.lock export-ignore
 /.gitignore export-ignore

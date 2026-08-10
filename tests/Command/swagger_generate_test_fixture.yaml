@@ -12,19 +12,14 @@ info:
         name: license
         url: licenseUrl
 servers:
-    -
-        url: 'http://localhost.ololo:35080/api/v1'
-        description: 'Production server (uses live data)'
-    -
-        url: 'http://localhost.testoviy:35080/api/v1'
-        description: 'Sandbox server (uses test data)'
+    - url: 'http://localhost.ololo:35080/api/v1'
+      description: 'Production server (uses live data)'
+    - url: 'http://localhost.testoviy:35080/api/v1'
+      description: 'Sandbox server (uses test data)'
 tags:
-    -
-        name: math
-    -
-        name: mathematic
-    -
-        name: test
+    - name: math
+    - name: mathematic
+    - name: test
 paths:
     /get_data:
         post:
@@ -176,7 +171,7 @@ components:
     schemas:
         get_dataRequest:
             type: object
-            properties: {  }
+            properties: {}
         get_dataMainRequest:
             type: object
             properties:
@@ -545,5 +540,5 @@ components:
             name: X-AUTH-TOKEN
 security:
     -
-        ApiKeyAuth: {  }
+        ApiKeyAuth: {}
 
