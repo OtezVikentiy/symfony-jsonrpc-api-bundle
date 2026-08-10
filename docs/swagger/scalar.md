@@ -1,24 +1,26 @@
-# Swagger — описание скалярных свойств
+[English](scalar.md) · [Русский](scalar.ru.md)
+
+# Swagger — describing scalar properties
 
 ---
 
-## Описание
+## What it does
 
-Атрибут `#[SwaggerProperty]` позволяет задать дополнительные метаданные для скалярных свойств ответа, которые будут отображаться в Swagger-документации.
+The `#[SwaggerProperty]` attribute supplies extra metadata for scalar response properties, which then appears in the Swagger documentation.
 
 ---
 
-## Параметры атрибута
+## Attribute parameters
 
-| Параметр | Тип | Описание |
-|----------|-----|----------|
-| `default` | ?string | Значение по умолчанию, отображаемое в Swagger |
-| `format` | ?string | Формат поля (например, `email`, `date-time`, regexp-паттерн) |
-| `example` | ?string | Пример значения для Swagger UI |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `default` | ?string | The default value shown in Swagger |
+| `format` | ?string | The field's format (for example `email`, `date-time`, or a regexp pattern) |
+| `example` | ?string | An example value for Swagger UI |
 
-Все параметры необязательны.
+All parameters are optional.
 
-## Пример
+## Example
 
 ```php
 <?php
@@ -47,20 +49,20 @@ class Response
         $this->success = $success;
     }
 
-    // ... getters и setters ...
+    // ... getters and setters ...
 }
 ```
 
-## Результат в Swagger
+## The result in Swagger
 
-Свойство `title` будет отображено со следующими метаданными:
+The `title` property is rendered with:
 - **format:** `/^[A-Za-z0-9 ]+$/`
 - **example:** `iphone 12`
 
-Свойство `tax` будет отображено с:
+The `tax` property with:
 - **default:** `13.00`
 - **example:** `18.00`
 
-## Примечание
+## Note
 
-Атрибут `#[SwaggerProperty]` применяется только к **свойствам класса** (TARGET_PROPERTY) и влияет исключительно на генерацию Swagger-документации, не затрагивая логику обработки запросов.
+`#[SwaggerProperty]` applies to **class properties** only (TARGET_PROPERTY) and affects nothing but Swagger generation — request handling is untouched.

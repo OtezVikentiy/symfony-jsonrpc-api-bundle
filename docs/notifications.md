@@ -1,61 +1,63 @@
-# Notification-запросы
+[English](notifications.md) · [Русский](notifications.ru.md)
 
-## Что такое Notification
+# Notification requests
 
-Согласно [спецификации JSON-RPC 2.0](https://www.jsonrpc.org/specification#notification), Notification — это запрос **без поля `id`**. Клиент отправляет запрос, но не ожидает ответа от сервера.
+## What a Notification is
+
+By the [JSON-RPC 2.0 specification](https://www.jsonrpc.org/specification#notification), a Notification is a request **without an `id` field**. The client sends it and expects no reply from the server.
 
 ```json
 {"jsonrpc": "2.0", "method": "notify_hello", "params": [7]}
 ```
 
-Обратите внимание: поле `id` отсутствует полностью — это не то же самое, что `"id": null`. Запрос с явным `"id": null` — это **полноценный запрос**, а не Notification: он всегда получает ответ (с `"id": null` в ответе), независимо от `strict_notifications`.
+Note that the `id` field is absent entirely — which is not the same as `"id": null`. A request with an explicit `"id": null` is a **full request**, not a Notification: it always receives a response (carrying `"id": null`), regardless of `strict_notifications`.
 
 ```json
 {"jsonrpc": "2.0", "method": "subtract", "params": [42, 23], "id": null}
 ```
 
-**Ответ (всегда, даже при `strict_notifications: true`):**
+**The response, always, even under `strict_notifications: true`:**
 ```json
 {"jsonrpc": "2.0", "result": {"result": 19}, "id": null}
 ```
 
 ---
 
-## Настройка поведения
+## Configuring the behaviour
 
-Поведение бандла при получении Notification контролируется параметром `strict_notifications`:
+What the bundle does with a Notification is governed by `strict_notifications`:
 
 ```yaml
 # config/packages/ov_json_rpc_api.yaml
 ov_json_rpc_api:
-    strict_notifications: true  # значение по умолчанию
+    strict_notifications: true  # the default
 ```
 
-### `strict_notifications: true` (строгий режим, по умолчанию)
+### `strict_notifications: true` (strict mode, the default)
 
-Полное соответствие спецификации JSON-RPC 2.0. Сервер **не возвращает ответ** на Notification, даже если метод `call()` вернул непустой результат — и даже если `call()` бросил исключение. Единственное исключение: если конверт запроса настолько повреждён, что бандл не может достоверно определить, был ли это Notification (например, невалидный JSON), диагностика всё равно отправляется — узнать, что отправитель ждал ответ, невозможно.
+Full conformance with the JSON-RPC 2.0 specification. The server **returns no response** to a Notification, even when `call()` produced a non-empty result — and even when `call()` threw. The one exception: if the request envelope is damaged badly enough that the bundle cannot establish whether it was a Notification at all (invalid JSON, for instance), the diagnostic is sent anyway — there is no way to know whether the sender was expecting a reply.
 
-**Запрос:**
+**Request:**
 ```bash
 curl -X POST http://localhost/api/v1 \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "method": "notify_hello", "params": [7]}'
 ```
 
-**Ответ:** Пустой (HTTP 200 с пустым телом).
+**Response:** empty (HTTP 200 with an empty body).
 
-### `strict_notifications: false` (лояльный режим, нужно включать явно)
+### `strict_notifications: false` (lenient mode, opt-in)
 
-Более мягкий режим для удобства разработки. Если метод вернул непустой результат — ответ будет отправлен клиенту, даже если запрос был Notification (без `id`). В ответе `id` будет `null`.
+A gentler mode for convenience during development. If the method returned a non-empty result, the response is sent to the client even though the request was a Notification (had no `id`). The response carries `id` as `null`.
 
-**Запрос:**
+**Request:**
 ```bash
 curl -X POST http://localhost/api/v1 \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "method": "subtract", "params": [42, 23]}'
 ```
 
-**Ответ:**
+**Response:**
 ```json
 {
     "jsonrpc": "2.0",
@@ -66,11 +68,11 @@ curl -X POST http://localhost/api/v1 \
 
 ---
 
-## Notification в batch-запросах
+## Notifications inside a batch
 
-В batch-запросе Notification-элементы обрабатываются, но не включаются в массив ответов:
+Within a batch, Notification elements are processed but left out of the response array:
 
-**Запрос:**
+**Request:**
 ```json
 [
     {"jsonrpc": "2.0", "method": "sum", "params": [1, 2, 4], "id": "1"},
@@ -79,7 +81,7 @@ curl -X POST http://localhost/api/v1 \
 ]
 ```
 
-**Ответ (при `strict_notifications: true`):**
+**Response (under `strict_notifications: true`):**
 ```json
 [
     {"jsonrpc": "2.0", "result": {"result": 7}, "id": "1"},
@@ -87,18 +89,18 @@ curl -X POST http://localhost/api/v1 \
 ]
 ```
 
-Элемент `notify_hello` выполнился, но в ответе отсутствует.
+The `notify_hello` element ran, but does not appear in the response.
 
 ---
 
-## Когда использовать
+## When to use them
 
-- **Логирование событий** — клиенту не нужен результат
-- **Отправка уведомлений** — fire-and-forget
-- **Обновление статистики** — фоновая операция без ожидания ответа
+- **Event logging** — the client does not need the result.
+- **Sending notifications** — fire and forget.
+- **Updating statistics** — a background operation with nothing to wait for.
 
 ---
 
-## Рекомендация
+## Recommendation
 
-`strict_notifications: true` (дефолт) — это соответствует спецификации и снижает объём трафика, не меняйте его без веской причины. Режим `false` можно включить явно на этапе разработки и отладки, если удобно видеть ответ даже на Notification.
+`strict_notifications: true` (the default) matches the specification and reduces traffic; do not change it without a good reason. The `false` mode can be turned on deliberately during development and debugging, when seeing a response even to a Notification is convenient.

@@ -1,18 +1,19 @@
 [English](self_made_token.md) · [Русский](self_made_token.ru.md)
 
-# Custom token authentication
+# Кастомная токенная аутентификация
 
 ---
 
-## What this is
+## Описание
 
-The simplest form of authentication: an API token in an HTTP header. It suits cases that do not need the machinery of token renewal (refresh tokens).
+Простейший вариант аутентификации через API-токен в HTTP-заголовке.
+Подходит для случаев, когда не нужна сложная механика обновления токенов (refresh tokens).
 
-The implementation rests on a standard Symfony custom authenticator.
+Реализация основана на стандартном Symfony Custom Authenticator.
 
 ---
 
-## 1. Create an entity for the token
+## 1. Создайте Entity для токена
 
 ```php
 <?php
@@ -61,7 +62,7 @@ class ApiToken
 }
 ```
 
-## 2. Create the authenticator
+## 2. Создайте Authenticator
 
 ```php
 <?php
@@ -133,7 +134,7 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
 }
 ```
 
-## 3. Configure the firewall
+## 3. Настройте firewall
 
 ```yaml
 # config/packages/security.yaml
@@ -153,14 +154,14 @@ security:
                 - App\Security\ApiKeyAuthenticator
 ```
 
-## 4. Run the migration and create a token
+## 4. Примените миграцию и создайте токен
 
 ```bash
 bin/console doctrine:migrations:diff
 bin/console doctrine:migrations:migrate
 ```
 
-Once a row exists in the `api_token` table for the user in question, send the token in a request header:
+После создания записи в таблице `api_token` для нужного пользователя, добавляйте токен в заголовок запросов:
 
 ```bash
 curl -X POST http://localhost/api/v1 \
@@ -169,9 +170,9 @@ curl -X POST http://localhost/api/v1 \
   -d '{"jsonrpc": "2.0", "method": "getProduct", "params": {"id": 1}, "id": 1}'
 ```
 
-## Browser clients and CORS preflight
+## Браузерные клиенты и CORS preflight
 
-When the request comes from a browser — not a server-side client, not curl — and is not same-origin, the `X-AUTH-TOKEN` header is not among the [CORS-safelisted request headers](https://developer.mozilla.org/en-US/docs/Glossary/CORS-safelisted_request_header), so the browser sends a preflight `OPTIONS` first. The bundle answers preflight itself (see [cors.md](../cors.md)), but `Access-Control-Allow-Headers` contains only `Content-Type` by default — without adding `X-AUTH-TOKEN` to `cors_allowed_headers` explicitly, the preflight will not permit it and the browser blocks the real request before it leaves for the server:
+Если запрос шлёт браузер (не серверный клиент и не curl), а не same-origin — заголовок `X-AUTH-TOKEN` не входит в список [CORS-safelisted request headers](https://developer.mozilla.org/en-US/docs/Glossary/CORS-safelisted_request_header), поэтому браузер сначала отправит preflight `OPTIONS`. Бандл сам отвечает на preflight (см. [cors.md](../cors.ru.md)), но `Access-Control-Allow-Headers` по умолчанию содержит только `Content-Type` — без явного добавления `X-AUTH-TOKEN` в `cors_allowed_headers` preflight его не разрешит, и браузер заблокирует реальный запрос ещё до того, как он уйдёт на сервер:
 
 ```yaml
 # config/packages/ov_json_rpc_api.yaml
@@ -181,9 +182,9 @@ ov_json_rpc_api:
         - 'X-AUTH-TOKEN'
 ```
 
-This is separate from the firewall itself: `custom_authenticators` in `security.yaml` makes the server understand the header, while `cors_allowed_headers` makes the client's browser willing to send it at all.
+Это отдельная настройка от самого firewall'а — `custom_authenticators` в `security.yaml` заставит сервер понимать заголовок, а `cors_allowed_headers` заставит браузер клиента вообще этот заголовок отправить.
 
-## Further reading
+## Дополнительно
 
-- Symfony documentation: [Custom Authenticator](https://symfony.com/doc/current/security/custom_authenticator.html)
-- For more involved scenarios (refresh tokens, JWT) see [JWT authentication](./jwt_bundle.md)
+- Документация Symfony: [Custom Authenticator](https://symfony.com/doc/current/security/custom_authenticator.html)
+- Для более сложных сценариев (refresh tokens, JWT) см. [JWT-аутентификация](./jwt_bundle.ru.md)

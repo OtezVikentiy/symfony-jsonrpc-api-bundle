@@ -1,16 +1,18 @@
-# Swagger — теги для группировки
+[English](tags.md) · [Русский](tags.ru.md)
+
+# Swagger — tags for grouping
 
 ---
 
-## Описание
+## What it does
 
-Теги позволяют группировать связанные API-методы в Swagger-документации. Например, все методы для работы с пользователями можно объединить в группу `user`.
+Tags group related API methods in the Swagger documentation. Every method dealing with users, for instance, can be collected under a `user` group.
 
-Теги задаются через параметр `tags` в атрибуте `#[JsonRPCAPI]`. Один метод может иметь несколько тегов.
+Tags are declared through the `tags` parameter of the `#[JsonRPCAPI]` attribute. One method may carry several.
 
 ---
 
-## Пример
+## Example
 
 ```php
 <?php
@@ -69,11 +71,11 @@ class DeleteUserMethod
 }
 ```
 
-Все три метода будут отображаться в Swagger UI под группой **user**.
+All three methods appear in Swagger UI under the **user** group.
 
-## Несколько тегов
+## Several tags
 
-Метод может принадлежать нескольким группам:
+A method may belong to more than one group:
 
 ```php
 #[JsonRPCAPI(
@@ -83,17 +85,17 @@ class DeleteUserMethod
 )]
 ```
 
-## Генерация документации
+## Generating the documentation
 
 ```bash
 bin/console ov:swagger:generate
 ```
 
-Результат: `public/openapi/api_v1.yaml`
+Output: `public/openapi/api_v1.yaml`
 
-## Группировка путей (group)
+## Grouping paths (group)
 
-Параметр `group` задаёт префикс пути в Swagger. Это удобно для визуальной организации большого количества методов:
+The `group` parameter sets a path prefix in Swagger. It is a convenient way to organise a large number of methods visually:
 
 ```php
 #[JsonRPCAPI(
@@ -121,29 +123,29 @@ class CreateProductMethod { /* ... */ }
 class GetUserMethod { /* ... */ }
 ```
 
-В Swagger UI пути будут:
+The paths in Swagger UI become:
 ```
 /products/get_product
 /products/create_product
 /users/get_user
 ```
 
-Без `group` все пути остаются в корне:
+Without `group`, every path stays at the root:
 ```
 /get_product
 /create_product
 /get_user
 ```
 
-> `group` и `tags` — разные вещи. `tags` группируют методы визуально в Swagger UI (сворачиваемые секции). `group` формирует иерархию URL-путей.
+> `group` and `tags` are different things. `tags` group methods visually in Swagger UI (collapsible sections). `group` shapes the hierarchy of URL paths.
 
-## Имена схем в components/schemas
+## Schema names in components/schemas
 
-Схема ответа метода называется `{methodName}Response` (например, метод `getProduct` → схема `getProductResponse`), схема параметров — `{methodName}Request`. Вложенные DTO именуются по полному имени класса с `\` → `.` (см. [Swagger — описание массивов](./array.md)). Оба варианта именования гарантированно не сталкиваются с другой схемой: до 5.0 использовалось короткое имя класса, и два DTO с одинаковым коротким именем (например, оба называются `Response`, но лежат в разных `RPC/V1/<Method>/` неймспейсах — типичная структура проекта, см. [структуру файлов](../examples/base.md#структура-файлов)) затирали друг друга в одном и том же ключе `components/schemas`.
+A method's response schema is named `{methodName}Response` (the method `getProduct` gives the schema `getProductResponse`), and its parameter schema `{methodName}Request`. Nested DTOs are named after the full class name with `\` → `.` (see [Swagger — describing arrays](./array.md)). Neither naming scheme can collide with another schema: before 5.0 the short class name was used, and two DTOs sharing one — both named `Response` but living in different `RPC/V1/<Method>/` namespaces, which is the typical project layout, see [the file layout](../examples/base.md#file-layout) — overwrote each other under the same `components/schemas` key.
 
-## Скрытие метода из Swagger
+## Hiding a method from Swagger
 
-Если метод не должен попадать в Swagger-документацию (например, служебный или тестовый), используйте `ignoreInSwagger`:
+When a method should stay out of the Swagger documentation — an internal or test method, say — use `ignoreInSwagger`:
 
 ```php
 #[JsonRPCAPI(

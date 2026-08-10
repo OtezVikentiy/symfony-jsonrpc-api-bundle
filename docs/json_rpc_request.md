@@ -1,20 +1,22 @@
-# Базовый класс JsonRpcRequest
+[English](json_rpc_request.md) · [Русский](json_rpc_request.ru.md)
 
-`OV\JsonRPCAPIBundle\Core\Request\JsonRpcRequest` — абстрактный класс, от которого можно наследовать ваши Request-классы для получения метода `toArray()`.
+# The JsonRpcRequest base class
 
----
-
-## Зачем нужен
-
-Метод `toArray()` рекурсивно преобразует объект запроса (включая вложенные объекты и массивы) в ассоциативный массив. Это полезно когда:
-
-- Нужно передать данные запроса в другой сервис в виде массива
-- Нужно залогировать содержимое запроса
-- Нужно сериализовать запрос для очереди сообщений
+`OV\JsonRPCAPIBundle\Core\Request\JsonRpcRequest` is an abstract class your Request classes may extend in order to gain a `toArray()` method.
 
 ---
 
-## Пример
+## What it is for
+
+`toArray()` converts the request object — nested objects and arrays included — into an associative array, recursively. That is useful when:
+
+- the request data has to be handed to another service as an array;
+- the contents of the request need logging;
+- the request has to be serialised for a message queue.
+
+---
+
+## Example
 
 ```php
 namespace App\RPC\V1\GetProduct;
@@ -33,7 +35,7 @@ class Request extends JsonRpcRequest
 }
 ```
 
-Использование:
+In use:
 
 ```php
 public function call(Request $request): Response
@@ -49,9 +51,9 @@ public function call(Request $request): Response
 
 ---
 
-## Вложенные объекты
+## Nested objects
 
-`toArray()` рекурсивно обрабатывает вложенные объекты:
+`toArray()` walks nested objects recursively:
 
 ```php
 class Filter
@@ -73,20 +75,20 @@ $request->toArray();
 // ['filter' => ['id' => 1, 'title' => 'test']]
 ```
 
-Объекты, реализующие `DateTimeInterface` (`DateTime` и `DateTimeImmutable`), не раскладываются на свойства — они форматируются в строку ISO 8601 (`DATE_ATOM`). Если вложенный объект имеет собственный метод `toArray()`, он будет вызван.
+Objects implementing `DateTimeInterface` (`DateTime` and `DateTimeImmutable`) are not broken down into properties — they are formatted as an ISO 8601 string (`DATE_ATOM`). If a nested object has a `toArray()` of its own, it is called.
 
-> **Изменение в 5.0.** Раньше `toArray()` читал свойства напрямую через Reflection, поэтому приватное поле без геттера тоже попадало в результат — а документация предлагает этот метод для логирования запроса, то есть пароль или внутренний токен уходили в лог. Теперь поле экспортируется, если класс его открывает: есть публичный геттер (`getX()`, `isX()` или голый `x()`) либо само свойство публичное — как и в ответе. Приватное без публичного геттера не экспортируется. Взаимные ссылки между Request-DTO раньше приводили к переполнению стека и падению воркера; теперь бросается `JRPCException` с кодом `-32603`, то есть **`toArray()` может выбросить исключение** — учтите это, если вызываете его в блоке логирования.
+> **Changed in 5.0.** `toArray()` used to read properties straight through Reflection, so a private field with no getter reached the result as well — and the documentation recommends this method for logging a request, which means a password or an internal token went into the log. A field is now exported if the class exposes it: through a public getter (`getX()`, `isX()` or the bare `x()`) or by being public itself, exactly as in a response. A private one with no public getter is not exported. Mutual references between request DTOs used to overflow the stack and kill the worker; a `JRPCException` with code `-32603` is thrown instead, which means **`toArray()` can now throw** — bear that in mind if you call it inside a logging block.
 >
-> Сериализация ответа устроена **тем же** механизмом (общий трейт), с одним отличием: вложенный объект со своим `toArray()` в запросе решает свою форму сам, а в ответе — нет, там форму задают геттеры. См. [примечание о геттерах в базовом примере](./examples/base.md#response) и [upgrade-5.0.md](./upgrade-5.0.md).
+> Response serialisation uses **the same** mechanism (a shared trait), with one difference: in a request, a nested object with its own `toArray()` decides its own shape; in a response it does not, and the getters decide. See [the note on getters in the basic example](./examples/base.md#response) and [upgrade-5.0.md](./upgrade-5.0.md).
 
 ---
 
-## Когда использовать
+## When to use it
 
-| Ситуация | Рекомендация |
-|----------|-------------|
-| Простой Request с несколькими полями | Наследование не обязательно |
-| Нужен `toArray()` для логирования или передачи | Наследуйтесь от `JsonRpcRequest` |
-| Сложные вложенные структуры | Наследуйтесь от `JsonRpcRequest` |
+| Situation | Recommendation |
+|-----------|----------------|
+| A simple Request with a few fields | Extending is not necessary |
+| You need `toArray()` for logging or handing data on | Extend `JsonRpcRequest` |
+| Complex nested structures | Extend `JsonRpcRequest` |
 
-Наследование от `JsonRpcRequest` **не обязательно** — бандл работает с любым Request-классом. Это утилитарный базовый класс для удобства.
+Extending `JsonRpcRequest` is **not required** — the bundle works with any Request class. It is a utility base class, offered for convenience.

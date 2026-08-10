@@ -1,27 +1,29 @@
-# Swagger — описание массивов
+[English](array.md) · [Русский](array.ru.md)
+
+# Swagger — describing arrays
 
 ---
 
-## Описание
+## What it does
 
-Атрибут `#[SwaggerArrayProperty]` позволяет описать тип элементов массива в свойствах ответа для Swagger-документации.
+The `#[SwaggerArrayProperty]` attribute describes the element type of an array property for the Swagger documentation.
 
-Без этого атрибута массивы в Swagger будут отображаться просто как `array` без информации о содержимом.
+Without it, arrays appear in Swagger as a bare `array` with nothing said about their contents.
 
 ---
 
-## Параметры атрибута
+## Attribute parameters
 
-| Параметр | Тип | По умолчанию | Описание |
-|----------|-----|:------------:|----------|
-| `type` | string | — (обязательный) | Тип элементов массива (скалярный тип или FQCN класса) |
-| `ofClass` | bool | `false` | Установите `true`, если `type` — это имя класса (FQCN) |
+| Parameter | Type | Default | Description |
+|-----------|------|:-------:|-------------|
+| `type` | string | — (required) | The element type of the array: a scalar type or a class FQCN |
+| `ofClass` | bool | `false` | Set to `true` when `type` is a class name (FQCN) |
 
-## Примеры
+## Examples
 
-### Массив скалярных значений
+### An array of scalars
 
-Для массивов строк, чисел и других скалярных типов указывайте тип напрямую:
+For arrays of strings, numbers and other scalar types, name the type directly:
 
 ```php
 use OV\JsonRPCAPIBundle\Core\Annotation\SwaggerArrayProperty;
@@ -36,7 +38,7 @@ class Response
 }
 ```
 
-В Swagger это будет отображено как:
+Swagger renders that as:
 ```yaml
 errors:
   type: array
@@ -44,9 +46,9 @@ errors:
     type: string
 ```
 
-### Массив объектов
+### An array of objects
 
-Для массивов, содержащих объекты (DTO), укажите FQCN класса и `ofClass: true`:
+For arrays holding objects (DTOs), give the class FQCN and `ofClass: true`:
 
 ```php
 use OV\JsonRPCAPIBundle\Core\Annotation\SwaggerArrayProperty;
@@ -72,11 +74,11 @@ class Response
         $this->success = $success;
     }
 
-    // ... getters и setters ...
+    // ... getters and setters ...
 }
 ```
 
-В Swagger это будет отображено как:
+Swagger renders that as:
 ```yaml
 products:
   type: array
@@ -85,8 +87,8 @@ products:
     $ref: '#/components/schemas/App.RPC.V1.GetProducts.Product'
 ```
 
-Бандл автоматически проанализирует свойства класса `Product` и создаст отдельную схему в `components/schemas`. Имя схемы — это полное имя класса (`App\RPC\V1\GetProducts\Product`) с `\` заменённым на `.`: `schemaNameFromClassName()` строит имя из FQCN целиком, а не из короткого имени класса. Это намеренно многословно: до 5.0 схема называлась просто `Product`, и если в проекте было два разных DTO с одинаковым коротким именем (частый случай — `App\RPC\V1\GetProduct\Response` и `App\RPC\V1\GetProducts\Response` оба называются `Response`), они собирались в одну и ту же запись `components/schemas`, тихо затирая друг друга. Схема, названная по полному имени класса, никогда не сталкивается с другой при добавлении нового DTO.
+The bundle analyses the `Product` class's properties on its own and creates a separate schema under `components/schemas`. The schema name is the full class name (`App\RPC\V1\GetProducts\Product`) with `\` replaced by `.`: `schemaNameFromClassName()` builds it from the whole FQCN rather than from the short class name. The verbosity is deliberate. Before 5.0 the schema was simply `Product`, and if a project held two different DTOs sharing a short name — a common case, with `App\RPC\V1\GetProduct\Response` and `App\RPC\V1\GetProducts\Response` both called `Response` — they collected into the same `components/schemas` entry and silently overwrote one another. A schema named after the full class name can never collide with another as new DTOs are added.
 
-## Комбинирование атрибутов
+## Combining the attributes
 
-`#[SwaggerArrayProperty]` и `#[SwaggerProperty]` могут использоваться вместе на разных свойствах одного класса, как показано в примере выше.
+`#[SwaggerArrayProperty]` and `#[SwaggerProperty]` can be used together on different properties of one class, as the example above shows.

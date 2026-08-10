@@ -1,42 +1,44 @@
+[English](troubleshooting.md) · [Русский](troubleshooting.ru.md)
+
 # Troubleshooting / FAQ
 
-Типичные проблемы и их решения.
+Common problems and what to do about them.
 
 ---
 
 ## Method not found (-32601)
 
-**Ошибка:**
+**The error:**
 ```json
 {"jsonrpc": "2.0", "error": {"code": -32601, "message": "Method not found."}, "id": "1"}
 ```
 
-**Возможные причины:**
+**Possible causes:**
 
-### 1. Класс не реализует `ApiMethodInterface`
+### 1. The class does not implement `ApiMethodInterface`
 
-Это самая частая причина. Бандл регистрирует только сервисы, помеченные тегом `ov.rpc.method` (`CompilerPass::process()` перебирает `$container->findTaggedServiceIds('ov.rpc.method')`). Этот тег вешается автоматически через `#[AutoconfigureTag('ov.rpc.method')]` на самом интерфейсе `ApiMethodInterface` — но только если класс метода **реализует** этот интерфейс. Атрибут `#[JsonRPCAPI]` сам по себе ничего не регистрирует, он лишь описывает метаданные уже зарегистрированного класса.
+This is by far the commonest cause. The bundle registers only services carrying the `ov.rpc.method` tag (`CompilerPass::process()` iterates `$container->findTaggedServiceIds('ov.rpc.method')`). That tag is applied automatically through `#[AutoconfigureTag('ov.rpc.method')]` on `ApiMethodInterface` itself — but only if the method class **implements** the interface. The `#[JsonRPCAPI]` attribute registers nothing on its own; it describes the metadata of a class that is already registered.
 
 ```php
 use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 
 #[JsonRPCAPI(methodName: 'getProduct', type: 'POST')]
-class GetProductMethod implements ApiMethodInterface // <-- без этого класс не зарегистрируется
+class GetProductMethod implements ApiMethodInterface // <-- without this the class is never registered
 {
     public function call(Request $request): Response { /* ... */ }
 }
 ```
 
-Добавлять `_instanceof: OV\JsonRPCAPIBundle\Core\ApiMethodInterface: tags: ['ov.rpc.method']` в свой `config/services.yaml` **не нужно и не поможет** — эквивалентная конфигурация уже зарегистрирована самим бандлом (`OVJsonRPCAPIExtension::load()` вызывает `$container->registerForAutoconfiguration(ApiMethodInterface::class)->addTag('ov.rpc.method')`). Если класс не реализует интерфейс, лишняя запись в вашем `services.yaml` ничего не изменит.
+Adding `_instanceof: OV\JsonRPCAPIBundle\Core\ApiMethodInterface: tags: ['ov.rpc.method']` to your own `config/services.yaml` is **neither necessary nor a fix** — the equivalent configuration is already registered by the bundle (`OVJsonRPCAPIExtension::load()` calls `$container->registerForAutoconfiguration(ApiMethodInterface::class)->addTag('ov.rpc.method')`). If the class does not implement the interface, an extra entry in your `services.yaml` changes nothing.
 
-### 2. Класс лежит вне сканируемой директории
+### 2. The class lives outside the scanned directory
 
-Убедитесь, что класс метода лежит в директории, которую сканирует Symfony (обычно `src/`) — если он не найден автозагрузчиком, тег `ApiMethodInterface` применить не к чему.
+Make sure the method class sits in a directory Symfony scans (usually `src/`). If the autoloader never finds it, there is nothing for the `ApiMethodInterface` tag to apply to.
 
-### 3. Нет атрибута `#[JsonRPCAPI]`
+### 3. No `#[JsonRPCAPI]` attribute
 
-Каждый зарегистрированный метод API должен быть помечен атрибутом — без него `CompilerPass` пропустит класс (`extractAttributeMetadata()` вернёт `null`), даже если интерфейс реализован:
+Every registered API method must carry the attribute; without it the `CompilerPass` skips the class (`extractAttributeMetadata()` returns `null`) even when the interface is implemented:
 
 ```php
 use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
@@ -49,68 +51,68 @@ class GetProductMethod implements ApiMethodInterface
 }
 ```
 
-### 4. Неправильное имя метода в запросе
+### 4. The method name in the request is wrong
 
-Имя метода в JSON-запросе (`"method": "getProduct"`) должно точно совпадать с `methodName` в атрибуте. Регистр имеет значение.
+The method name in the JSON request (`"method": "getProduct"`) must match `methodName` in the attribute exactly. Case matters.
 
-### 5. Несовпадение версии API
+### 5. The API version does not match
 
-Запрос на `/api/v2`, а метод зарегистрирован для версии 1 (namespace `App\RPC\V1\...`). Либо измените URL, либо укажите `version: 2` в атрибуте.
+The request goes to `/api/v2` while the method is registered for version 1 (namespace `App\RPC\V1\...`). Either change the URL or state `version: 2` in the attribute.
 
-### 6. Несовпадение HTTP-метода
+### 6. The HTTP method does not match
 
-Запрос отправлен через GET, а атрибут указывает `type: 'POST'`. HTTP-метод запроса должен совпадать с `type` в атрибуте.
+The request was sent with GET while the attribute says `type: 'POST'`. The request's HTTP method must match `type` in the attribute.
 
 ---
 
 ## Version is not defined
 
-**Ошибка:**
+**The error:**
 ```
 RuntimeException: Version for API endpoint ... is not defined.
 Either use the version parameter in the JsonRPCAPI attribute explicitly,
 or specify the API version number in the namespace, for example App\RPC\V1
 ```
 
-**Причина:** Бандл не смог определить версию API из namespace класса.
+**The cause:** the bundle could not derive the API version from the class's namespace.
 
-**Решения:**
+**What to do:**
 
-1. **Убедитесь что в namespace есть `V{N}`:**
+1. **Make sure the namespace contains `V{N}`:**
    ```
-   App\RPC\V1\GetProductMethod          ← OK
-   App\RPC\V1\Products\GetProductMethod  ← OK (вложенность поддерживается)
-   App\RPC\GetProductMethod              ← Ошибка! Нет V{N}
+   App\RPC\V1\GetProductMethod           ← fine
+   App\RPC\V1\Products\GetProductMethod  ← fine (nesting is supported)
+   App\RPC\GetProductMethod              ← error, no V{N}
    ```
 
-2. **Или укажите версию явно:**
+2. **Or state the version explicitly:**
    ```php
    #[JsonRPCAPI(methodName: 'getProduct', type: 'POST', version: 1)]
    ```
 
 ---
 
-## Swagger не генерируется
+## Swagger is not generated
 
-**Ошибка при `bin/console ov:swagger:generate`:**
+**An error from `bin/console ov:swagger:generate`:**
 
-### 1. Не задана переменная окружения
+### 1. The environment variable is unset
 
-Убедитесь что `OV_JSON_RPC_API_SWAGGER_PATH` задана в `.env`:
+Make sure `OV_JSON_RPC_API_SWAGGER_PATH` is set in `.env`:
 
 ```dotenv
 OV_JSON_RPC_API_SWAGGER_PATH=public/openapi/
 ```
 
-И что директория существует:
+and that the directory exists:
 
 ```bash
 mkdir -p public/openapi
 ```
 
-### 2. Нет конфигурации swagger
+### 2. There is no swagger configuration
 
-В `config/packages/ov_json_rpc_api.yaml` должна быть секция `swagger`:
+`config/packages/ov_json_rpc_api.yaml` must carry a `swagger` section:
 
 ```yaml
 ov_json_rpc_api:
@@ -118,60 +120,61 @@ ov_json_rpc_api:
         api_v1:
             api_version: '1'
             base_path: 'http://localhost'
-            # ... остальные параметры
+            # ... the remaining keys
 ```
 
-### 3. Все методы помечены `ignoreInSwagger: true`
+### 3. Every method is marked `ignoreInSwagger: true`
 
-Если все методы исключены из Swagger, файл будет пустым.
+With every method excluded from Swagger, the file comes out empty.
 
 ---
 
 ## Access denied (-32000)
 
-**Ответ:** HTTP 200 с обычным JSON-RPC error-объектом — **не** HTTP 403:
+**The response:** HTTP 200 with an ordinary JSON-RPC error object — **not** HTTP 403:
 ```json
 {"jsonrpc": "2.0", "error": {"code": -32000, "message": "Access denied."}, "id": "1"}
 ```
 
-**Причина:** У текущего пользователя нет ни одной из ролей, указанных в `roles` атрибута. `RequestHandler::checkRoles()` бросает `JRPCException` с кодом `SERVER_ERROR` (`-32000`), поэтому отказ по правам проходит через тот же путь, что и любая другая ошибка метода, и всегда возвращается как корректный JSON-RPC объект с правильным `id` — в том числе внутри batch-запроса. Если вы мониторите долю HTTP 403 как прокси для отказов по ролям — читайте `error.code === -32000` вместо HTTP-статуса.
+**The cause:** the current user holds none of the roles listed in the attribute's `roles`. `RequestHandler::checkRoles()` throws a `JRPCException` with the `SERVER_ERROR` code (`-32000`), so a permission refusal travels the same path as any other method error and always comes back as a well-formed JSON-RPC object with the right `id` — inside a batch request included. If you monitor the share of HTTP 403 responses as a proxy for role refusals, read `error.code === -32000` instead of the HTTP status.
 
-**Решения:**
+**What to do:**
 
-1. **Проверьте роли пользователя** — убедитесь что токен/сессия содержит нужную роль.
+1. **Check the user's roles** — make sure the token or session carries the role you expect.
 
-2. **Проверьте атрибут метода:**
+2. **Check the method's attribute:**
    ```php
    #[JsonRPCAPI(methodName: 'deleteUser', type: 'POST', roles: ['ROLE_ADMIN'])]
    ```
-   Доступ разрешён, если у пользователя есть **хотя бы одна** из перечисленных ролей.
+   Access is granted when the user holds **at least one** of the listed roles.
 
-3. **Уберите `roles` если ограничение не нужно** — по умолчанию метод доступен всем аутентифицированным пользователям (или всем, если firewall не настроен).
+3. **Drop `roles` if you do not need the restriction** — by default a method is available to every authenticated user, or to everyone if no firewall is configured.
 
 ---
 
 ## Invalid params (-32602)
 
-**Ошибка:**
+**The error:**
 ```json
 {"jsonrpc": "2.0", "error": {"code": -32602, "message": "Invalid params. Additional info: ..."}, "id": "1"}
 ```
 
-**Причина:** Типы переданных параметров не совпадают с типами свойств Request-класса.
+**The cause:** the types of the parameters sent do not match the property types of the Request class.
 
-Подробнее о валидации: [docs/validation.md](./validation.md)
+More on validation: [docs/validation.md](./validation.md)
 
 ---
 
 ## Parse error (-32700)
 
-**Ошибка:**
+**The error:**
 ```json
 {"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error."}, "id": null}
 ```
 
-**Причина:** Тело запроса содержит невалидный JSON. Проверьте:
-- Правильность синтаксиса JSON (кавычки, запятые, скобки)
-- Кодировка UTF-8
+**The cause:** the request body holds invalid JSON. Check:
 
-> Заголовок `Content-Type: application/json` — это отдельная проверка, которая идёт **до** попытки распарсить тело. Если он не указан или указан неверно (например, `application/x-www-form-urlencoded` при отправке формой), бандл вернёт не `-32700 Parse error`, а `-32600 Invalid Request` с `additionalInfo: "Content-Type must be application/json."`, даже если тело содержит валидный JSON.
+- the JSON syntax — quotes, commas, brackets;
+- that the encoding is UTF-8.
+
+> The `Content-Type: application/json` header is a separate check that runs **before** any attempt to parse the body. If it is missing or wrong — `application/x-www-form-urlencoded` from a form submission, say — the bundle returns `-32600 Invalid Request` with `additionalInfo: "Content-Type must be application/json."` rather than `-32700 Parse error`, even when the body holds valid JSON.

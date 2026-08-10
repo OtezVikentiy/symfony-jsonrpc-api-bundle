@@ -1,67 +1,69 @@
+[English](testing.md) · [Русский](testing.ru.md)
+
 # Testing
 
-Гайд по написанию тестов для RPC-методов, построенных на этом бандле.
+A guide to writing tests for RPC methods built on this bundle.
 
-## Запуск тестов бандла
+## Running the bundle's own tests
 
 ```bash
 ./vendor/bin/phpunit tests/
 ```
 
-Весь набор тестов бандла должен быть зелёным (используйте `--testdox` или `--colors` для наглядности; точное число тестов растёт от релиза к релизу — не полагайтесь на него как на инвариант). Если упало после `composer update` — это потенциальный регресс, заведите issue.
+The bundle's whole suite should be green (use `--testdox` or `--colors` for legibility; the exact number of tests grows from release to release — do not rely on it as an invariant). A failure after `composer update` is a potential regression; please open an issue.
 
 ### Coverage
 
-Установите драйвер:
+Install a driver:
 
 ```bash
 sudo pecl install pcov
-# или
+# or
 sudo apt-get install php-xdebug
 ```
 
-Затем:
+Then:
 
 ```bash
 ./vendor/bin/phpunit --coverage-text --coverage-html=build/coverage
 ```
 
-В `phpunit.xml.dist` уже описан `<source>`-блок для PHPUnit 10+ (исключены `MethodSpec/`-классы и сам Bundle-класс — они или DTO, или DI-glue).
+`phpunit.xml.dist` already carries a `<source>` block for PHPUnit 10+ (the `MethodSpec/` classes and the Bundle class itself are excluded — they are either DTOs or DI glue).
 
-## Структура тестов бандла
+## The layout of the bundle's tests
 
 ```
 tests/
-├── Controller/                       # интеграционные через ApiController + AbstractControllerTestCase
+├── Controller/                       # integration, through ApiController + AbstractControllerTestCase
 ├── Core/
-│   ├── Annotation/                   # юнит-тесты атрибутов
+│   ├── Annotation/                   # unit tests of the attributes
 │   ├── Request/                      # BaseRequest, JsonRpcRequest, PartialUpdateRequest
 │   ├── Response/                     # JsonResponse, ErrorResponse, BaseResponse
 │   └── Services/                     # RequestHandler, ResponseService, etc.
 ├── Command/                          # SwaggerGenerate
 ├── DependencyInjection/              # Configuration, Extension, CompilerPass, MethodSpec/*
-├── Security/                         # security regression-тесты (DoS, sanitization, CORS)
+├── Security/                         # security regression tests (DoS, sanitisation, CORS)
 ├── Swagger/                          # SwaggerSchemaBuilder, schema components
-└── Fixtures/                         # тестовые RPC-методы, не исполняются PHPUnit'ом
+└── Fixtures/                         # test RPC methods, not executed by PHPUnit
     └── RPC/V1/
         ├── SubtractMethod.php
         ├── Subtract/SubtractRequest.php
         └── ...
 ```
 
-PHPUnit исключает `tests/Fixtures` — это обычные классы, доступные через autoload (composer autoload-dev маппит `OV\JsonRPCAPIBundle\RPC\` → `tests/Fixtures/RPC/`).
+PHPUnit excludes `tests/Fixtures` — those are ordinary classes reachable through the autoloader (composer's `autoload-dev` maps `OV\JsonRPCAPIBundle\RPC\` → `tests/Fixtures/RPC/`).
 
-## Паттерн интеграционного теста через `AbstractControllerTestCase`
+## The integration-test pattern with `AbstractControllerTestCase`
 
-`tests/Controller/AbstractControllerTestCase.php` собирает минимальный controller-стек (RequestHandler, RequestRawDataHandler, ResponseService, замоканный Security, замоканный ValidatorInterface или реальный, два замоканных `ServiceLocator` — под RPC-методы и под процессоры). В 4.x на этом месте был замоканный `Container`; начиная с 5.0 бандл контейнер не инжектит — см. [upgrade-5.0.md](./upgrade-5.0.md), п. 17.
+`tests/Controller/AbstractControllerTestCase.php` assembles a minimal controller stack (RequestHandler, RequestRawDataHandler, ResponseService, a mocked Security, a mocked or real ValidatorInterface, and two mocked `ServiceLocator`s — one for RPC methods, one for processors). In 4.x a mocked `Container` sat in that place; from 5.0 the bundle does not inject a container at all — see [upgrade-5.0.md](./upgrade-5.0.md), item 17.
 
-> ⚠️ **Этого класса нет в установленном пакете.** `.gitattributes` помечает `/tests` как `export-ignore`, а `OV\JsonRPCAPIBundle\Tests\` объявлен в `autoload-dev` — то есть в `vendor/` каталог `tests/` не попадает и неймспейс не автозагружается. Наследоваться от `AbstractControllerTestCase` из своего проекта **нельзя**, будет `Class not found`. Ниже показано, как выглядит харнесс, — **скопируйте его в свой проект** под своим неймспейсом. Если копировать не хочется, берите [рецепт через `KernelTestCase`](#интеграционный-тест-через-kerneltestcase) — он работает без копирования и не зависит от внутренностей бандла.
+> ⚠️ **This class is not in the installed package.** `.gitattributes` marks `/tests` as `export-ignore`, and `OV\JsonRPCAPIBundle\Tests\` is declared in `autoload-dev` — so the `tests/` directory never reaches `vendor/` and the namespace is not autoloaded. You **cannot** extend `AbstractControllerTestCase` from your own project; you will get `Class not found`. What follows shows what the harness looks like — **copy it into your project** under your own namespace. If you would rather not copy, take the [`KernelTestCase` recipe](#an-integration-test-through-kerneltestcase) instead: it needs no copying and does not depend on the bundle's internals.
 
-> **Этот харнесс опирается на внутренности осознанно.** С 5.0 `@internal` помечены и классы стека (`RequestHandler`, `RequestRawDataHandler`, `ResponseService`, `HeadersPreparer`), и метаданные метода (`MethodSpec`, `RequestMetadata`, `SwaggerMetadata`), которые ниже описываются руками. Их сигнатуры могут поменяться в минорном релизе 5.x. Копируйте харнесс, если вам нужна скорость и полный контроль над стеком, но будьте готовы поправить его при обновлении — это размен, а не бесплатная скорость. Тест через `KernelTestCase` (ниже) от этого свободен: там и стек, и `MethodSpec` собирает контейнер.
+> **This harness leans on internals deliberately.** Since 5.0 both the stack classes (`RequestHandler`, `RequestRawDataHandler`, `ResponseService`, `HeadersPreparer`) and the method metadata (`MethodSpec`, `RequestMetadata`, `SwaggerMetadata`) described by hand below are marked `@internal`. Their signatures may change in a 5.x minor release. Copy the harness if you want speed and full control over the stack, but be ready to adjust it on upgrade — that is the trade, not free speed. The `KernelTestCase` test below is free of this: there the container assembles both the stack and the `MethodSpec`.
 >
-> Отдельно про ручной `MethodSpec`: он должен совпадать с тем, что генерирует `CompilerPass`, иначе тест проверяет конфигурацию, которой в проде не существует. Легко забыть, что для свойства со значением по умолчанию компилятор кладёт `defaultValue` в `allParameters` и ставит `allowsNull: true` в `validators`, а для коллекции с аддером переписывает `type` на тип **элемента**. Расхождение здесь даёт зелёный тест при сломанном проде.
+> One point about a hand-written `MethodSpec` in particular: it must match what `CompilerPass` generates, or the test validates a configuration that does not exist in production. It is easy to forget that for a property with a default value the compiler puts `defaultValue` into `allParameters` and sets `allowsNull: true` in `validators`, and that for a collection with an adder it rewrites `type` to the **element** type. A divergence here gives a green test over a broken production.
 
-Для теста нужно описать `MethodSpec` руками и передать `executeControllerTest($payload, $methodSpec)`:
+A test needs a `MethodSpec` described by hand, passed to `executeControllerTest($payload, $methodSpec)`:
 
 ```php
 namespace App\Tests\RPC;
@@ -69,7 +71,7 @@ namespace App\Tests\RPC;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
-use App\Tests\RPC\Support\AbstractControllerTestCase;   // ваша копия харнесса, см. предупреждение выше
+use App\Tests\RPC\Support\AbstractControllerTestCase;   // your copy of the harness, see the warning above
 use App\RPC\V1\GetProduct\Request;
 use App\RPC\V1\GetProductMethod;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -111,11 +113,11 @@ final class GetProductMethodTest extends AbstractControllerTestCase
 }
 ```
 
-> ⚠️ Помните: с 4.0 default `strict_notifications: true`. Если в payload нет `id`, ответа не будет. Для тестов RPC-методов всегда указывайте `id`, либо ваш кейс действительно про notification.
+> ⚠️ Remember that `strict_notifications` defaults to `true` from 4.0. With no `id` in the payload there is no response. Always supply an `id` when testing RPC methods, unless your case really is about a notification.
 
-## Юнит-тестирование Request DTO
+## Unit-testing request DTOs
 
-DTO — обычные PHP-классы, тестируются как обычно. Если используете `PartialUpdateRequest`:
+DTOs are ordinary PHP classes and are tested as such. If you use `PartialUpdateRequest`:
 
 ```php
 use OV\JsonRPCAPIBundle\Core\Request\PartialUpdateRequest;
@@ -135,7 +137,7 @@ class UpdateUserRequest extends PartialUpdateRequest
 }
 ```
 
-Тест семантики `wasProvided()`:
+A test of the `wasProvided()` semantics:
 
 ```php
 public function testPartialProvidedTracking(): void
@@ -149,11 +151,11 @@ public function testPartialProvidedTracking(): void
 }
 ```
 
-`markProvided()` бандл вызывает автоматически в `RequestHandler::hydrateRequest` для DTO, реализующих `PartialRequestInterface`. В юнит-тестах вы вызываете руками.
+The bundle calls `markProvided()` automatically in `RequestHandler::hydrateRequest` for DTOs implementing `PartialRequestInterface`. In unit tests you call it yourself.
 
-## Тестирование процессоров
+## Testing processors
 
-Pre/post-процессоры — методы на классе самого RPC-метода. Чтобы проверить порядок вызовов:
+Pre- and post-processors are methods on the RPC method class itself. To check the order of calls:
 
 ```php
 public function testProcessorsRunInOrder(): void
@@ -168,17 +170,15 @@ public function testProcessorsRunInOrder(): void
         public function call($r): mixed { $this->log[] = 'call'; return ['ok' => true]; }
     };
 
-    // ... запустить через RequestHandler ...
+    // ... run it through RequestHandler ...
 
     $this->assertSame(['pre', 'call', 'post'], $method->log);
 }
 ```
 
-## Тестирование с реальной БД
+## An integration test through `KernelTestCase`
 
-## Интеграционный тест через `KernelTestCase`
-
-Этот путь ничего не требует от бандла, кроме публичного контракта: контейнер сам собирает стек и `MethodSpec`, копировать нечего, и правки внутренностей в минорных релизах его не задевают. Он же нужен, если RPC-метод обращается к БД через Doctrine:
+This route asks nothing of the bundle beyond its public contract: the container assembles both the stack and the `MethodSpec`, there is nothing to copy, and changes to internals in minor releases do not touch it. It is also what you need when the RPC method reaches a database through Doctrine:
 
 ```php
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -197,32 +197,32 @@ final class CreateUserMethodTest extends KernelTestCase
         $response = $method->call($request);
 
         $this->assertTrue($response->isSuccess());
-        // ассерт в БД...
+        // assert against the database...
     }
 }
 ```
 
-Совмещайте с `dama/doctrine-test-bundle` или транзакциями для изоляции между тестами.
+Combine it with `dama/doctrine-test-bundle` or with transactions to isolate the tests from one another.
 
-## Security regression-тесты как пример
+## The security regression tests as an example
 
-Папка `tests/Security/` бандла содержит примеры тестов на каждый DoS-вектор:
+The bundle's `tests/Security/` directory holds an example for each DoS vector:
 
 - `PayloadLimitTest.php` — payload size, JSON depth.
-- `BatchSizeLimitTest.php` — большой batch.
-- `DtoHydrationLimitsTest.php` — глубина рекурсии DTO, видимость сеттера.
-- `ArrayParamLimitTest.php` — превышение `max_array_param_size`.
-- `ErrorSanitizationTest.php` — sanitization + логирование.
+- `BatchSizeLimitTest.php` — an oversized batch.
+- `DtoHydrationLimitsTest.php` — DTO recursion depth, setter visibility.
+- `ArrayParamLimitTest.php` — exceeding `max_array_param_size`.
+- `ErrorSanitizationTest.php` — sanitisation and logging.
 - `CorsMultiOriginTest.php` — origin matching.
-- `SwaggerGenerateSecurityTest.php` — path containment команды.
+- `SwaggerGenerateSecurityTest.php` — path containment in the command.
 
-Если расширяете бандл с собственными лимитами — пишите аналогичные regression-тесты.
+If you extend the bundle with limits of your own, write regression tests along the same lines.
 
 ## CI
 
-Сам бандл собирается через `.github/workflows/ci.yml`: матрица PHP 8.2/8.3/8.4 × Symfony `^6.4`/`^7.0`, отдельный job на lowest-разрешённые зависимости, coverage-gate (минимум 90% line coverage), `composer validate --strict` + `composer audit` по расписанию (еженедельно, чтобы новая security-advisory всплыла даже без коммитов), и non-blocking канарейка на Symfony 8. Смотрите файл целиком как референс, если настраиваете CI для проекта, использующего бандл.
+The bundle itself is built by `.github/workflows/ci.yml`: a matrix of PHP 8.2/8.3/8.4/8.5 against Symfony `^6.4`/`^7.0`/`^8.0` — ten combinations, excluding Symfony 8 below PHP 8.4, where the combination cannot exist — plus a job on the lowest permitted dependencies, a coverage gate (90% line coverage minimum), PHPStan level 9, PHP-CS-Fixer, `composer validate --strict` and `composer audit` on a weekly schedule (so a new advisory surfaces even with no commits), and a non-blocking Symfony 9 canary. Read the file in full as a reference if you are setting up CI for a project that uses the bundle.
 
-Минимальный workflow для вашего собственного проекта, чтобы просто гонять тесты, использующие бандл:
+A minimal workflow for your own project, just to run tests that use the bundle:
 
 ```yaml
 name: tests
@@ -232,9 +232,9 @@ jobs:
         runs-on: ubuntu-latest
         strategy:
             matrix:
-                php: [8.2, 8.3, 8.4]
+                php: [8.2, 8.3, 8.4, 8.5]
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
             - uses: shivammathur/setup-php@v2
               with:
                   php-version: ${{ matrix.php }}
@@ -243,8 +243,8 @@ jobs:
             - run: ./vendor/bin/phpunit --coverage-text
 ```
 
-## Связанное
+## Related
 
-- [security_hardening.md](./security_hardening.md) — какие лимиты тестировать
-- [partial_updates.md](./partial_updates.md) — семантика wasProvided
-- [batch.md](./batch.md) — батч-кейсы
+- [security_hardening.md](./security_hardening.md) — which limits are worth testing
+- [partial_updates.md](./partial_updates.md) — the semantics of wasProvided
+- [batch.md](./batch.md) — batch cases

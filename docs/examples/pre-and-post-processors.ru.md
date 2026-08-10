@@ -1,21 +1,21 @@
 [English](pre-and-post-processors.md) · [Русский](pre-and-post-processors.ru.md)
 
-# Pre- and post-processors
+# Pre- и Post-процессоры
 
 ---
 
-## What this shows
+## Описание
 
-Every API method may have any number of pre- and post-processors.
+Каждый API-метод может иметь произвольное количество пре- и пост-процессоров.
 
-- **PreProcessor** — called **before** `call()` runs. Useful for logging requests, checking preconditions, preparing data.
-- **PostProcessor** — called **after** `call()` runs. Useful for logging responses, sending notifications, gathering metrics.
+- **PreProcessor** — вызывается **до** выполнения метода `call()`. Полезен для логирования запросов, проверки предусловий, подготовки данных.
+- **PostProcessor** — вызывается **после** выполнения метода `call()`. Полезен для логирования ответов, отправки уведомлений, сбора метрик.
 
-Processors are attached by implementing `PreProcessorInterface` and `PostProcessorInterface`.
+Процессоры подключаются через реализацию интерфейсов `PreProcessorInterface` и `PostProcessorInterface`.
 
 ---
 
-## Request and Response
+## Request и Response
 
 ```php
 <?php
@@ -70,17 +70,17 @@ class Response
 }
 ```
 
-## Processor traits
+## Трейты процессоров
 
-The recommended approach is to move processor logic into traits, so it can be reused across API methods without duplication.
+Рекомендуемый подход — выносить логику процессоров в трейты. Это позволяет переиспользовать их в разных API-методах без дублирования кода.
 
-Traits may take their dependencies through setter injection with the `#[Required]` attribute.
+Трейты могут использовать setter-инъекцию зависимостей через атрибут `#[Required]`.
 
 ### PreProcessor
 
-`getPreProcessors()` returns an array keyed by class name, where each value is an array of handler method names.
+Метод `getPreProcessors()` возвращает массив, где ключ — имя класса, а значение — массив имён методов-обработчиков.
 
-The handler signature: `function(string $processorClass, ?object $requestInstance = null): void`
+Сигнатура обработчика: `function(string $processorClass, ?object $requestInstance = null): void`
 
 ```php
 <?php
@@ -110,16 +110,16 @@ trait RpcPreProcessorTrait
 
     public function logBeforeCall(string $processorClass, ?object $requestInstance = null): void
     {
-        $this->logger->info(sprintf('PreProcessor: method %s was called', $processorClass));
+        $this->logger->info(sprintf('PreProcessor: вызван метод %s', $processorClass));
     }
 }
 ```
 
 ### PostProcessor
 
-The handler signature: `function(string $processorClass, ?object $requestInstance = null, ?OvResponseInterface $response = null): void`
+Сигнатура обработчика: `function(string $processorClass, ?object $requestInstance = null, ?OvResponseInterface $response = null): void`
 
-A PostProcessor additionally receives the response object, `$response`.
+PostProcessor дополнительно получает объект ответа `$response`.
 
 ```php
 <?php
@@ -150,14 +150,14 @@ trait RpcPostProcessorTrait
 
     public function logAfterCall(string $processorClass, ?object $requestInstance = null, ?OvResponseInterface $response = null): void
     {
-        $this->postLogger->info(sprintf('PostProcessor: method %s has finished', $processorClass));
+        $this->postLogger->info(sprintf('PostProcessor: метод %s выполнен', $processorClass));
     }
 }
 ```
 
-## An API method with processors
+## Метод API с процессорами
 
-The method class must implement `PreProcessorInterface` and/or `PostProcessorInterface`.
+Класс метода должен реализовать интерфейсы `PreProcessorInterface` и/или `PostProcessorInterface`.
 
 ```php
 <?php
@@ -190,16 +190,14 @@ class GetProductMethod implements ApiMethodInterface, PreProcessorInterface, Pos
 }
 ```
 
-## Order of execution
+## Порядок выполнения
 
 ```
-PreProcessor::logBeforeCall()     <-- BEFORE the method runs
+PreProcessor::logBeforeCall()     <-- ДО вызова метода
     |
-GetProductMethod::call()          <-- the actual logic
+GetProductMethod::call()          <-- Основная логика
     |
-PostProcessor::logAfterCall()     <-- AFTER the method runs
+PostProcessor::logAfterCall()     <-- ПОСЛЕ вызова метода
 ```
 
-> **Important:** a PostProcessor runs inside a `finally` block, so it is called even when `call()` throws.
->
-> **Since 5.0** an exception thrown from a PostProcessor no longer propagates: it is caught, written to the logger as `JSON-RPC post-response stage failed`, and does not affect the response. `finally` runs after the response has been formed — and, in a batch, after every element — so an exception from there used to overwrite a finished result and could abort the remaining elements. If a processor threw deliberately, move that logic into the method itself or into a PreProcessor.
+> **Важно:** PostProcessor выполняется в блоке `finally`, поэтому он будет вызван даже если метод `call()` выбросит исключение.

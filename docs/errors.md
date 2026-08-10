@@ -1,23 +1,25 @@
-# Обработка ошибок
+[English](errors.md) · [Русский](errors.ru.md)
 
-Бандл полностью реализует систему ошибок [JSON-RPC 2.0](https://www.jsonrpc.org/specification#error_object).
+# Error handling
 
----
-
-## Коды ошибок
-
-| Код | Константа | Когда возникает |
-|-----|-----------|----------------|
-| `-32700` | `JRPCException::PARSE_ERROR` | Невалидный JSON в теле запроса |
-| `-32600` | `JRPCException::INVALID_REQUEST` | Отсутствует `jsonrpc`, `method` или неверный формат |
-| `-32601` | `JRPCException::METHOD_NOT_FOUND` | Метод с указанным именем не зарегистрирован |
-| `-32602` | `JRPCException::INVALID_PARAMS` | Параметры не прошли валидацию типов |
-| `-32603` | `JRPCException::INTERNAL_ERROR` | Внутренняя ошибка сервера |
-| `-32000` | `JRPCException::SERVER_ERROR` | Серверная ошибка (зарезервировано: от -32000 до -32099) |
+The bundle implements the [JSON-RPC 2.0](https://www.jsonrpc.org/specification#error_object) error system in full.
 
 ---
 
-## Формат ошибки в ответе
+## Error codes
+
+| Code | Constant | When it occurs |
+|------|----------|----------------|
+| `-32700` | `JRPCException::PARSE_ERROR` | Invalid JSON in the request body |
+| `-32600` | `JRPCException::INVALID_REQUEST` | `jsonrpc` or `method` missing, or the shape is wrong |
+| `-32601` | `JRPCException::METHOD_NOT_FOUND` | No method is registered under that name |
+| `-32602` | `JRPCException::INVALID_PARAMS` | Parameters failed type validation |
+| `-32603` | `JRPCException::INTERNAL_ERROR` | An internal server error |
+| `-32000` | `JRPCException::SERVER_ERROR` | A server error (the range -32000 to -32099 is reserved for these) |
+
+---
+
+## The shape of an error response
 
 ```json
 {
@@ -30,15 +32,15 @@
 }
 ```
 
-Если `id` невозможно определить (например, при ошибке парсинга JSON), в ответе будет `"id": null`.
+When the `id` cannot be established — during a JSON parse failure, for instance — the response carries `"id": null`.
 
-> **Известное ограничение:** `id`, превышающий `PHP_INT_MAX`, не возвращается байт-в-байт. `json_decode()` конвертирует такое число в `float`, теряя точность (например, `9223372036854775999` может вернуться как `9223372036854776000`). Если вашим клиентам нужны большие численные id без потерь — передавайте `id` строкой.
+> **A known limitation:** an `id` above `PHP_INT_MAX` is not echoed back byte for byte. `json_decode()` turns such a number into a `float` and loses precision (`9223372036854775999` may come back as `9223372036854776000`). If your clients need large numeric ids intact, send the `id` as a string.
 
 ---
 
-## Бросание ошибок из метода
+## Throwing errors from a method
 
-Внутри `call()` можно бросить `JRPCException`, и бандл автоматически сформирует корректный JSON-RPC ответ с ошибкой:
+Inside `call()` you may throw a `JRPCException`, and the bundle assembles a correct JSON-RPC error response from it:
 
 ```php
 use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
@@ -63,7 +65,7 @@ class DeleteUserMethod implements ApiMethodInterface
 }
 ```
 
-Ответ:
+The response:
 
 ```json
 {
@@ -78,9 +80,9 @@ class DeleteUserMethod implements ApiMethodInterface
 
 ---
 
-## Дополнительная информация в ошибке
+## Extra information in an error
 
-Третий параметр конструктора `JRPCException` — `additionalInfo`. Он добавляется к сообщению через `Additional info:`:
+The third constructor parameter of `JRPCException` is `additionalInfo`. It is appended to the message after `Additional info:`:
 
 ```php
 throw new JRPCException(
@@ -90,7 +92,7 @@ throw new JRPCException(
 );
 ```
 
-Ответ:
+The response:
 
 ```json
 {
@@ -105,9 +107,9 @@ throw new JRPCException(
 
 ---
 
-## Серверные ошибки (Server Error)
+## Server errors
 
-Спецификация JSON-RPC 2.0 резервирует диапазон кодов от `-32000` до `-32099` для серверных ошибок. Бандл поддерживает весь этот диапазон:
+The JSON-RPC 2.0 specification reserves codes from `-32000` to `-32099` for server errors. The bundle supports the whole range:
 
 ```php
 throw new JRPCException(
@@ -116,13 +118,13 @@ throw new JRPCException(
 );
 ```
 
-Если передать код вне допустимых диапазонов, конструктор `JRPCException` бросит `Exception`.
+A code outside the permitted ranges makes the `JRPCException` constructor throw an `Exception`.
 
 ---
 
-## Необработанные исключения
+## Unhandled exceptions
 
-Если из `call()` бросается любое исключение, не являющееся `JRPCException` (например, `RuntimeException`, `TypeError`, ошибка Doctrine), бандл перехватывает его и прогоняет через `OV\JsonRPCAPIBundle\Core\Services\ErrorSanitizer` **прежде** чем сформировать ответ. С версии 4.0 санитайзер делает ровно противоположное тому, что было в 3.x: код и сообщение клиенту **не** передаются как есть. Вместо этого клиент получает дженерик-ошибку, а оригинальное исключение (со stack trace) уходит в `Psr\Log\LoggerInterface`:
+When `call()` throws anything that is not a `JRPCException` — a `RuntimeException`, a `TypeError`, a Doctrine failure — the bundle catches it and passes it through `OV\JsonRPCAPIBundle\Core\Services\ErrorSanitizer` **before** the response is assembled. Since 4.0 the sanitiser does precisely the opposite of what 3.x did: the code and message are **not** handed to the client as they are. The client receives a generic error, and the original exception, stack trace included, goes to `Psr\Log\LoggerInterface`:
 
 ```json
 {
@@ -135,20 +137,20 @@ throw new JRPCException(
 }
 ```
 
-Такое поведение — production-safe дефолт: `RuntimeException('DB password: ...')` или путь до файла из `TypeError` больше не долетают до клиента.
+That is the production-safe default: `RuntimeException('DB password: ...')`, or a file path out of a `TypeError`, no longer reaches the client.
 
 ### `expose_internal_errors`
 
-Для локальной отладки санитайзер можно отключить конфигом `expose_internal_errors: true` — тогда оригинальное сообщение исключения (но не произвольный код — вне допустимых JSON-RPC диапазонов код всё равно нормализуется в `-32603`) уходит клиенту как есть:
+For local debugging the sanitiser can be switched off with `expose_internal_errors: true`, after which the original exception message reaches the client as-is — though not an arbitrary code: outside the permitted JSON-RPC ranges the code is still normalised to `-32603`:
 
 ```yaml
 # config/packages/ov_json_rpc_api.yaml
 ov_json_rpc_api:
-    expose_internal_errors: true # только для dev/test, никогда в prod
+    expose_internal_errors: true # dev and test only, never production
 ```
 
-`JRPCException`, брошенный из вашего кода, всегда проходит через санитайзер без изменений — это единственный тип исключения, который считается частью намеренного API-контракта, а не утечкой внутренностей.
+A `JRPCException` thrown from your own code always passes through the sanitiser unchanged — it is the one exception type treated as part of a deliberate API contract rather than as internals leaking out.
 
-> **Важно:** `expose_internal_errors: false` (дефолт) — это последняя линия защиты, а не единственная. В production-окружении по-прежнему рекомендуется оборачивать бизнес-логику в `try/catch` и бросать `JRPCException` с понятными сообщениями, чтобы клиент получал осмысленную диагностику вместо голого `Internal error.`.
+> **Important:** `expose_internal_errors: false` (the default) is the last line of defence, not the only one. In production it is still worth wrapping business logic in `try/catch` and throwing a `JRPCException` with a meaningful message, so the client gets a useful diagnostic rather than a bare `Internal error.`
 >
-> Подробнее о лимитах и security-конфигурации — [security_hardening.md](./security_hardening.md).
+> More on limits and security configuration — [security_hardening.md](./security_hardening.md).

@@ -1,13 +1,14 @@
-# Бинарный ответ (PlainResponse)
+[English](plain_response.md) · [Русский](plain_response.ru.md)
+
+# A binary response (PlainResponse)
 
 ---
 
-## Описание
+## What this shows
 
-Иногда API должен возвращать не JSON, а бинарные данные — изображение, документ, PDF-файл и т.д.
-Для этого используется `PlainResponseInterface`.
+Sometimes an API has to return binary data rather than JSON — an image, a document, a PDF. `PlainResponseInterface` exists for that.
 
-Если метод `call()` возвращает объект, реализующий `PlainResponseInterface`, бандл отдаст его как есть (без JSON-RPC обёртки), добавив только CORS-заголовки.
+When `call()` returns an object implementing `PlainResponseInterface`, the bundle passes it through as-is, without the JSON-RPC envelope, adding only the CORS headers.
 
 ---
 
@@ -42,7 +43,7 @@ class Request
 
 ## PlainResponse
 
-Класс ответа должен наследовать `Symfony\Component\HttpFoundation\Response` и реализовать `PlainResponseInterface`:
+The response class must extend `Symfony\Component\HttpFoundation\Response` and implement `PlainResponseInterface`:
 
 ```php
 <?php
@@ -59,9 +60,9 @@ class PlainResponse extends Response implements PlainResponseInterface
 }
 ```
 
-## ErrorResponse (для ошибок)
+## ErrorResponse (for failures)
 
-Если в некоторых случаях нужно вернуть обычный JSON-ответ вместо бинарного (например, при ошибке), создайте отдельный класс. Он **не** реализует `PlainResponseInterface`, поэтому бандл обернёт его в стандартный JSON-RPC ответ:
+When some paths need an ordinary JSON reply instead of a binary one — on an error, say — create a separate class. It does **not** implement `PlainResponseInterface`, so the bundle wraps it in the standard JSON-RPC response:
 
 ```php
 <?php
@@ -81,10 +82,9 @@ class ErrorResponse
 }
 ```
 
-## Метод API
+## The API method
 
-В реальном коде метод часто возвращает **Union-тип**: бинарный ответ при успехе или JSON-ответ при ошибке.
-Бандл автоматически определяет, реализует ли возвращённый объект `PlainResponseInterface`, и обрабатывает его соответственно.
+In real code a method often returns a **union type**: a binary response on success, a JSON one on failure. The bundle works out on its own whether the returned object implements `PlainResponseInterface` and handles it accordingly.
 
 ```php
 <?php
@@ -122,17 +122,17 @@ class GetProductDocumentMethod implements ApiMethodInterface
 }
 ```
 
-> **Как это работает внутри бандла:** в `RequestHandler::processBatch()` после вызова `call()` проверяется, реализует ли ответ `PlainResponseInterface`. Если да — ответ отдаётся напрямую с CORS-заголовками. Если нет — оборачивается в JSON-RPC 2.0 формат.
+> **How this works inside the bundle:** in `RequestHandler::processBatch()`, after `call()` returns, the response is checked for `PlainResponseInterface`. If it implements it, the response goes out directly with CORS headers; if not, it is wrapped in the JSON-RPC 2.0 format.
 >
-> **Исключение: внутри batch.** Batch-ответ — это JSON-массив объектов, и бинарное тело в него не помещается: раньше такой элемент ломал структуру всего ответа. С 5.0 plain-ответ, возвращённый из элемента batch-запроса, даёт `-32603` с пояснением `Plain responses are not supported inside a batch request.` Вызывайте методы с бинарным ответом одиночным запросом.
+> **One exception: inside a batch.** A batch response is a JSON array of objects, and a binary body does not fit inside one — such an element used to break the structure of the whole response. Since 5.0 a plain response returned from a batch element gives `-32603` with the explanation `Plain responses are not supported inside a batch request.` Call methods with binary responses as single requests.
 
-## Примеры Content-Type
+## Content-Type examples
 
-| Тип данных | Content-Type |
-|------------|-------------|
-| PNG-изображение | `image/png` |
-| JPEG-изображение | `image/jpeg` |
-| PDF-документ | `application/pdf` |
+| Data | Content-Type |
+|------|--------------|
+| PNG image | `image/png` |
+| JPEG image | `image/jpeg` |
+| PDF document | `application/pdf` |
 | Excel (xlsx) | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` |
 | CSV | `text/csv` |
-| ZIP-архив | `application/zip` |
+| ZIP archive | `application/zip` |

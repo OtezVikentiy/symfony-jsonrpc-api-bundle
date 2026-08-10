@@ -1,29 +1,29 @@
 [English](roles.md) · [Русский](roles.ru.md)
 
-# Role-based access
+# Ролевой доступ
 
 ---
 
-## What this is
+## Описание
 
-The bundle supports two levels of access control:
+Бандл поддерживает два уровня контроля доступа:
 
-1. **Global** — through Symfony's `security.yaml` (restricting access to the URLs `/api/v1`, `/api/v2` and so on).
-2. **Per method** — through the `roles` parameter of the `#[JsonRPCAPI]` attribute (restricting access to a particular JSON-RPC method).
+1. **Глобальный** — через `security.yaml` Symfony (ограничение доступа к URL `/api/v1`, `/api/v2` и т.д.)
+2. **На уровне метода** — через параметр `roles` в атрибуте `#[JsonRPCAPI]` (ограничение доступа к конкретному JSON-RPC методу)
 
-When the required role is missing, the bundle returns an ordinary JSON-RPC error object with code `-32000` and HTTP status 200 — **not** HTTP 403:
+При отсутствии нужной роли бандл возвращает обычный JSON-RPC error-объект с кодом `-32000` и HTTP-статусом 200 — **не** HTTP 403:
 
 ```json
 {"jsonrpc": "2.0", "error": {"code": -32000, "message": "Access denied."}, "id": "1"}
 ```
 
-More on the format — [troubleshooting.md](../troubleshooting.md#access-denied--32000).
+Подробнее о формате — [troubleshooting.md](../troubleshooting.ru.md#access-denied--32000).
 
 ---
 
-## Global control through security.yaml
+## Глобальный контроль через security.yaml
 
-The standard Symfony approach to restricting access to URLs:
+Стандартный подход Symfony для ограничения доступа к URL:
 
 ```yaml
 # config/packages/security.yaml
@@ -37,9 +37,9 @@ security:
         - {path: /api, roles: IS_AUTHENTICATED_FULLY}
 ```
 
-## Per-method control
+## Контроль на уровне метода
 
-The `roles` parameter of the `#[JsonRPCAPI]` attribute states which roles may reach a given method. Holding **at least one** of the listed roles grants access.
+Параметр `roles` в атрибуте `#[JsonRPCAPI]` позволяет указать, какие роли имеют доступ к конкретному методу. Если у пользователя есть **хотя бы одна** из указанных ролей, доступ разрешён.
 
 ```php
 <?php
@@ -56,7 +56,7 @@ use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 )]
 class GetUsersMethod implements ApiMethodInterface
 {
-    // ROLE_ADMIN only
+    // Доступ только для ROLE_ADMIN
 }
 ```
 
@@ -71,7 +71,7 @@ use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 )]
 class GetAdminUsersMethod implements ApiMethodInterface
 {
-    // ROLE_SUPER_ADMIN only
+    // Доступ только для ROLE_SUPER_ADMIN
 }
 ```
 
@@ -86,13 +86,13 @@ use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 )]
 class CreateUserMethod implements ApiMethodInterface
 {
-    // ROLE_SUPER_ADMIN OR ROLE_ADMIN
+    // Доступ для ROLE_SUPER_ADMIN ИЛИ ROLE_ADMIN
 }
 ```
 
-## Versioning and roles
+## Версионирование и роли
 
-Different API versions may serve different groups of users:
+Разные версии API могут обслуживать разные группы пользователей:
 
 ```php
 <?php
@@ -110,7 +110,7 @@ use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 )]
 class GetClientsMethod implements ApiMethodInterface
 {
-    // Reachable through /api/v2 by operators and insurers
+    // Доступ через /api/v2 для операционистов и страховщиков
 }
 ```
 
@@ -130,13 +130,13 @@ use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 )]
 class GetInsuranceListMethod implements ApiMethodInterface
 {
-    // Reachable through /api/v2 by insurers only
+    // Доступ через /api/v2 только для страховщиков
 }
 ```
 
-## Methods without restrictions
+## Методы без ограничений
 
-When `roles` is absent or an empty array, the method is unrestricted at the bundle's level. The `security.yaml` restrictions still apply.
+Если параметр `roles` не указан или передан пустой массив, доступ к методу не ограничен (на уровне бандла). Ограничения `security.yaml` всё ещё применяются.
 
 ```php
 use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
@@ -145,6 +145,6 @@ use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
 #[JsonRPCAPI(methodName: 'publicMethod', type: 'POST')]
 class PublicMethod implements ApiMethodInterface
 {
-    // Reachable by every authenticated user, subject to security.yaml
+    // Доступ для всех авторизованных пользователей (в зависимости от security.yaml)
 }
 ```

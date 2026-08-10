@@ -1,14 +1,16 @@
+[English](partial_updates.md) · [Русский](partial_updates.ru.md)
+
 # Partial updates (JSON Merge Patch)
 
-`OV\JsonRPCAPIBundle\Core\Request\PartialRequestInterface` — opt-in контракт, который позволяет сервис-слою различать «поле не передано в payload» от «поле передано как `null`». Это нужно для PATCH-сценариев, где клиент шлёт только изменённые поля и должен иметь возможность **очистить** поле, передав `null`.
+`OV\JsonRPCAPIBundle\Core\Request\PartialRequestInterface` is an opt-in contract that lets the service layer tell "this field was not sent in the payload" from "this field was sent as `null`". It exists for PATCH scenarios, where the client sends only the fields it changed and must be able to **clear** a field by sending `null`.
 
-Семантика соответствует [RFC 7396 (JSON Merge Patch)](https://datatracker.ietf.org/doc/html/rfc7396).
+The semantics follow [RFC 7396 (JSON Merge Patch)](https://datatracker.ietf.org/doc/html/rfc7396).
 
 ---
 
-## Зачем нужен
+## Why it is needed
 
-Типовая реализация Update-метода:
+A typical update method:
 
 ```php
 public function call(UpdateUserRequest $request): Response
@@ -25,17 +27,18 @@ public function call(UpdateUserRequest $request): Response
 }
 ```
 
-Здесь скрыта проблема: `null` в DTO означает одновременно две вещи:
-- «клиент не передал это поле» — дефолтное значение свойства DTO;
-- «клиент явно передал `null`» — фреймворк хранит это в свойстве после set-а.
+There is a problem hidden in there: `null` in the DTO means two things at once —
 
-Сервис не может различить эти случаи. В результате **очистка поля невозможна**: при попытке отправить `{"email": null}` сервис прокинет `null !== null === false` и НЕ вызовет setter.
+- "the client did not send this field", which is the property's default value; and
+- "the client explicitly sent `null`", which the framework stores in the property after setting it.
+
+The service cannot tell them apart, and as a result **clearing a field is impossible**: sending `{"email": null}` makes the service evaluate `null !== null` as `false` and skip the setter.
 
 ---
 
-## Решение
+## The solution
 
-DTO реализует `PartialRequestInterface`, и фреймворк трекает, какие поля реально пришли в payload. Сервис использует `wasProvided()`:
+The DTO implements `PartialRequestInterface`, and the framework tracks which fields actually arrived in the payload. The service then uses `wasProvided()`:
 
 ```php
 public function call(UpdateUserRequest $request): Response
@@ -43,7 +46,7 @@ public function call(UpdateUserRequest $request): Response
     $user = $this->userRepository->find($request->getId());
 
     if ($request->wasProvided('email')) {
-        $user->setEmail($request->getEmail()); // null = очистить
+        $user->setEmail($request->getEmail()); // null means clear it
     }
     if ($request->wasProvided('bio')) {
         $user->setBio($request->getBio());
@@ -54,11 +57,11 @@ public function call(UpdateUserRequest $request): Response
 
 ---
 
-## Использование
+## Using it
 
-### Через базовый класс `PartialUpdateRequest`
+### Through the `PartialUpdateRequest` base class
 
-Самый короткий путь — наследоваться от `PartialUpdateRequest`. Он сразу даёт `toArray()` (от `JsonRpcRequest`), реализацию `PartialRequestInterface` и трейт `TracksProvidedFieldsTrait`.
+The shortest route is to extend `PartialUpdateRequest`. It brings `toArray()` (from `JsonRpcRequest`), the `PartialRequestInterface` implementation and the `TracksProvidedFieldsTrait` in one step.
 
 ```php
 namespace App\RPC\V1\UpdateUser;
@@ -86,9 +89,9 @@ class Request extends PartialUpdateRequest
 }
 ```
 
-### Через интерфейс + трейт
+### Through the interface plus the trait
 
-Если базовый класс уже занят, можно собрать вручную:
+When the base class is already taken, assemble it by hand:
 
 ```php
 use OV\JsonRPCAPIBundle\Core\Request\PartialRequestInterface;
@@ -98,41 +101,41 @@ class Request implements PartialRequestInterface
 {
     use TracksProvidedFieldsTrait;
 
-    // ... поля и геттеры/сеттеры
+    // ... fields with getters and setters
 }
 ```
 
-### Своя реализация интерфейса
+### Your own implementation
 
-Трейт не обязателен. Можно реализовать `markProvided` / `wasProvided` / `getProvidedFields` вручную, если нужна особая логика хранения.
+The trait is not compulsory. `markProvided` / `wasProvided` / `getProvidedFields` can be implemented by hand when the storage needs particular logic.
 
 ---
 
-## Семантика payload-а
+## Payload semantics
 
-| Payload | `wasProvided('email')` | `getEmail()` | Поведение в сервисе |
+| Payload | `wasProvided('email')` | `getEmail()` | What the service should do |
 |---|---|---|---|
-| `{"email": "new@x.com"}` | `true` | `"new@x.com"` | установить новое значение |
-| `{"email": null}` | `true` | `null` | очистить поле |
-| `{}` (ключ отсутствует) | `false` | `null` (дефолт) | не трогать поле |
+| `{"email": "new@x.com"}` | `true` | `"new@x.com"` | set the new value |
+| `{"email": null}` | `true` | `null` | clear the field |
+| `{}` (key absent) | `false` | `null` (the default) | leave the field alone |
 
-Это в точности соответствует JSON Merge Patch (RFC 7396).
-
----
-
-## Когда `markProvided` НЕ вызывается
-
-Фреймворк вызывает `markProvided($name)` только когда ключ **реально присутствовал** в raw JSON-RPC payload. В следующих случаях вызов не происходит:
-
-1. **Ключ отсутствует, но в спеке метода есть `defaultValue`.** Свойство DTO будет заполнено дефолтом из спеки, но `wasProvided` вернёт `false` — это значение от бандла, а не от клиента.
-2. **Синтетический параметр `params`** (используется для bulk-payload-ов вида `[42, 23]`).
-3. **DTO не реализует `PartialRequestInterface`.** Тогда трекинг полностью отключён (BC).
+That is exactly JSON Merge Patch (RFC 7396).
 
 ---
 
-## Вложенные DTO
+## When `markProvided` is NOT called
 
-`PartialRequestInterface` работает рекурсивно для вложенных объектов. Если у вас есть DTO с вложенным объектом-аддресом, и оба реализуют интерфейс — трекинг распространяется на оба уровня:
+The framework calls `markProvided($name)` only when the key was **actually present** in the raw JSON-RPC payload. It is not called when:
+
+1. **The key is absent but the method specification carries a `defaultValue`.** The DTO property is filled from the specification, but `wasProvided` returns `false` — the value came from the bundle, not from the client.
+2. **The synthetic `params` parameter** is in play (used for bulk payloads such as `[42, 23]`).
+3. **The DTO does not implement `PartialRequestInterface`.** Tracking is then off entirely, for backward compatibility.
+
+---
+
+## Nested DTOs
+
+`PartialRequestInterface` works recursively for nested objects. If you have a DTO with a nested address object and both implement the interface, tracking covers both levels:
 
 ```php
 class AddressDto implements PartialRequestInterface
@@ -150,7 +153,7 @@ class UpdateUserRequest extends PartialUpdateRequest
 }
 ```
 
-Для payload-а `{"address": {"city": "Moscow"}}`:
+For the payload `{"address": {"city": "Moscow"}}`:
 
 ```php
 $request->wasProvided('address');                 // true
@@ -158,25 +161,27 @@ $request->getAddress()->wasProvided('city');      // true
 $request->getAddress()->wasProvided('street');    // false
 ```
 
-Это соответствует object-merge-семантике RFC 7396.
+That matches the object-merge semantics of RFC 7396.
 
 ---
 
-## Обратная совместимость
+## Backward compatibility
 
-- DTO, не реализующие `PartialRequestInterface`, ведут себя ровно как до 3.9. Никаких изменений в поведении или сигнатурах публичных API.
-- `instanceof`-проверка короткозамкнута: если DTO без интерфейса — фреймворк не делает лишних вызовов.
-- Конфигурационный флаг не нужен: opt-in через интерфейс сам по себе toggle на уровне Request-класса.
+- DTOs that do not implement `PartialRequestInterface` behave exactly as before 3.9. No behaviour and no public signature changed.
+- The `instanceof` check short-circuits: for a DTO without the interface the framework makes no extra calls.
+- No configuration flag is needed: opting in through the interface is itself the toggle, at the level of a single Request class.
 
 ---
 
-## Edge-кейсы
+## Edge cases
 
-### Required-поля
-Если поле должно быть обязательным даже в PATCH-сценарии (например, `id` для идентификации записи), используйте обычный `Required` в спеке валидации. `wasProvided` не отменяет валидацию.
+### Required fields
 
-### Поля, которые нельзя очищать
-Например, пароль пользователя — клиент может его менять, но не очищать. Реализуйте логику в сервисе:
+If a field must be required even in a PATCH scenario — `id`, to identify the record — use an ordinary `Required` constraint in the validation specification. `wasProvided` does not replace validation.
+
+### Fields that must not be cleared
+
+A user's password, for instance: the client may change it but not clear it. Put that logic in the service:
 
 ```php
 if ($request->wasProvided('password') && $request->getPassword() !== null) {
@@ -184,28 +189,32 @@ if ($request->wasProvided('password') && $request->getPassword() !== null) {
 }
 ```
 
-### Boolean-поля
-`false` — валидное значение, не путайте с `null`. `wasProvided` корректно различает все четыре случая (`true` / `false` / `null` / отсутствие ключа).
+### Boolean fields
 
-### Коллекции
-Конвенция:
-- `null` (явно) → клиент хочет очистить связи (если бизнес-логика это разрешает).
-- `[]` → пустая коллекция (тоже очистка).
-- массив значений → полная замена.
-- ключ отсутствует → не трогать.
+`false` is a valid value; do not confuse it with `null`. `wasProvided` distinguishes all four cases correctly (`true` / `false` / `null` / key absent).
 
-### Audit-log
-Метод `getProvidedFields()` возвращает список реально переданных полей — удобно для логирования только настоящих изменений.
+### Collections
+
+The convention:
+
+- explicit `null` → the client wants the relations cleared, if the business logic permits it;
+- `[]` → an empty collection, which is also clearing;
+- an array of values → a full replacement;
+- key absent → leave it alone.
+
+### Audit logs
+
+`getProvidedFields()` returns the list of fields actually sent — convenient for logging only the real changes.
 
 ---
 
-## Как фреймворк это делает
+## How the framework does it
 
-В `RequestHandler::hydrateRequest()` есть две ветки получения значения:
+`RequestHandler::hydrateRequest()` has two branches for obtaining a value:
 
-1. `array_key_exists($name, $baseRequest->getParams())` — ключ в payload. Только в этом случае поле будет помечено через `markProvided`.
-2. `array_key_exists('defaultValue', $allParameter)` — фолбэк на дефолт из спеки. Поле НЕ помечается.
+1. `array_key_exists($name, $baseRequest->getParams())` — the key is in the payload. Only in this case is the field marked through `markProvided`.
+2. `array_key_exists('defaultValue', $allParameter)` — a fallback to the specification's default. The field is NOT marked.
 
-Симметричная логика реализована в `prepareParametersFromClass()` для рекурсивной гидратации вложенных DTO.
+The symmetric logic lives in `prepareParametersFromClass()` for recursive hydration of nested DTOs.
 
-Подробности — в исходном коде `RequestHandler.php` (методы `hydrateRequest` и `prepareParametersFromClass`).
+The details are in the source of `RequestHandler.php` — the `hydrateRequest` and `prepareParametersFromClass` methods.

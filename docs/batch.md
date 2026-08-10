@@ -1,10 +1,12 @@
-# Batch-запросы
+[English](batch.md) · [Русский](batch.ru.md)
 
-Бандл поддерживает batch-формат JSON-RPC 2.0 — массив объектов-запросов в одном HTTP-запросе. Каждый элемент массива обрабатывается отдельно, и ответ — массив отдельных ответов.
+# Batch requests
 
-Batch определяется по **форме контейнера**, а не по содержимому первого элемента: любой непустой JSON-массив-список (`array_is_list()`) обрабатывается как batch, даже если часть или все его элементы невалидны как JSON-RPC запросы. Так `[{"foo": "boo"}, {валидный запрос}]` вернёт массив с ошибкой для первого элемента и результатом для второго — а не тихо потеряет валидный вызов, как если бы всё определялось по первому элементу.
+The bundle supports the JSON-RPC 2.0 batch format — an array of request objects in one HTTP request. Each element is handled separately, and the response is an array of separate responses.
 
-## Базовый пример
+A batch is recognised by the **shape of the container**, not by the contents of its first element: any non-empty JSON array that is a list (`array_is_list()`) is handled as a batch, even when some or all of its elements are invalid as JSON-RPC requests. So `[{"foo": "boo"}, {a valid request}]` returns an array with an error for the first element and a result for the second — rather than silently losing the valid call, as it would if the first element decided everything.
+
+## A basic example
 
 ```bash
 curl -X POST http://localhost/api/v1 \
@@ -16,7 +18,7 @@ curl -X POST http://localhost/api/v1 \
   ]'
 ```
 
-Ответ:
+The response:
 ```json
 [
     {"jsonrpc": "2.0", "result": {"result": 7}, "id": "1"},
@@ -24,15 +26,15 @@ curl -X POST http://localhost/api/v1 \
 ]
 ```
 
-Запрос `notify_hello` — notification (без `id`) и в строгом режиме ответа не получает.
+`notify_hello` is a notification (it has no `id`) and receives no response in strict mode.
 
-> **Почему `result` вложен.** Спецификация не задаёт форму `result` — там лежит то, что вернул метод. Метод возвращает Response-DTO, и бандл сериализует его через публичные геттеры, поэтому в `result` оказывается объект со свойствами этого DTO. В примерах выше у DTO одно свойство, тоже названное `result`, отсюда `{"result": {"result": 7}}`. Если Response-DTO объявляет `success`, `title`, `price` — в `result` будут они; развёрнутый пример есть в [README](../README.md).
+> **Why `result` is nested.** The specification does not prescribe the shape of `result` — whatever the method returned goes there. The method returns a response DTO, and the bundle serialises it through its public getters, so `result` holds an object with that DTO's properties. In the examples above the DTO has one property, also named `result`, hence `{"result": {"result": 7}}`. If a response DTO declares `success`, `title` and `price`, those are what `result` holds; a worked example is in the [README](../README.md).
 
-Вложенность возникает именно из-за DTO, а не сама по себе: `call()` возвращающий скаляр даёт `{"result": 7}` без обёртки. Форму `result` определяет то, что вернул ваш метод, — типовой способ (и тот, что используют все примеры документации) состоит в возврате Response-DTO.
+The nesting comes from the DTO, not from the protocol: a `call()` returning a scalar gives `{"result": 7}` with no wrapper. The shape of `result` is decided by what your method returns — and returning a response DTO is the usual way, and the one every example in this documentation uses.
 
-## Размер batch'а
+## Batch size
 
-С версии 4.0 действует лимит `max_batch_size` (default = 50). Превышение → весь batch отвергается одним ответом:
+Since 4.0 a `max_batch_size` limit applies (default 50). Exceeding it rejects the whole batch with a single response:
 
 ```json
 {
@@ -45,14 +47,15 @@ curl -X POST http://localhost/api/v1 \
 }
 ```
 
-Зачем лимит: каждый запрос обрабатывается **последовательно** (нет внутреннего параллелизма). Без лимита один HTTP-запрос с 100 000 элементов мог занять минуты и съесть память — DoS-вектор. Подбирайте `max_batch_size` под:
-- профиль ваших методов (если все методы быстрые — 100-200 ок; если кто-то тяжёлый — 10-20);
-- SLA latency endpoint'а;
-- бюджет памяти PHP-процесса.
+Why the limit exists: every request is handled **sequentially** — there is no internal parallelism. Without a limit, one HTTP request carrying 100,000 elements could run for minutes and exhaust memory, which is a denial-of-service vector. Choose `max_batch_size` against:
 
-## Порядок обработки
+- the profile of your methods (if they are all fast, 100–200 is fine; if any is heavy, 10–20);
+- the latency SLA of the endpoint;
+- the memory budget of a PHP process.
 
-Запросы обрабатываются последовательно в порядке массива. Ответы возвращаются **в том же порядке**, в каком пришли запросы. Идентификация — через `id`-поле:
+## Order of processing
+
+Requests are handled sequentially, in array order. Responses come back **in the same order** the requests arrived. Identification is through the `id` field:
 
 ```json
 [
@@ -61,7 +64,7 @@ curl -X POST http://localhost/api/v1 \
 ]
 ```
 
-Гарантируется ответ:
+The guaranteed response:
 ```json
 [
     {"jsonrpc": "2.0", "result": ..., "id": 1},
@@ -69,9 +72,9 @@ curl -X POST http://localhost/api/v1 \
 ]
 ```
 
-## Batch со всеми notification
+## A batch of nothing but notifications
 
-Если в batch'е каждый элемент — notification (без `id`), сервер **не должен** возвращать ничего. Бандл возвращает HTTP 200 с пустым telом.
+If every element of a batch is a notification (has no `id`), the server **must** return nothing. The bundle returns HTTP 200 with an empty body.
 
 ```json
 [
@@ -81,9 +84,9 @@ curl -X POST http://localhost/api/v1 \
 ```
 → HTTP 200, body = `""`
 
-## Mixed batch
+## A mixed batch
 
-Если есть и запросы, и notifications — ответ содержит только запросы.
+When requests and notifications are mixed, the response contains only the requests.
 
 ```json
 [
@@ -91,11 +94,11 @@ curl -X POST http://localhost/api/v1 \
     {"jsonrpc": "2.0", "method": "log_event"}
 ]
 ```
-→ ответ содержит только результат `sum`, notification обрабатывается, но не возвращается.
+→ the response holds only the result of `sum`; the notification runs but is not returned.
 
-## Ошибки в batch'е
+## Errors inside a batch
 
-Ошибка в одном запросе не прерывает обработку остальных. Каждый запрос-with-id получает свой response — успех или ошибку независимо:
+An error in one request does not stop the others. Every request carrying an `id` gets its own response — success or error, independently:
 
 ```json
 [
@@ -111,39 +114,39 @@ curl -X POST http://localhost/api/v1 \
 ]
 ```
 
-## Граничные случаи
+## Edge cases
 
-### Пустой массив
+### An empty array
 
 ```json
 []
 ```
-→ `INVALID_REQUEST` (-32600). По спеку empty batch — невалидный запрос.
+→ `INVALID_REQUEST` (-32600). By the specification an empty batch is an invalid request.
 
-### Batch размера 1
+### A batch of one
 
 ```json
 [{"jsonrpc": "2.0", "method": "sum", "id": 1}]
 ```
-→ обрабатывается как single batch (Factory различает массив-of-arrays vs одиночный объект). Ответ — массив с одним элементом.
+→ handled as a single-element batch (the factory tells an array-of-arrays from a lone object). The response is an array with one element.
 
-### Невалидный JSON
+### Invalid JSON
 
 ```
 [{"jsonrpc": "2.0", "method": ...
 ```
-→ `PARSE_ERROR` (-32700), весь batch отвергается.
+→ `PARSE_ERROR` (-32700); the whole batch is rejected.
 
-## Транзакционность
+## Transactionality
 
-Бандл **не предоставляет транзакционных гарантий** для batch'ей. Если запрос #3 упал, запросы #1 и #2 уже выполнены. Если нужен all-or-nothing — сделайте отдельный «бизнес-метод» который принимает массив операций и в случае неуспеха откатывает всё.
+The bundle **offers no transactional guarantees** for batches. If request #3 fails, requests #1 and #2 have already run. When you need all-or-nothing, write a single "business method" that accepts an array of operations and rolls everything back on failure.
 
-## Pre/Post-процессоры
+## Pre- and post-processors
 
-Pre/post-процессоры вызываются для каждого запроса в batch'е независимо. Глобального процессора «на весь batch» нет.
+Pre- and post-processors are invoked for each request in a batch independently. There is no global "whole batch" processor.
 
-## Связанное
+## Related
 
-- [security_hardening.md](./security_hardening.md) — `max_batch_size` и другие лимиты
-- [notifications.md](./notifications.md) — strict vs lenient mode
-- [errors.md](./errors.md) — коды ошибок, формат
+- [security_hardening.md](./security_hardening.md) — `max_batch_size` and the other limits
+- [notifications.md](./notifications.md) — strict versus lenient mode
+- [errors.md](./errors.md) — error codes and their shape

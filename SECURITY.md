@@ -13,7 +13,7 @@
 Majors before 4.0 receive no security patches. 4.0 was itself a
 security-hardening release that closed the problems known at the time (see
 [docs/upgrade-4.0.md](./docs/upgrade-4.0.md) and
-[docs/upgrade-5.0.en.md](./docs/upgrade-5.0.en.md)). Upgrading to the current
+[docs/upgrade-5.0.md](./docs/upgrade-5.0.md)). Upgrading to the current
 major is the most reliable way to have the fixes.
 
 ## Reporting a vulnerability
@@ -50,7 +50,7 @@ majority of users.
   `max_dto_depth`, `max_array_param_size`) at its default or documented value.
 - Disclosure of data that the response contract does not describe — for
   example a field with no getter reaching the JSON anyway; see
-  [docs/upgrade-5.0.en.md](./docs/upgrade-5.0.en.md) item 3.
+  [docs/upgrade-5.0.md](./docs/upgrade-5.0.md) item 3.
 - Bypassing the role check (`RequestHandler::checkRoles()`), the CORS
   whitelist, or the Content-Type check.
 - Internal information leaking through a response — a stack trace, a file
@@ -74,7 +74,7 @@ majority of users.
 - Problems in code written by the consumer of the bundle — a request or
   response DTO exposing a sensitive field, a public setter where a private one
   belongs. That is the integrator's responsibility; see
-  [docs/upgrade-5.0.en.md](./docs/upgrade-5.0.en.md) for how response
+  [docs/upgrade-5.0.md](./docs/upgrade-5.0.md) for how response
   serialisation works.
 
 ## What is already in place
@@ -97,7 +97,7 @@ Briefly, for context before you report — the problem may already be closed:
   declared `#[JsonRPCAPI(type: 'GET')]`** — a GET request has no body and its
   payload comes from the query string. Such methods must be idempotent and
   free of side effects; declare anything that changes state as
-  POST/PUT/PATCH/DELETE. See [docs/upgrade-5.0.en.md](./docs/upgrade-5.0.en.md)
+  POST/PUT/PATCH/DELETE. See [docs/upgrade-5.0.md](./docs/upgrade-5.0.md)
   item 1 and [docs/security_hardening.md](./docs/security_hardening.md).
 - **Strict parameter typing** (since 5.0) — scalars are not coerced, and
   non-public setters are not called.

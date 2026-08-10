@@ -88,7 +88,7 @@ documentation that disagrees with the code is worse than no documentation,
 because it misleads silently.
 
 For BC-breaking changes destined for a major release, add an item to
-`docs/upgrade-X.0.md` (create the file following `docs/upgrade-5.0.en.md` if
+`docs/upgrade-X.0.md` (create the file following `docs/upgrade-5.0.md` if
 the release does not exist yet): what it was, what it is, what breaks for
 consumers, what to do about it.
 

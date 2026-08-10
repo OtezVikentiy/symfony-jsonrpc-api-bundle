@@ -1,27 +1,29 @@
-# JWT-аутентификация
+[English](jwt_bundle.md) · [Русский](jwt_bundle.ru.md)
+
+# JWT authentication
 
 ---
 
-## Описание
+## What this is
 
-Для полноценной JWT-аутентификации рекомендуется использовать бандл `lexik/jwt-authentication-bundle`. Он протестирован в связке с данным бандлом и работает без дополнительных настроек.
+For full JWT authentication, `lexik/jwt-authentication-bundle` is the recommended choice. It has been tested alongside this bundle and works without extra configuration.
 
 ---
 
-## Ссылки
+## Links
 
-- [Документация Symfony](https://symfony.com/bundles/LexikJWTAuthenticationBundle/current/index.html)
-- [GitHub репозиторий](https://github.com/lexik/LexikJWTAuthenticationBundle)
+- [Symfony documentation](https://symfony.com/bundles/LexikJWTAuthenticationBundle/current/index.html)
+- [GitHub repository](https://github.com/lexik/LexikJWTAuthenticationBundle)
 
-## Установка
+## Installation
 
 ```bash
 composer require lexik/jwt-authentication-bundle
 ```
 
-Установка и настройка выполняется по инструкции бандла `lexik/jwt-authentication-bundle`. Для серверных клиентов (backend-to-backend, curl, мобильные приложения) специальных настроек для совместной работы с `otezvikentiy/json-rpc-api` не требуется. Для браузерных клиентов на другом origin'е — см. раздел «CORS preflight» ниже, там требуется явная настройка.
+Install and configure it by following that bundle's own instructions. For server-side clients — backend-to-backend, curl, mobile applications — nothing special is needed to make it work with `otezvikentiy/json-rpc-api`. For browser clients on a different origin, see "Browser clients and CORS preflight" below; that case does need explicit configuration.
 
-## Пример конфигурации
+## Example configuration
 
 ```yaml
 # config/packages/lexik_jwt_authentication.yaml
@@ -45,11 +47,11 @@ security:
         - {path: ^/api, roles: IS_AUTHENTICATED_FULLY}
 ```
 
-После настройки JWT-токен передаётся в заголовке `Authorization: Bearer <token>`.
+Once configured, the JWT travels in the `Authorization: Bearer <token>` header.
 
-## Браузерные клиенты и CORS preflight
+## Browser clients and CORS preflight
 
-`Authorization` — не [CORS-safelisted заголовок](https://developer.mozilla.org/en-US/docs/Glossary/CORS-safelisted_request_header): браузер на cross-origin запросе с этим заголовком сначала отправит preflight `OPTIONS`. Бандл отвечает на preflight сам (см. [cors.md](../cors.md)), но `Access-Control-Allow-Headers` по умолчанию содержит только `Content-Type` — если не добавить `Authorization` в `cors_allowed_headers`, preflight его не разрешит, и браузер заблокирует реальный запрос с JWT ещё до отправки на сервер:
+`Authorization` is not a [CORS-safelisted header](https://developer.mozilla.org/en-US/docs/Glossary/CORS-safelisted_request_header): on a cross-origin request carrying it, the browser sends a preflight `OPTIONS` first. The bundle answers preflight itself (see [cors.md](../cors.md)), but `Access-Control-Allow-Headers` contains only `Content-Type` by default — without adding `Authorization` to `cors_allowed_headers`, the preflight will not permit it and the browser blocks the real request with the JWT before it ever reaches the server:
 
 ```yaml
 # config/packages/ov_json_rpc_api.yaml
@@ -59,4 +61,4 @@ ov_json_rpc_api:
         - 'Authorization'
 ```
 
-Same-origin запросы (фронтенд и API на одном origin'е) preflight не вызывают — эта настройка нужна только когда клиент и API разнесены по origin'ам.
+Same-origin requests — frontend and API on one origin — trigger no preflight; this setting is needed only when client and API live on different origins.

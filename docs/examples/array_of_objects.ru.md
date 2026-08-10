@@ -1,20 +1,20 @@
 [English](array_of_objects.md) · [Русский](array_of_objects.ru.md)
 
-# An array of objects in a response
+# Массив объектов в ответе
 
 ---
 
-## What this shows
+## Описание
 
-How to return a list of objects from an API method. The pattern comes up constantly for filtered lists — a catalogue of products in a shop, for instance.
+Этот пример показывает, как возвращать список объектов в ответе API-метода. Такой подход часто нужен для списков с фильтрацией — например, список товаров в интернет-магазине.
 
 ---
 
 ## Request
 
-If you want the request data as a convenient array, extend the Request from `JsonRpcRequest`, which gives you `toArray()`.
+Если вы хотите удобно получать данные запроса в виде массива, наследуйте Request от `JsonRpcRequest` — это даст доступ к методу `toArray()`.
 
-The `addCategory()` method lets categories arrive one element at a time (the "adder" pattern). The bundle finds the adder from the `categories` property by taking it to the singular through `Symfony\Component\String\Inflector\EnglishInflector` (`categories` → `category` → `addCategory`), rather than by dropping the last letter — so irregular plurals such as `children` (→ `addChild`) or `people` (→ `addPerson`) resolve correctly too.
+Метод `addCategory()` позволяет принимать массив категорий поэлементно (pattern "adder"). Бандл ищет аддер по свойству `categories`, склоняя его в единственное число через `Symfony\Component\String\Inflector\EnglishInflector` (`categories` → `category` → `addCategory`), а не простым отбрасыванием последней буквы — поэтому неправильные множественные формы вроде `children` (→ `addChild`) или `people` (→ `addPerson`) тоже резолвятся верно.
 
 ```php
 <?php
@@ -50,7 +50,7 @@ class Request extends JsonRpcRequest
 }
 ```
 
-## The object DTO (Product)
+## DTO объекта (Product)
 
 ```php
 <?php
@@ -83,7 +83,7 @@ class Product
 
 ## Response
 
-The `addProduct()` method adds objects one at a time. The bundle recognises "adder" methods (the `add` prefix) on its own and uses them to fill arrays with typed objects.
+Метод `addProduct()` позволяет добавлять объекты по одному. Бандл автоматически распознаёт "adder"-методы (с префиксом `add`) и использует их для заполнения массивов типизированными объектами.
 
 ```php
 <?php
@@ -121,7 +121,7 @@ class Response
 }
 ```
 
-## The API method
+## Метод API
 
 ```php
 <?php
@@ -145,7 +145,7 @@ class GetProductsMethod implements ApiMethodInterface
 
     public function call(Request $request): Response
     {
-        // toArray() is available because the Request extends JsonRpcRequest
+        // toArray() доступен благодаря наследованию от JsonRpcRequest
         $filter = $request->toArray();
 
         $products = $this->productRepository->findBy($filter);
@@ -165,7 +165,7 @@ class GetProductsMethod implements ApiMethodInterface
 }
 ```
 
-## Calling it
+## Пример вызова
 
 ```bash
 curl -X POST http://localhost/api/v1 \
@@ -173,7 +173,7 @@ curl -X POST http://localhost/api/v1 \
   -d '{"jsonrpc": "2.0", "method": "getProducts", "params": {"title": "iphone", "priceFrom": 100, "priceTo": 5000}, "id": 1}'
 ```
 
-The response:
+Ответ:
 
 ```json
 {
@@ -190,11 +190,11 @@ The response:
 }
 ```
 
-## Why a separate DTO?
+## Зачем нужен отдельный DTO?
 
-Using a dedicated DTO (`Product`) rather than handing back the entity may look like ceremony, but it earns its place:
+Использование отдельного DTO (`Product`) вместо прямой отдачи entity может показаться избыточным, но на практике это оправдано:
 
-- You control exactly which fields reach the client.
-- You can reshape the data format.
-- You can add computed fields.
-- Database entities often hold confidential columns that have no business leaving through the API.
+- Можно контролировать, какие именно поля отдаются клиенту
+- Можно трансформировать формат данных
+- Можно добавить вычисляемые поля
+- Entity в базе данных могут содержать конфиденциальные поля, которые не нужно отдавать через API

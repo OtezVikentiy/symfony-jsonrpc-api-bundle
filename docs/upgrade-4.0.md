@@ -1,135 +1,137 @@
-# Upgrade Guide: 3.x → 4.0
+[English](upgrade-4.0.md) · [Русский](upgrade-4.0.ru.md)
 
-> Этот документ описывает историческую миграцию 3.x → 4.0. Ключ `cors_strict`, упоминаемый здесь, **удалён в 5.0** — см. [docs/upgrade-5.0.md](./upgrade-5.0.md), если вы обновляетесь до текущей версии.
+# Upgrade guide: 3.x → 4.0
 
-Версия 4.0 — security-hardened релиз. **BC-breaking** изменения сведены в один шаг для предсказуемости.
+> This document describes the historical 3.x → 4.0 migration. The `cors_strict` key mentioned throughout is **removed in 5.0** — see [docs/upgrade-5.0.md](./upgrade-5.0.md) if you are upgrading to the current release.
 
-## TL;DR
+Version 4.0 is a security-hardening release. The **BC-breaking** changes are gathered into one step, for predictability.
+
+## In short
 
 ```yaml
-# config/packages/ov_json_rpc_api.yaml — добавьте секцию compatibility,
-# если хотите сохранить поведение 3.x:
+# config/packages/ov_json_rpc_api.yaml — add a compatibility section
+# if you want to keep the 3.x behaviour:
 ov_json_rpc_api:
     strict_notifications: false
-    expose_internal_errors: true   # ⚠️ только если ваше окружение этого требует
+    expose_internal_errors: true   # ⚠️ only if your environment demands it
     cors_strict: false
-    # лимиты можно поднять под ваш профиль нагрузки
+    # the limits can be raised to suit your load profile
 ```
 
-После обновления зависимости запустите тесты — фактическое поведение часто оказывается совместимым без явных override'ов.
+After updating the dependency, run your tests — the actual behaviour often turns out to be compatible with no overrides at all.
 
 ## BC-breaking changes
 
-### 1. `strict_notifications` теперь `true` по умолчанию
+### 1. `strict_notifications` now defaults to `true`
 
-**3.x:** notification (запрос без `id`) с непустым результатом возвращал ответ.
-**4.0:** строго по [JSON-RPC 2.0 spec](https://www.jsonrpc.org/specification#notification) — notification **никогда** не получает ответ.
+**3.x:** a notification (a request without `id`) with a non-empty result received a response.
+**4.0:** strictly per the [JSON-RPC 2.0 spec](https://www.jsonrpc.org/specification#notification) — a notification **never** receives one.
 
-**Что сломается:**
-- Клиенты, которые шлют notification и ждут ответ (некорректное поведение, но было возможно в 3.x).
-- Тесты, которые проверяют ответ на notification.
+**What breaks:**
+- Clients that send a notification and wait for a reply (incorrect behaviour, but possible in 3.x).
+- Tests that assert on the response to a notification.
 
-**Что делать:**
-- Если клиент действительно ждёт ответ — он не notification, добавьте `"id": <значение>` в payload.
-- Если нужно временно сохранить старое поведение: `strict_notifications: false`.
+**What to do:**
+- If the client genuinely expects a reply, it is not a notification: add `"id": <value>` to the payload.
+- To keep the old behaviour for now: `strict_notifications: false`.
 
-### 2. `expose_internal_errors: false` по умолчанию
+### 2. `expose_internal_errors: false` by default
 
-**3.x:** любое исключение в методе уходило клиенту с полным `message` (потенциальная утечка).
-**4.0:** только `JRPCException` отдаётся как есть. Прочие `Throwable` заменяются на `Internal error.` (`code: -32603`), полная информация уходит в `LoggerInterface`.
+**3.x:** any exception in a method reached the client with its full `message` — a potential leak.
+**4.0:** only a `JRPCException` is passed through as-is. Other `Throwable`s are replaced by `Internal error.` (`code: -32603`), and the full information goes to `LoggerInterface`.
 
-**Что сломается:**
-- Клиенты, которые парсили текст ошибок (антипаттерн, но было).
-- Тесты, ожидающие конкретные `message` для не-JRPCException.
+**What breaks:**
+- Clients that parsed error text (an antipattern, but it happened).
+- Tests expecting particular `message` values for non-`JRPCException` failures.
 
-**Что делать:**
-- Использовать `JRPCException` для всех ошибок, которые **должны** быть видны клиенту.
-- В dev: `expose_internal_errors: true`.
-- В prod: оставить `false`, читать логи через Monolog.
+**What to do:**
+- Use `JRPCException` for every error that **should** be visible to the client.
+- In development: `expose_internal_errors: true`.
+- In production: leave it `false` and read the logs through Monolog.
 
-### 3. CORS multi-origin: исправлен баг
+### 3. CORS multi-origin: a bug fixed
 
-**3.x:** список из нескольких origin'ов конкатенировался: `Access-Control-Allow-Origin: https://a.com, https://b.com` — невалидный заголовок по CORS-спеку, браузеры игнорируют.
-**4.0:** `HeadersPreparer` матчит `Origin` request-заголовок против whitelist'а и отдаёт ровно один. Добавляет `Vary: Origin`. Если match'а нет — заголовок не отдаётся (при `cors_strict: true`).
+**3.x:** a list of several origins was joined together: `Access-Control-Allow-Origin: https://a.com, https://b.com` — an invalid header under the CORS specification, which browsers ignore.
+**4.0:** `HeadersPreparer` matches the request's `Origin` header against the whitelist and returns exactly one. It adds `Vary: Origin`. With no match, no header is sent (under `cors_strict: true`).
 
-**Что сломается:**
-- Setup'ы, где `['*']` использовался — продолжают работать (wildcard поведение сохранено).
-- Setup'ы с одним origin — продолжают работать (одиночный origin теперь матчится).
-- Если ваш фронт был на origin'е, не входящем в whitelist, но "как-то работал" из-за конкатенации — он перестанет работать.
+**What breaks:**
+- Setups using `['*']` keep working — the wildcard behaviour is unchanged.
+- Setups with a single origin keep working — a lone origin now matches.
+- If your frontend sat on an origin outside the whitelist but "somehow worked" thanks to the joining, it stops working.
 
-**Что делать:**
-- Убедитесь, что все production origin'ы перечислены в `access_control_allow_origin_list`.
-- Для legacy откатить: `cors_strict: false`.
+**What to do:**
+- Make sure every production origin is listed in `access_control_allow_origin_list`.
+- To roll back for legacy reasons: `cors_strict: false`.
 
-### 4. DoS-лимиты включены по умолчанию
+### 4. DoS limits are on by default
 
-**3.x:** не было лимитов на payload, batch, depth, array param.
-**4.0:** строгие safe-default'ы:
+**3.x:** no limits on payload, batch, depth or array parameters.
+**4.0:** strict safe defaults:
 - `max_payload_bytes: 1048576` (1 MiB)
 - `max_json_depth: 64`
 - `max_batch_size: 50`
 - `max_dto_depth: 10`
 - `max_array_param_size: 1000`
 
-**Что сломается:**
-- Endpoint'ы, принимающие большие документы (импорт CSV/Excel, batch > 50, vложенные DTO глубже 10).
-- Bulk-операции через `addX()` с массивами > 1000.
+**What breaks:**
+- Endpoints accepting large documents (CSV/Excel imports, batches over 50, DTOs nested deeper than 10).
+- Bulk operations through `addX()` with arrays over 1000 elements.
 
-**Что делать:**
-- Поднять лимиты под конкретный профиль API. См. [security_hardening.md](./security_hardening.md).
+**What to do:**
+- Raise the limits to suit the API's profile. See [security_hardening.md](./security_hardening.md).
 
-### 5. `Parse error.` message теперь включает причину
+### 5. The `Parse error.` message now carries the reason
 
 **3.x:** `{"error": {"code": -32700, "message": "Parse error."}}`
-**4.0:** `{"error": {"code": -32700, "message": "Parse error. Additional info: Syntax error"}}` (или другой текст от `JsonException`)
+**4.0:** `{"error": {"code": -32700, "message": "Parse error. Additional info: Syntax error"}}` (or other text from `JsonException`)
 
-**Что сломается:** клиенты, парсящие точное соответствие `message === "Parse error."`.
-**Что делать:** парсить `error.code === -32700`, что и должно делаться по спеку.
+**What breaks:** clients matching `message === "Parse error."` exactly.
+**What to do:** match on `error.code === -32700`, which is what the specification calls for anyway.
 
-### 6. Невидимые сеттеры в Request DTO теперь отвергаются
+### 6. Non-public setters in request DTOs are now rejected
 
-**3.x:** `setSecret()` с visibility `private` мог быть вызван через dynamic-dispatch при гидратации.
-**4.0:** только публичные сеттеры. Невидимые — `INVALID_PARAMS`.
+**3.x:** a `setSecret()` with `private` visibility could be called through dynamic dispatch during hydration.
+**4.0:** public setters only. A non-public one gives `INVALID_PARAMS`.
 
-**Что сломается:** если кто-то намеренно делал `private function setX` чтобы блокировать поле от клиента — теперь оно не сетится, но возвращается ошибка вместо игнорирования.
-**Что делать:** удалите такие сеттеры (если поле клиенту не нужно — оно не должно появляться в DTO). Или сделайте `public`.
+**What breaks:** if someone deliberately made `private function setX` to keep a field away from clients, it is no longer set — but an error is returned rather than the field being ignored.
+**What to do:** remove such setters (if the client has no business with the field, it should not be in the DTO at all), or make them `public`.
 
-### 7. `HeadersPreparer` конструктор принимает `RequestStack`
+### 7. The `HeadersPreparer` constructor takes a `RequestStack`
 
-Для большинства пользователей это прозрачно (Symfony DI прокидывает `RequestStack` автоматически). Если вы инстанциируете `HeadersPreparer` руками (в тестах) — добавьте опциональный второй аргумент:
+For most users this is invisible — Symfony DI supplies the `RequestStack` automatically. If you construct `HeadersPreparer` by hand, in tests for instance, add the optional second argument:
 
 ```php
-new HeadersPreparer(['*']);                                   // ok, RequestStack = null
-new HeadersPreparer(['https://a.com'], $stack);               // ok, для матчинга
+new HeadersPreparer(['*']);                                   // fine, RequestStack = null
+new HeadersPreparer(['https://a.com'], $stack);               // fine, for matching
 new HeadersPreparer(['https://a.com'], $stack, corsStrict: false); // legacy fallback
 ```
 
 ### 8. `SwaggerGenerate::__construct(?string $name = null)`
 
-Тип параметра явно `?string` (раньше был `string $name = null`, неявно nullable). Это исправляет deprecation PHP 8.4. Если вы наследовались от команды — обновите signature.
+The parameter type is explicitly `?string` (it used to be `string $name = null`, implicitly nullable), which fixes a PHP 8.4 deprecation. If you extended the command, update the signature.
 
-## Что НЕ ломается
+## What does NOT break
 
-- `#[JsonRPCAPI]` атрибут — все параметры, поведение версионирования.
-- `ApiMethodInterface` и сигнатура `call()`.
-- `JRPCException` — все коды и API.
-- `PartialRequestInterface`, `PartialUpdateRequest`, `TracksProvidedFieldsTrait`, `wasProvided()` семантика.
-- Pre/Post-процессоры.
-- Batch-протокол (если размер ≤ 50).
-- Swagger-генерация.
-- Все интерфейсы Response.
+- The `#[JsonRPCAPI]` attribute — every parameter, and the versioning behaviour.
+- `ApiMethodInterface` and the `call()` signature.
+- `JRPCException` — every code and the whole API.
+- `PartialRequestInterface`, `PartialUpdateRequest`, `TracksProvidedFieldsTrait`, and the `wasProvided()` semantics.
+- Pre- and post-processors.
+- The batch protocol, for sizes of 50 or fewer.
+- Swagger generation.
+- Every response interface.
 
-## Чек-лист апгрейда
+## Upgrade checklist
 
 1. `composer require otezvikentiy/json-rpc-api:^4.0`
-2. Прогнать тесты. Большинство падений — про новый strict default или sanitization.
-3. Проверить production logs первые 24 часа — не появилось ли неожиданных `Internal error.` (значит у вас в коде есть не-`JRPCException` throw, который раньше уходил клиенту).
-4. Проверить CORS из браузера — особенно для multi-origin setup'ов.
-5. Замерить нагрузку и подкрутить лимиты под нужды ([security_hardening.md](./security_hardening.md)).
+2. Run the tests. Most failures will be about a new strict default or about sanitisation.
+3. Watch the production logs for the first 24 hours — unexpected `Internal error.` responses mean your code throws something that is not a `JRPCException` and used to reach the client.
+4. Check CORS from a browser, particularly for multi-origin setups.
+5. Measure the load and tune the limits to fit ([security_hardening.md](./security_hardening.md)).
 
-## Откат
+## Rolling back
 
-В критическом случае можно сделать «всё как в 3.x» одним конфигом:
+In an emergency, one configuration block restores "everything as in 3.x":
 
 ```yaml
 ov_json_rpc_api:
@@ -143,4 +145,4 @@ ov_json_rpc_api:
     max_array_param_size: 100000
 ```
 
-Так получается «4.0 со всеми поведением 3.x». Но это **не рекомендуется** в prod — security-фиксы потеряны.
+That gives you "4.0 with all of 3.x's behaviour". It is **not recommended** in production — the security fixes are gone with it.

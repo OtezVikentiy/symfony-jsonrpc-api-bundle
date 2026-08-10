@@ -1,16 +1,18 @@
-# Базовый пример
+[English](base.md) · [Русский](base.ru.md)
+
+# A basic example
 
 ---
 
-## Описание
+## What this shows
 
-Простейший пример создания JSON-RPC API метода. Демонстрирует основные компоненты: Request, Response и класс метода с атрибутом `#[JsonRPCAPI]`.
+The simplest way to create a JSON-RPC API method. It demonstrates the main pieces: a Request, a Response, and the method class carrying the `#[JsonRPCAPI]` attribute.
 
 ---
 
 ## Request
 
-Класс Request описывает входящие параметры запроса. Параметры, переданные в конструктор, становятся **обязательными**. Остальные свойства заполняются через setter-методы и являются необязательными.
+The Request class describes the incoming parameters. Parameters passed to the constructor become **required**. The remaining properties are filled through setters and are optional.
 
 ```php
 <?php
@@ -24,8 +26,8 @@ class Request
     private string $title;
 
     /**
-     * Параметр id передан в конструктор — он обязателен в запросе.
-     * Параметр title устанавливается через setter — он необязателен.
+     * id is a constructor parameter, so the request must carry it.
+     * title is set through a setter, so it is optional.
      */
     public function __construct(int $id)
     {
@@ -56,9 +58,9 @@ class Request
 
 ## Response
 
-Класс Response описывает структуру ответа. В JSON попадает то, что класс открывает: свойство с публичным геттером (`getX()`, `isX()` или сам аксессор `x()`) **или** само публичное свойство — например, promoted-параметр конструктора. Приватное или protected свойство без публичного геттера в ответ не попадёт: именно так закрыта утечка, при которой Reflection читал приватные поля наравне с остальными.
+The Response class describes the shape of the reply. What reaches the JSON is what the class exposes: a property with a public getter (`getX()`, `isX()`, or the bare accessor `x()`) **or** a public property — a promoted constructor parameter, for instance. A private or protected property with no public getter does not reach the response: that is how the leak was closed where Reflection read private fields on equal terms with the rest.
 
-> Для `bool`-свойств используйте префикс `is` (например, `isSuccess()`), для остальных — `get`.
+> For `bool` properties use the `is` prefix (`isSuccess()`); for the rest, `get`.
 
 ```php
 <?php
@@ -109,12 +111,11 @@ class Response
 }
 ```
 
-## Метод API
+## The API method
 
-Класс метода должен **реализовывать `ApiMethodInterface`** и быть помечен атрибутом `#[JsonRPCAPI]`. Оба условия обязательны: бандл регистрирует только классы, реализующие интерфейс (тег `ov.rpc.method` вешается автоматически через `#[AutoconfigureTag]` на самом интерфейсе), а атрибут описывает метаданные метода. Класс без интерфейса не зарегистрируется вовсе — запрос к нему вернёт `-32601 Method not found`, даже если атрибут указан верно. Класс содержит метод `call()`, в который передаётся объект Request.
+The method class must **implement `ApiMethodInterface`** and carry the `#[JsonRPCAPI]` attribute. Both are required: the bundle registers only classes implementing the interface (the `ov.rpc.method` tag is applied automatically through `#[AutoconfigureTag]` on the interface itself), while the attribute describes the method's metadata. A class without the interface is not registered at all — a request for it returns `-32601 Method not found`, however correct the attribute may be. The class holds a `call()` method, which receives the Request object.
 
-Версия API определяется автоматически из пространства имён (`App\RPC\V1` -> версия 1).
-При необходимости можно указать версию явно: `#[JsonRPCAPI(methodName: 'getProduct', type: 'POST', version: 1)]`.
+The API version is derived from the namespace (`App\RPC\V1` → version 1). It can be stated explicitly where needed: `#[JsonRPCAPI(methodName: 'getProduct', type: 'POST', version: 1)]`.
 
 ```php
 <?php
@@ -140,7 +141,7 @@ class GetProductMethod implements ApiMethodInterface
 }
 ```
 
-## Пример вызова
+## Calling it
 
 ```bash
 curl -X POST http://localhost/api/v1 \
@@ -148,7 +149,7 @@ curl -X POST http://localhost/api/v1 \
   -d '{"jsonrpc": "2.0", "method": "getProduct", "params": {"id": 1, "title": "test"}, "id": 1}'
 ```
 
-Ответ:
+The response:
 
 ```json
 {
@@ -162,7 +163,7 @@ curl -X POST http://localhost/api/v1 \
 }
 ```
 
-## Структура файлов
+## File layout
 
 ```
 src/RPC/V1/

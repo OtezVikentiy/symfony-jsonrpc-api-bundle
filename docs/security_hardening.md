@@ -1,32 +1,34 @@
-# Security Hardening
+[English](security_hardening.md) · [Русский](security_hardening.ru.md)
 
-Версия 4.0 вводит набор конфигурационных ключей с production-safe дефолтами. Документ объясняет, что делает каждый ключ, какие атаки он закрывает, и как тюнить значения под нагрузку.
+# Security hardening
 
-## Сводная таблица
+Version 4.0 introduced a set of configuration keys with production-safe defaults. This document explains what each one does, which attacks it closes, and how to tune the values for your load.
 
-| Ключ | Default 4.0 | Атаки/риски | Когда повышать | Когда понижать |
+## Summary
+
+| Key | 4.0 default | Attacks / risks | Raise it when | Lower it when |
 |---|:-:|---|---|---|
-| `max_payload_bytes` | `1048576` (1 MiB) | DoS через гигантские payload'ы, memory exhaustion | API принимает большие документы (CSV-импорт, бинарные base64) | API только мелкие команды — снизить до 65536 (64 KiB) |
-| `max_json_depth` | `64` | DoS через глубоко вложенный JSON (stack exhaustion, attack on json_decode) | API с deeply-nested структурами (древовидные ответы) | Плоские API — 16 или 32 |
-| `max_batch_size` | `50` | Amplification: 1 HTTP → N тяжёлых операций | Batch-API для импорта данных | Snappy real-time API — 10 |
-| `max_dto_depth` | `10` | DoS через рекурсивные DTO ↔ memory/stack | Сложные иерархии DTO в одной сессии | Простые контракты — 5 |
-| `max_array_param_size` | `1000` | DoS через массивы с десятками тысяч элементов | Bulk-операции (`addX()` адеры) — 5000+ | Узкие API — 100 |
-| `strict_notifications` | `true` | Отступление от спека → неожиданное поведение клиентов | (обычно не нужно) | Только если ваши клиенты ждут ответы на notifications |
-| `expose_internal_errors` | `false` | Утечка стек-трейсов, путей файлов, кредов БД | **никогда в prod** | `true` только в dev/тестовом окружении |
+| `max_payload_bytes` | `1048576` (1 MiB) | DoS through huge payloads, memory exhaustion | the API accepts large documents (CSV imports, base64 binaries) | the API only takes small commands — down to 65536 (64 KiB) |
+| `max_json_depth` | `64` | DoS through deeply nested JSON (stack exhaustion, an attack on json_decode) | the API carries deeply nested structures (tree-shaped responses) | the API is flat — 16 or 32 |
+| `max_batch_size` | `50` | Amplification: 1 HTTP request → N heavy operations | it is a batch API for importing data | it is a snappy real-time API — 10 |
+| `max_dto_depth` | `10` | DoS through recursive DTOs → memory and stack | complex DTO hierarchies in one session | the contracts are simple — 5 |
+| `max_array_param_size` | `1000` | DoS through arrays of tens of thousands of elements | bulk operations through `addX()` adders — 5000 and up | the API is narrow — 100 |
+| `strict_notifications` | `true` | Departing from the spec surprises clients | (rarely needed) | only if your clients expect responses to notifications |
+| `expose_internal_errors` | `false` | Leaking stack traces, file paths, database credentials | **never in production** | `true` in development and test environments only |
 
-CORS всегда строгий начиная с 5.0 — ключ `cors_strict` удалён, легаси comma-joined режима больше не существует ни при каком значении (см. [docs/cors.md](./cors.md)). Заголовки, которые preflight разрешает клиенту слать, настраиваются ключом `cors_allowed_headers` (default `['Content-Type']`) — расширьте список, если ваш фронтенд шлёт кастомные заголовки авторизации (например, `X-AUTH-TOKEN`).
+CORS is always strict from 5.0 onwards — the `cors_strict` key is gone, and the legacy comma-joined mode no longer exists at any setting (see [docs/cors.md](./cors.md)). Which headers the preflight permits a client to send is configured through `cors_allowed_headers` (default `['Content-Type']`); extend the list if your frontend sends custom authorisation headers such as `X-AUTH-TOKEN`.
 
-Дополнительно, без отдельного конфиг-ключа: с версии 5.0 запросы с телом (POST/PUT/PATCH/DELETE) обязаны иметь заголовок `Content-Type: application/json`. Form-encoded (`application/x-www-form-urlencoded`) и `multipart/form-data` отклоняются с `-32600 Invalid Request` до попытки прочитать тело. Это закрывает CSRF-вектор: form-encoded — «simple request» по CORS-спеке, и без этой проверки сторонняя HTML-форма могла вызывать RPC-методы от имени залогиненного пользователя без preflight. Это также закрывает обход `max_payload_bytes` — раньше проверка размера смотрела только на «сырое» тело запроса, которое PHP не заполняет для form-encoded данных.
+One more thing, with no configuration key of its own: since 5.0 requests with a body (POST/PUT/PATCH/DELETE) must carry `Content-Type: application/json`. Form-encoded (`application/x-www-form-urlencoded`) and `multipart/form-data` are rejected with `-32600 Invalid Request` before any attempt to read the body. This closes a CSRF vector: form-encoded is a "simple request" under the CORS specification, and without the check a third-party HTML form could call RPC methods as the logged-in user with no preflight. It also closes a bypass of `max_payload_bytes` — the size check used to look only at the raw request body, which PHP does not populate for form-encoded data.
 
-> **Граница этой защиты: методы, объявленные как `#[JsonRPCAPI(type: 'GET')]`.** Проверка Content-Type применяется к запросам с телом. GET-запрос тела не имеет — payload берётся из query string, — поэтому на GET-методы она не распространяется и распространяться не может. Сторонняя страница может вызвать GET-метод вашего API через `<img>`, `<script>` или простую навигацию, с куками пользователя и без preflight. **Методы с `type: 'GET'` обязаны быть идемпотентными и не иметь побочных эффектов.** Всё, что изменяет состояние, объявляйте POST/PUT/PATCH/DELETE — тогда Content-Type-гейт работает.
+> **The boundary of this protection: methods declared `#[JsonRPCAPI(type: 'GET')]`.** The Content-Type check applies to requests with a body. A GET request has none — its payload comes from the query string — so the check does not, and cannot, extend to GET methods. A third-party page can call a GET method of your API through `<img>`, `<script>` or plain navigation, with the user's cookies and without preflight. **Methods with `type: 'GET'` must be idempotent and free of side effects.** Declare anything that changes state as POST/PUT/PATCH/DELETE, where the Content-Type gate does its work.
 >
-> Смежное: заголовок `X-HTTP-Method-Override: GET` на POST-запросе Symfony учитывает без opt-in, и такой запрос уходит в GET-ветку — тело игнорируется, payload берётся из query string. Выигрыша это не даёт (заголовок не входит в CORS-safelist, значит требует preflight; а клиент, умеющий ставить заголовки, мог бы просто послать GET), но знать об этом стоит: формулировка «запрос с телом обязан иметь `application/json`» обходится в том смысле, что тело просто перестаёт читаться.
+> Related: Symfony honours an `X-HTTP-Method-Override: GET` header on a POST request without any opt-in, and such a request takes the GET branch — the body is ignored and the payload comes from the query string. This gains an attacker nothing (the header is not CORS-safelisted, so it needs a preflight, and a client able to set headers could simply send a GET), but it is worth knowing: the rule "a request with a body must carry `application/json`" is circumvented in the sense that the body stops being read at all.
 
-## Что включается «по умолчанию» в 4.0
+## What is on "by default" in 4.0
 
-Если установить бандл и не задать ни один из новых ключей, бандл работает в **production-safe** режиме: лимиты включены, ошибки санитизированы, CORS строгий (без опции ослабить), notifications strict.
+Install the bundle, set none of the new keys, and it runs in a **production-safe** mode: limits on, errors sanitised, CORS strict (with no option to loosen it), notifications strict.
 
-Чтобы вернуть большую часть поведения 3.x (не рекомендуется; CORS-строгость с 5.0 отключить нельзя ни при каком конфиге):
+To restore most of the 3.x behaviour — not recommended, and CORS strictness cannot be turned off at all from 5.0:
 
 ```yaml
 # config/packages/ov_json_rpc_api.yaml
@@ -39,73 +41,73 @@ ov_json_rpc_api:
     max_array_param_size: 100000
 ```
 
-## Sanitization ошибок
+## Error sanitisation
 
-При `expose_internal_errors: false` (дефолт) любой `Throwable` кроме `JRPCException` заменяется на:
+Under `expose_internal_errors: false` (the default) any `Throwable` other than `JRPCException` is replaced by:
 
 ```json
 {"jsonrpc": "2.0", "error": {"code": -32603, "message": "Internal error."}, "id": <id>}
 ```
 
-Полное исходное исключение (с trace, message, classname) уходит в `Psr\Log\LoggerInterface`, если он autowired:
+The complete original exception — trace, message, class name — goes to `Psr\Log\LoggerInterface`, if one is autowired:
 
 ```php
 // src/Services/MyMethod.php
 public function call(MyRequest $request): Response
 {
     // throws \PDOException('connection failed: pass=secret')
-    // -> клиент видит "Internal error.", в логах — полное сообщение
+    // -> the client sees "Internal error."; the log holds the full message
 }
 ```
 
-`JRPCException` всегда отдаётся как есть — это контролируемые автором API сообщения. Используйте `JRPCException` для всех ошибок, которые **должны** быть видны клиенту.
+A `JRPCException` is always passed through as-is — those are messages the API author controls. Use `JRPCException` for every error that **should** be visible to the client.
 
 ## CORS
 
-Поведение всегда строгое (начиная с 5.0 переключателя не существует):
+The behaviour is always strict; from 5.0 there is no switch:
 
-- `access_control_allow_origin_list: ['*']` → `Access-Control-Allow-Origin: *` (без `Vary`).
-- `access_control_allow_origin_list: ['https://a.com', 'https://b.com']` → если `Origin` заголовок запроса попадает в список, эхо origin'а + `Vary: Origin`. Иначе CORS-заголовок не отдаётся.
+- `access_control_allow_origin_list: ['*']` → `Access-Control-Allow-Origin: *` (no `Vary`).
+- `access_control_allow_origin_list: ['https://a.com', 'https://b.com']` → when the request's `Origin` header is in the list, that origin is echoed back with `Vary: Origin`. Otherwise no CORS header is sent.
 
-Это исправляет баг 3.x, где multi-origin список конкатенировался через `, `, что нарушает CORS-спек (только один origin или `*`). Легаси-режим 3.x (`cors_strict: false` в 4.x) с 5.0 удалён без замены.
+This fixes a 3.x bug where a multi-origin list was joined with `, `, which violates the CORS specification (one origin or `*`, never a list). The 3.x legacy mode (`cors_strict: false` in 4.x) is removed in 5.0 with no replacement.
 
-С версии 5.0 бандл также сам отвечает на preflight (`OPTIONS`) — заголовки `Access-Control-Allow-Methods`, `Access-Control-Allow-Headers` (из `cors_allowed_headers`) и `Access-Control-Max-Age` формируются без стороннего CORS-бандла или reverse-proxy.
+Since 5.0 the bundle also answers preflight (`OPTIONS`) itself — `Access-Control-Allow-Methods`, `Access-Control-Allow-Headers` (from `cors_allowed_headers`) and `Access-Control-Max-Age` are assembled without a third-party CORS bundle or a reverse proxy.
 
-См. также [docs/cors.md](./cors.md).
+See also [docs/cors.md](./cors.md).
 
-## DoS-лимиты: на что обращать внимание
+## The DoS limits: what to watch
 
 ### `max_payload_bytes`
 
-PHP читает тело HTTP-запроса в память до того, как бандл получит управление (см. `post_max_size` в `php.ini`). Бандл может только отвергнуть payload **после** его получения. Полная защита — комбинация:
+PHP reads the HTTP request body into memory before the bundle is given control (see `post_max_size` in `php.ini`). The bundle can only reject a payload **after** it has arrived. Full protection is a combination of:
 
-1. `post_max_size`/`upload_max_filesize` в `php.ini` (системный лимит).
-2. `client_max_body_size` в nginx или эквивалент в Apache.
-3. `max_payload_bytes` бандла — финальная проверка перед декодированием.
+1. `post_max_size` / `upload_max_filesize` in `php.ini` (the system limit);
+2. `client_max_body_size` in nginx, or its Apache equivalent;
+3. the bundle's `max_payload_bytes` — a final check before decoding.
 
-Иначе говоря: **`max_payload_bytes` ограничивает обработку, а не буферизацию.** Он не даёт бандлу разбирать слишком большой документ, но к моменту проверки тело уже прочитано в память. Если вас беспокоит именно memory exhaustion — потолок задаётся пунктами 1 и 2, а не этим ключом.
+Put differently: **`max_payload_bytes` bounds processing, not buffering.** It stops the bundle parsing an over-large document, but by the time the check runs the body is already in memory. If memory exhaustion is your concern, the ceiling is set by points 1 and 2, not by this key.
 
 ### `max_json_depth`
 
-`json_decode` нативно поддерживает параметр `$depth`. Бандл использует `JSON_THROW_ON_ERROR` и ловит `JsonException` → `PARSE_ERROR` (-32700).
+`json_decode` supports a `$depth` parameter natively. The bundle uses `JSON_THROW_ON_ERROR` and catches `JsonException` → `PARSE_ERROR` (-32700).
 
-**Асимметрия GET vs POST.** На POST-ветке `max_json_depth` действует полностью — вплоть до заявленного лимита (по умолчанию 64, максимум 512 по схеме конфигурации). На GET-ветке параметры приходят через query string, которую PHP сам разбирает в `$_GET` до того, как бандл получает управление, и глубина этого разбора ограничена директивой `max_input_nesting_level` в `php.ini` (по умолчанию **64**). Бандл проверяет `max_json_depth` и на GET-запросах тоже, но поднять эффективный лимит выше `max_input_nesting_level` конфигом бандла нельзя — PHP молча обрежет более глубокую структуру раньше, чем бандл её увидит. Если вашему API нужна глубина больше 64 для GET-запросов, поднимайте `max_input_nesting_level` в `php.ini` (или используйте POST для таких вызовов, где лимит бандла honours полностью).
+**An asymmetry between GET and POST.** On the POST branch `max_json_depth` applies in full, up to the declared limit (64 by default, 512 at most by the configuration schema). On the GET branch the parameters arrive through the query string, which PHP parses into `$_GET` before the bundle is given control, and the depth of that parse is bounded by `max_input_nesting_level` in `php.ini` (**64** by default). The bundle checks `max_json_depth` on GET requests too, but the effective limit cannot be raised above `max_input_nesting_level` from the bundle's configuration — PHP quietly truncates a deeper structure before the bundle ever sees it. If your API needs a depth above 64 for GET requests, raise `max_input_nesting_level` in `php.ini`, or use POST for those calls, where the bundle's limit is honoured in full.
 
 ### `max_batch_size`
 
-Atomic. Превышение → весь batch отвергается с единым `INVALID_REQUEST`. Это правильнее, чем отвечать на первые N и обрывать — клиент получает однозначный сигнал.
+Atomic. Exceeding it rejects the whole batch with a single `INVALID_REQUEST`. That is better than answering the first N and cutting off — the client gets an unambiguous signal.
 
 ### `max_dto_depth`
 
-Срабатывает на каждом уровне рекурсии в `RequestHandler::prepareParametersFromClass()`. При превышении — `INVALID_PARAMS` с указанием реальной глубины и лимита в `additionalInfo`.
+Checked at every level of recursion in `RequestHandler::prepareParametersFromClass()`. On exceeding it: `INVALID_PARAMS`, with the actual depth and the limit stated in `additionalInfo`.
 
 ### `max_array_param_size`
 
-Срабатывает только для параметров, привязанных через `addX()`-адеры (например, `tokens` → `addToken(Token)`). На прямые поля типа `array` без адера не действует.
+Applies only to parameters bound through `addX()` adders (`tokens` → `addToken(Token)`, for instance). It does not affect plain `array` fields with no adder.
 
-## Логирование
+## Logging
 
-Подключите `Psr\Log\LoggerInterface` в Symfony (по умолчанию Monolog) — бандл автоматически использует его для записи sanitized exceptions:
+Wire `Psr\Log\LoggerInterface` into Symfony (Monolog by default) and the bundle uses it automatically to record sanitised exceptions:
 
 ```yaml
 # config/packages/monolog.yaml
@@ -118,22 +120,22 @@ monolog:
             channels: ['app']
 ```
 
-В `ErrorSanitizer` исключение логируется через context-key `exception`, что Monolog'у понятно — стек-трейс автоматически форматируется.
+`ErrorSanitizer` logs the exception under the `exception` context key, which Monolog understands — the stack trace is formatted automatically.
 
 ## Production deployment checklist
 
 - [ ] `expose_internal_errors: false`
 - [ ] `strict_notifications: true`
-- [ ] `access_control_allow_origin_list` — конкретные origin'ы, не `['*']` (если API не публичный read-only)
-- [ ] `cors_allowed_headers` включает все кастомные заголовки, которые реально шлёт ваш фронтенд (иначе preflight не пропустит запрос)
-- [ ] `max_payload_bytes` соответствует реальным нуждам, синхронизирован с nginx/php.ini
-- [ ] LoggerInterface настроен и хранит логи в надёжном месте
-- [ ] Rate-limiting на уровне middleware/reverse proxy (бандл сам по себе rate-limiting не делает)
-- [ ] HTTPS only, HSTS включён
-- [ ] Authentication (Symfony Security) настроена для методов с `roles`
+- [ ] `access_control_allow_origin_list` names specific origins rather than `['*']` (unless the API is public and read-only)
+- [ ] `cors_allowed_headers` includes every custom header your frontend actually sends (otherwise preflight blocks the request)
+- [ ] `max_payload_bytes` matches real needs and is in step with nginx and `php.ini`
+- [ ] `LoggerInterface` is configured and stores logs somewhere durable
+- [ ] Rate limiting sits in middleware or the reverse proxy (the bundle does none of its own)
+- [ ] HTTPS only, HSTS enabled
+- [ ] Authentication (Symfony Security) is configured for methods carrying `roles`
 
-## Дополнительно
+## Further reading
 
-- [docs/cors.md](./cors.md) — детальное поведение CORS, preflight, credentials
-- [docs/upgrade-4.0.md](./upgrade-4.0.md) — миграция с 3.x на 4.0
-- [docs/batch.md](./batch.md) — поведение batch-запросов
+- [docs/cors.md](./cors.md) — CORS behaviour in detail, preflight, credentials
+- [docs/upgrade-4.0.md](./upgrade-4.0.md) — migrating from 3.x to 4.0
+- [docs/batch.md](./batch.md) — how batch requests behave

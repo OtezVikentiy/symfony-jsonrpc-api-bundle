@@ -65,14 +65,14 @@
 ## [4.2] - 2026-05-19
 
 ### Добавлено
-- **Pluggable PSR-3 logger** — два новых конфига `logging.logger_service` и `logging.call_logger_service` плюс bundle-scoped alias `ov_json_rpc_api.logger`. Позволяют подменять либо внутренний PSR-3 sink, который `JsonRpcCallLogger` использует для записи (`logger_service` / alias `ov_json_rpc_api.logger`), либо целиком реализацию `JsonRpcCallLoggerInterface` (`call_logger_service` / alias `JsonRpcCallLoggerInterface`). Alias, заданный вручную в проектном `services.yaml`, выигрывает у config-ключа и даже у `logging.enabled: false` kill-switch — Symfony DI мерджит проектный `services.yaml` в контейнер раньше, чем компилируется расширение бандла. Override-точка для `JsonRpcLogFormatterInterface` из 4.1 не изменена. Подробности и полная таблица precedence — [docs/logging.md](./docs/logging.md).
+- **Pluggable PSR-3 logger** — два новых конфига `logging.logger_service` и `logging.call_logger_service` плюс bundle-scoped alias `ov_json_rpc_api.logger`. Позволяют подменять либо внутренний PSR-3 sink, который `JsonRpcCallLogger` использует для записи (`logger_service` / alias `ov_json_rpc_api.logger`), либо целиком реализацию `JsonRpcCallLoggerInterface` (`call_logger_service` / alias `JsonRpcCallLoggerInterface`). Alias, заданный вручную в проектном `services.yaml`, выигрывает у config-ключа и даже у `logging.enabled: false` kill-switch — Symfony DI мерджит проектный `services.yaml` в контейнер раньше, чем компилируется расширение бандла. Override-точка для `JsonRpcLogFormatterInterface` из 4.1 не изменена. Подробности и полная таблица precedence — [docs/logging.md](./docs/logging.ru.md).
 
 ---
 
 ## [4.1] - 2026-05-14
 
 ### Добавлено
-- **Request/Response logging** — опциональная подсистема, выключена по умолчанию. Конфиг `ov_json_rpc_api.logging.enabled: true` включает дефолтный логгер с форматом `Request: [method] {body} context_id: <uuid>` и парным `Response`. Поддерживает маскировку sensitive-полей по регексам на имена ключей JSON (`logging.masking.key_patterns`), кастомный форматтер (`JsonRpcLogFormatterInterface`), кастомный маскер (`SensitiveDataMaskerInterface`), кастомный генератор context_id (`ContextIdGeneratorInterface`). Подробности и примеры — [docs/logging.md](./docs/logging.md).
+- **Request/Response logging** — опциональная подсистема, выключена по умолчанию. Конфиг `ov_json_rpc_api.logging.enabled: true` включает дефолтный логгер с форматом `Request: [method] {body} context_id: <uuid>` и парным `Response`. Поддерживает маскировку sensitive-полей по регексам на имена ключей JSON (`logging.masking.key_patterns`), кастомный форматтер (`JsonRpcLogFormatterInterface`), кастомный маскер (`SensitiveDataMaskerInterface`), кастомный генератор context_id (`ContextIdGeneratorInterface`). Подробности и примеры — [docs/logging.md](./docs/logging.ru.md).
 
 ---
 
@@ -91,11 +91,11 @@ Security-hardened релиз. Подробности миграции — [docs/
 - **CORS origin matching** — `HeadersPreparer` теперь принимает `RequestStack`, читает заголовок `Origin` и матчит против whitelist'а. Добавляется `Vary: Origin`. Конфиг `cors_strict` (default `true`).
 - **Security regression test suite** — `tests/Security/`: `PayloadLimitTest`, `BatchSizeLimitTest`, `DtoHydrationLimitsTest`, `ArrayParamLimitTest`, `ErrorSanitizationTest`, `CorsMultiOriginTest`, `SwaggerGenerateSecurityTest`.
 - **Новая документация:**
-  - [docs/security_hardening.md](./docs/security_hardening.md) — все новые конфиги + tuning.
+  - [docs/security_hardening.md](./docs/security_hardening.ru.md) — все новые конфиги + tuning.
   - [docs/upgrade-4.0.md](./docs/upgrade-4.0.md) — миграция с 3.x.
-  - [docs/cors.md](./docs/cors.md) — CORS-поведение.
-  - [docs/batch.md](./docs/batch.md) — batch-семантика и лимиты.
-  - [docs/testing.md](./docs/testing.md) — гайд по написанию тестов для RPC-методов.
+  - [docs/cors.md](./docs/cors.ru.md) — CORS-поведение.
+  - [docs/batch.md](./docs/batch.ru.md) — batch-семантика и лимиты.
+  - [docs/testing.md](./docs/testing.ru.md) — гайд по написанию тестов для RPC-методов.
 - **Coverage tooling в `phpunit.xml.dist`** — `<source>`-блок для PHPUnit 10+ coverage reports.
 - **Прямые unit-тесты** на ранее не покрытые классы: `OVJsonRPCAPIExtension`, `MethodSpec\RequestMetadata`, `MethodSpec\SwaggerMetadata`, `PartialUpdateRequest`, плюс расширенное покрытие HTTP method enforcement и `INTERNAL_ERROR` сценариев.
 - **Английский README** — добавлена секция Testing, паритет с русским README.

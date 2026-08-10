@@ -95,7 +95,7 @@ OV_JSON_RPC_API_TEST_URL=http://localhost
 OV_JSON_RPC_API_AUTH_TOKEN=your_test_token_here
 ```
 
-Подробная инструкция: [docs/installation.md](./docs/installation.md)
+Подробная инструкция: [docs/installation.md](./docs/installation.ru.md)
 
 ---
 
@@ -245,10 +245,10 @@ src/RPC/V1/
 
 | Пример | Описание | Файлы |
 |:------:|:--------:|:-----:|
-| [Базовый](./docs/examples/base.md) | Простейший пример создания API-метода | Request, Response, Method |
-| [Pre/Post-процессоры](./docs/examples/pre-and-post-processors.md) | Выполнение логики до и после вызова метода | Request, Response, Method, AbstractMethod |
-| [Массив объектов](./docs/examples/array_of_objects.md) | Возврат коллекции объектов в ответе | Request, Response, Method, Product |
-| [Бинарный ответ](./docs/examples/plain_response.md) | Возврат изображений, документов и других бинарных данных | Request, PlainResponse, Method |
+| [Базовый](./docs/examples/base.ru.md) | Простейший пример создания API-метода | Request, Response, Method |
+| [Pre/Post-процессоры](./docs/examples/pre-and-post-processors.ru.md) | Выполнение логики до и после вызова метода | Request, Response, Method, AbstractMethod |
+| [Массив объектов](./docs/examples/array_of_objects.ru.md) | Возврат коллекции объектов в ответе | Request, Response, Method, Product |
+| [Бинарный ответ](./docs/examples/plain_response.ru.md) | Возврат изображений, документов и других бинарных данных | Request, PlainResponse, Method |
 
 ---
 
@@ -256,12 +256,12 @@ src/RPC/V1/
 
 | Раздел | Описание |
 |--------|----------|
-| [Обработка ошибок](./docs/errors.md) | Коды ошибок, `JRPCException`, кастомные ошибки, `additionalInfo` |
-| [Notification-запросы](./docs/notifications.md) | Запросы без `id`, параметр `strict_notifications` |
-| [Валидация параметров](./docs/validation.md) | Автоматическая валидация типов, nullable, формат ошибок |
-| [Базовый класс JsonRpcRequest](./docs/json_rpc_request.md) | Метод `toArray()`, рекурсивная сериализация |
-| [Partial updates (JSON Merge Patch)](./docs/partial_updates.md) | `PartialRequestInterface`, `wasProvided()`, RFC 7396 семантика |
-| [Troubleshooting / FAQ](./docs/troubleshooting.md) | Типичные проблемы и их решения |
+| [Обработка ошибок](./docs/errors.ru.md) | Коды ошибок, `JRPCException`, кастомные ошибки, `additionalInfo` |
+| [Notification-запросы](./docs/notifications.ru.md) | Запросы без `id`, параметр `strict_notifications` |
+| [Валидация параметров](./docs/validation.ru.md) | Автоматическая валидация типов, nullable, формат ошибок |
+| [Базовый класс JsonRpcRequest](./docs/json_rpc_request.ru.md) | Метод `toArray()`, рекурсивная сериализация |
+| [Partial updates (JSON Merge Patch)](./docs/partial_updates.ru.md) | `PartialRequestInterface`, `wasProvided()`, RFC 7396 семантика |
+| [Troubleshooting / FAQ](./docs/troubleshooting.ru.md) | Типичные проблемы и их решения |
 | [**Гайд по миграции 4.x → 5.0**](./docs/upgrade-5.0.md) | **Все ломающие изменения 5.0: что сломается и что с этим делать** |
 | [CHANGELOG](./CHANGELOG.ru.md) | История изменений по версиям |
 
@@ -269,7 +269,7 @@ src/RPC/V1/
 
 ## Logging
 
-Опциональная подсистема Request/Response логирования с маскировкой sensitive-данных через PSR-3 logger. По умолчанию выключена. Подробности — [docs/logging.md](docs/logging.md).
+Опциональная подсистема Request/Response логирования с маскировкой sensitive-данных через PSR-3 logger. По умолчанию выключена. Подробности — [docs/logging.md](docs/logging.ru.md).
 
 ---
 
@@ -318,7 +318,7 @@ public function call(UpdateUserRequest $request): Response
 
 **Опт-ин:** только DTO, реализующие `PartialRequestInterface`, получают трекинг. Существующие DTO работают без изменений (полная обратная совместимость).
 
-Подробности и edge-кейсы — в [docs/partial_updates.md](./docs/partial_updates.md).
+Подробности и edge-кейсы — в [docs/partial_updates.md](./docs/partial_updates.ru.md).
 
 ---
 
@@ -392,7 +392,7 @@ class GetProductMethod implements PreProcessorInterface, PostProcessorInterface
 }
 ```
 
-Подробнее: [docs/examples/pre-and-post-processors.md](./docs/examples/pre-and-post-processors.md)
+Подробнее: [docs/examples/pre-and-post-processors.md](./docs/examples/pre-and-post-processors.ru.md)
 
 ---
 
@@ -445,9 +445,9 @@ class Response
 ```
 
 Подробнее:
-- [Теги](./docs/swagger/tags.md)
-- [Скалярные свойства](./docs/swagger/scalar.md)
-- [Массивы](./docs/swagger/array.md)
+- [Теги](./docs/swagger/tags.ru.md)
+- [Скалярные свойства](./docs/swagger/scalar.ru.md)
+- [Массивы](./docs/swagger/array.ru.md)
 
 ---
 
@@ -475,9 +475,9 @@ class DeleteUserMethod implements ApiMethodInterface
 
 Бандл совместим с любым способом аутентификации Symfony:
 
-- [JWT-токены через lexik/jwt-authentication-bundle](./docs/security/jwt_bundle.md)
-- [Кастомная токенная аутентификация](./docs/security/self_made_token.md)
-- [Ролевая модель](./docs/security/roles.md)
+- [JWT-токены через lexik/jwt-authentication-bundle](./docs/security/jwt_bundle.ru.md)
+- [Кастомная токенная аутентификация](./docs/security/self_made_token.ru.md)
+- [Ролевая модель](./docs/security/roles.ru.md)
 
 ---
 
@@ -497,7 +497,7 @@ class DeleteUserMethod implements ApiMethodInterface
 - **Тесты команд** — генерация Swagger YAML.
 - **Security regression-тесты** (`tests/Security/`) — DoS-лимиты (payload, batch, DTO depth, array size), sanitization ошибок, CORS origin matching, проверки видимости сеттеров, path-containment команды.
 
-Гайд по написанию тестов для собственных RPC-методов — [docs/testing.md](./docs/testing.md).
+Гайд по написанию тестов для собственных RPC-методов — [docs/testing.md](./docs/testing.ru.md).
 
 ---
 
@@ -537,7 +537,7 @@ class DeleteUserMethod implements ApiMethodInterface
 | `swagger.*.auth_token_test_value` | — | Тестовое значение токена. **Сейчас не используется:** в OpenAPI-схему попадает только имя заголовка (`auth_token_name`), значение никуда не подставляется. Ключ сохранён, чтобы не ломать существующие конфиги. |
 | `swagger.*.info` | — | Информация об API (title, description, contact, license) |
 
-> **Security hardening:** рекомендации по значениям, обоснование и тюнинг для high-volume API — [docs/security_hardening.md](./docs/security_hardening.md).
+> **Security hardening:** рекомендации по значениям, обоснование и тюнинг для high-volume API — [docs/security_hardening.md](./docs/security_hardening.ru.md).
 
 ---
 

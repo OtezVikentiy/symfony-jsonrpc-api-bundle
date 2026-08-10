@@ -1,6 +1,8 @@
+[English](cors.md) · [Русский](cors.ru.md)
+
 # CORS
 
-Бандл управляет CORS-заголовками через `HeadersPreparer`, который консумирует `access_control_allow_origin_list` и `cors_allowed_headers` из конфигурации, и обрабатывает preflight (`OPTIONS`) самостоятельно, без внешних CORS-бандлов.
+The bundle manages CORS headers through `HeadersPreparer`, which consumes `access_control_allow_origin_list` and `cors_allowed_headers` from the configuration, and handles preflight (`OPTIONS`) itself, without an external CORS bundle.
 
 ## Wildcard
 
@@ -9,9 +11,9 @@ ov_json_rpc_api:
     access_control_allow_origin_list: ['*']
 ```
 
-Любой запрос получает `Access-Control-Allow-Origin: *`. Подходит для публичных read-only API.
+Every request receives `Access-Control-Allow-Origin: *`. Suitable for public read-only APIs.
 
-⚠️ **Wildcard несовместим с credentials.** Если ваш API требует cookies или `Authorization` header, нельзя использовать `*` — браузеры запретят. См. секцию «Credentials» ниже.
+⚠️ **The wildcard is incompatible with credentials.** If your API requires cookies or an `Authorization` header, `*` cannot be used — browsers forbid the combination. See "Credentials" below.
 
 ## Whitelist matching
 
@@ -22,29 +24,30 @@ ov_json_rpc_api:
         - 'https://admin.example.com'
 ```
 
-Бандл читает заголовок `Origin` из запроса и:
-- Если он есть в whitelist'е — возвращает `Access-Control-Allow-Origin: <тот самый origin>` + `Vary: Origin`.
-- Если нет — `Access-Control-Allow-Origin` не отдаётся; браузер отклонит cross-origin запрос. `Vary: Origin` при этом всё равно отдаётся.
+The bundle reads the `Origin` header from the request and:
 
-`Vary: Origin` важен, потому что разные origin'ы получат разные ответы — кэш не должен их склеивать. Отказ зависит от `Origin` ровно так же, как и разрешение, поэтому заголовок ставится в обоих случаях: иначе разделяемый кэш мог бы отдать безголовую версию ответа клиенту с разрешённым origin'ом или, наоборот, заголовок одного origin'а — другому.
+- if it is in the whitelist, returns `Access-Control-Allow-Origin: <that exact origin>` plus `Vary: Origin`;
+- if it is not, `Access-Control-Allow-Origin` is not sent and the browser rejects the cross-origin request. `Vary: Origin` is still sent.
 
-**Смешивать `'*'` с конкретными origin'ами нельзя.** Wildcard проверяется первым и выигрывает, поэтому список вида `['https://app.example.com', '*']` отвечал бы `Access-Control-Allow-Origin: *` вообще всем — читается как whitelist, работает наоборот. С 5.0 такая конфигурация не компилируется: либо перечислите нужные origin'ы, либо используйте `'*'` в одиночку.
+`Vary: Origin` matters because different origins get different responses, and a cache must not conflate them. A refusal depends on `Origin` exactly as much as a permission does, which is why the header goes out in both cases: otherwise a shared cache could serve the header-less version to a client with an allowed origin, or one origin's header to another.
 
-## Empty list
+**Mixing `'*'` with specific origins is not allowed.** The wildcard is checked first and wins, so a list like `['https://app.example.com', '*']` would answer `Access-Control-Allow-Origin: *` to everyone — it reads as a whitelist and behaves as its opposite. Since 5.0 such a configuration does not compile: either enumerate the origins you want, or use `'*'` on its own.
+
+## An empty list
 
 ```yaml
 access_control_allow_origin_list: []
 ```
 
-CORS-заголовок не отдаётся вообще (ни для одного origin'а). Эквивалентно «CORS выключен». Используется для same-origin only API.
+No CORS header is sent at all, for any origin. Equivalent to "CORS off". Used for same-origin-only APIs.
 
-## Поведение всегда строгое
+## The behaviour is always strict
 
-Начиная с 5.0 конфиг `cors_strict` **удалён** — легаси-режима с невалидным comma-joined заголовком (`Access-Control-Allow-Origin: https://a.com, https://b.com`) больше не существует ни при каком значении конфига. Поведение всегда как было при `cors_strict: true` в 4.x: origin вне whitelist'а не получает заголовок вообще. Если у вас в конфиге остался `cors_strict: false` (или `true`) — приложение **не запустится**: `Configuration` не объявляет `ignoreExtraKeys()`, поэтому неизвестный ключ приводит к `InvalidConfigurationException` при компиляции контейнера, а не к тихому игнорированию. Удалите строку `cors_strict` из вашего конфига при обновлении.
+Since 5.0 the `cors_strict` key is **removed** — the legacy mode with its invalid comma-joined header (`Access-Control-Allow-Origin: https://a.com, https://b.com`) no longer exists at any setting. Behaviour is always what `cors_strict: true` gave in 4.x: an origin outside the whitelist receives no header at all. If `cors_strict: false` (or `true`) is still in your configuration, the application **will not boot**: `Configuration` does not declare `ignoreExtraKeys()`, so an unknown key raises `InvalidConfigurationException` during container compilation rather than being ignored quietly. Remove the `cors_strict` line when you upgrade.
 
 ## Preflight (OPTIONS)
 
-С версии 5.0 бандл **обрабатывает preflight-запросы сам**, без reverse-proxy или сторонних CORS-бандлов. Маршрут `/api/v{version}` принимает `OPTIONS` наравне с остальными методами; `ApiController::index()` перехватывает `OPTIONS` в самом начале, до JSON-RPC парсинга, и отвечает `204 No Content` с полным набором CORS-заголовков:
+Since 5.0 the bundle **handles preflight requests itself**, with no reverse proxy and no third-party CORS bundle. The `/api/v{version}` route accepts `OPTIONS` alongside the other methods; `ApiController::index()` intercepts `OPTIONS` at the very start, before any JSON-RPC parsing, and answers `204 No Content` with the full set of CORS headers:
 
 ```bash
 curl -i -X OPTIONS https://api.example.com/api/v1 \
@@ -60,11 +63,11 @@ Access-Control-Allow-Headers: Content-Type
 Access-Control-Max-Age: 86400
 ```
 
-- `Access-Control-Allow-Methods` — список методов, реально объявленных на маршруте (POST, GET, PUT, PATCH, DELETE — без самого `OPTIONS`).
-- `Access-Control-Allow-Headers` — берётся из конфига `cors_allowed_headers` (по умолчанию `['Content-Type']`), **не** отражает `Access-Control-Request-Headers` запроса обратно. Отражение запрошенных заголовков превратило бы проверку в формальность, разрешающую всё, что попросит клиент.
-- `Access-Control-Max-Age: 86400` — браузер кэширует результат preflight на сутки.
-- Origin-матчинг для preflight подчиняется тем же правилам, что и `prepareHeaders()` для обычных ответов (wildcard / whitelist / no match).
-- Preflight никогда не долетает до JSON-RPC-парсинга — пустое тело `OPTIONS`-запроса не считается ошибкой `Invalid Request`.
+- `Access-Control-Allow-Methods` — the methods actually declared on the route (POST, GET, PUT, PATCH, DELETE, without `OPTIONS` itself).
+- `Access-Control-Allow-Headers` — taken from the `cors_allowed_headers` key (default `['Content-Type']`). It does **not** reflect the request's `Access-Control-Request-Headers` back. Reflecting the requested headers would turn the check into a formality that permits whatever the client asks for.
+- `Access-Control-Max-Age: 86400` — the browser caches the preflight result for a day.
+- Origin matching for preflight follows the same rules as `prepareHeaders()` does for ordinary responses (wildcard / whitelist / no match).
+- Preflight never reaches JSON-RPC parsing — the empty body of an `OPTIONS` request is not treated as an `Invalid Request`.
 
 ```yaml
 # config/packages/ov_json_rpc_api.yaml
@@ -74,24 +77,24 @@ ov_json_rpc_api:
         - 'X-AUTH-TOKEN'
 ```
 
-Если ваш фронтенд шлёт кастомный заголовок авторизации (`X-AUTH-TOKEN`, нестандартный `Authorization`) — добавьте его в `cors_allowed_headers`, иначе браузер завалит preflight и реальный запрос не уйдёт.
+If your frontend sends a custom authorisation header (`X-AUTH-TOKEN`, a non-standard `Authorization`), add it to `cors_allowed_headers`; otherwise the browser fails the preflight and the real request never leaves.
 
-Если у вас уже настроен preflight на уровне nginx/Apache или через `nelmio/cors-bundle` — с 5.0 это, скорее всего, стало избыточным дублированием; оставляйте внешнюю настройку только если вам нужно нестандартное поведение (например, `Access-Control-Allow-Credentials` — см. ниже).
+If you already have preflight configured in nginx/Apache or through `nelmio/cors-bundle`, that has most likely become redundant duplication as of 5.0. Keep the external configuration only where you need behaviour the bundle does not offer — `Access-Control-Allow-Credentials`, for instance; see below.
 
 ## Credentials
 
-Если API требует cookies или `Authorization`-header:
+If the API requires cookies or an `Authorization` header:
 
-1. **Нельзя использовать `['*']`** — это нарушит спек.
-2. Whitelist должен содержать конкретные origin'ы.
-3. На уровне фронтенда: `fetch(url, {credentials: 'include'})`.
-4. Бандл сейчас **не отдаёт** заголовок `Access-Control-Allow-Credentials: true` автоматически (ни для обычных ответов, ни для preflight). Добавьте через nginx/middleware или PostProcessor.
+1. **`['*']` cannot be used** — it violates the specification.
+2. The whitelist must name specific origins.
+3. On the frontend: `fetch(url, {credentials: 'include'})`.
+4. The bundle does **not** currently emit `Access-Control-Allow-Credentials: true` automatically, for ordinary responses or for preflight. Add it through nginx, middleware, or a PostProcessor.
 
 ## Per-method CORS
 
-Бандл применяет одинаковые CORS-заголовки для всех методов. Если нужны разные whitelist'ы для разных endpoint'ов — используйте отдельный CORS-bundle или роутинг на уровне reverse-proxy.
+The bundle applies the same CORS headers to every method. If different endpoints need different whitelists, use a dedicated CORS bundle or routing at the reverse-proxy level.
 
-## Тестирование
+## Testing
 
 ```bash
 # Allowed origin
@@ -116,8 +119,8 @@ curl -i -X OPTIONS https://api.example.com/api/v1 \
 # -> 204, Access-Control-Allow-Origin + Allow-Methods + Allow-Headers + Max-Age
 ```
 
-## Связанное
+## Related
 
-- [security_hardening.md](./security_hardening.md) — CORS в контексте остальных hardening-настроек
-- [upgrade-5.0.md](./upgrade-5.0.md) — удаление `cors_strict`, появление `cors_allowed_headers` и preflight
-- [upgrade-4.0.md](./upgrade-4.0.md) — историческое поведение 3.x → 4.0 (актуально только для чтения истории миграции; `cors_strict`, упомянутый там, в 5.0 удалён)
+- [security_hardening.md](./security_hardening.md) — CORS in the context of the other hardening settings
+- [upgrade-5.0.md](./upgrade-5.0.md) — the removal of `cors_strict`, the arrival of `cors_allowed_headers` and preflight
+- [upgrade-4.0.md](./upgrade-4.0.md) — the historical 3.x → 4.0 behaviour (of interest only for reading the migration history; the `cors_strict` mentioned there is gone in 5.0)

@@ -1,44 +1,47 @@
-# Валидация параметров
+[English](validation.md) · [Русский](validation.ru.md)
 
-Бандл автоматически валидирует входящие параметры запроса на основе типов свойств Request-класса. Дополнительная конфигурация не требуется.
+# Parameter validation
+
+The bundle validates incoming request parameters automatically, from the property types of the Request class. No extra configuration is needed.
 
 ---
 
-## Как это работает
+## How it works
 
-При регистрации метода бандл анализирует Request-класс через Reflection и строит набор валидаторов на основе типов свойств:
+When a method is registered, the bundle analyses the Request class through Reflection and builds a set of validators from the property types:
 
 ```php
 class Request
 {
-    private int $id;           // обязательный, тип int
-    private string $title;     // обязательный, тип string
-    private ?string $email;    // необязательный (nullable), тип string
-    private int $page = 1;     // необязательный (есть default), тип int
+    private int $id;           // required, type int
+    private string $title;     // required, type string
+    private ?string $email;    // optional (nullable), type string
+    private int $page = 1;     // optional (has a default), type int
 }
 ```
 
-При поступлении запроса параметры проверяются через `Symfony Validator` с constraint `Assert\Type`. С версии 5.0 сравнение строгое: `Assert\Type` смотрит на реальный PHP-тип декодированного JSON-значения, без приведения. `"42"` (строка) для поля `int` возвращает `-32602 Invalid params`, а не тихо приводится к числу — то же для `"true"`/`"1"` на `bool`-поле и т. д. Раньше слабая типизация PHP могла привести строку к числу при вызове сеттера; сейчас все точки, зависящие от клиентского ввода (конструктор DTO, сеттеры, аддеры, вложенные DTO), ловят `TypeError` и превращают его в `-32602` вместо падения в `-32603 Internal error` или необработанного исключения в логе.
+When a request arrives, the parameters are checked by the Symfony Validator with an `Assert\Type` constraint. Since 5.0 the comparison is strict: `Assert\Type` looks at the actual PHP type of the decoded JSON value, with no coercion. `"42"` (a string) for an `int` field returns `-32602 Invalid params` rather than being cast quietly to a number — likewise `"true"` or `"1"` for a `bool` field, and so on. Previously PHP's weak typing could coerce a string to a number when the setter was called; now every point that depends on client input — the DTO constructor, setters, adders, nested DTOs — catches the `TypeError` and turns it into `-32602`, instead of falling through to `-32603 Internal error` or an unhandled exception in the log.
 
 ---
 
-## Обязательные vs необязательные параметры
+## Required versus optional parameters
 
-Параметр считается **необязательным** если:
-- Тип помечен как nullable (`?string`, `?int`)
-- Свойство имеет значение по умолчанию (`private int $page = 1`)
+A parameter is **optional** when:
 
-Во всех остальных случаях параметр **обязателен**.
+- the type is nullable (`?string`, `?int`), or
+- the property has a default value (`private int $page = 1`).
 
-Для необязательных параметров допускается: значение нужного типа, `null`, пустая строка или отсутствие параметра.
+In every other case the parameter is **required**.
+
+For optional parameters the bundle accepts a value of the right type, `null`, an empty string, or the parameter being absent.
 
 ---
 
-## Формат ошибки валидации
+## The shape of a validation error
 
-Если параметры не прошли валидацию, бандл возвращает ошибку с кодом `-32602` (Invalid params):
+When parameters fail validation, the bundle returns an error with code `-32602` (Invalid params):
 
-**Запрос:**
+**Request:**
 ```json
 {
     "jsonrpc": "2.0",
@@ -48,7 +51,7 @@ class Request
 }
 ```
 
-**Ответ:**
+**Response:**
 ```json
 {
     "jsonrpc": "2.0",
@@ -62,9 +65,9 @@ class Request
 
 ---
 
-## Валидация вложенных объектов
+## Validating nested objects
 
-Если свойство Request-класса имеет тип другого класса, бандл автоматически создаёт экземпляр через setters и валидирует каждое поле:
+When a property of the Request class is typed as another class, the bundle creates an instance through its setters and validates every field:
 
 ```php
 class Filter
@@ -73,18 +76,18 @@ class Filter
     private string $title;
     private bool $finished;
 
-    // getters и setters...
+    // getters and setters...
 }
 
 class Request
 {
     private Filter $filter;
 
-    // getter и setter...
+    // getter and setter...
 }
 ```
 
-**Запрос:**
+**Request:**
 ```json
 {
     "jsonrpc": "2.0",
@@ -96,7 +99,7 @@ class Request
 }
 ```
 
-Если в `filter` передать неожиданное поле, бандл вернёт ошибку:
+Sending an unexpected field inside `filter` returns an error:
 
 ```json
 {
@@ -111,32 +114,32 @@ class Request
 
 ---
 
-## Связывание геттеров/сеттеров/аддеров с полями DTO
+## Binding getters, setters and adders to DTO fields
 
-Бандл сопоставляет параметр запроса с методом Request-класса **по точному имени свойства**, а не по подстроке. Для свойства `$userId` резолвится геттер `getUserId()`/`isUserId()`, сеттер `setUserId()` и (при наличии) аддер, чьё имя резолвится через `Symfony\Component\String\Inflector\EnglishInflector` из имени свойства (например, `$categories` → `addCategory()`; `$children` → `addChild()`). Раньше связывание шло через `str_contains()`, из-за чего `getUserId()` мог случайно удовлетворить и `userId`, и `id`, — если у Request-класса были свойства `id` и `userId` одновременно, валидатор для `id` мог проверять значение `userId`. Начиная с 5.0 такая двусмысленность невозможна: связывание строго по имени, а несвязанный метод просто не резолвится.
+The bundle matches a request parameter to a method of the Request class **by the exact property name**, not by substring. For a property `$userId` it resolves the getter `getUserId()`/`isUserId()`, the setter `setUserId()`, and — where one exists — an adder whose name comes from the property name through `Symfony\Component\String\Inflector\EnglishInflector` (`$categories` → `addCategory()`; `$children` → `addChild()`). Binding used to go through `str_contains()`, which let `getUserId()` accidentally satisfy both `userId` and `id`: if a Request class held `id` and `userId` at once, the validator for `id` could end up checking the value of `userId`. From 5.0 that ambiguity is impossible: binding is strictly by name, and an unbound method simply does not resolve.
 
-## Поддерживаемые типы
+## Supported types
 
-| PHP-тип | Валидируется как |
-|---------|-----------------|
+| PHP type | Validated as |
+|----------|--------------|
 | `int` | `int` |
 | `string` | `string` |
 | `float` | `float` |
 | `bool` | `bool` |
 | `array` | `array` |
-| Класс (`Filter`, `Address`, ...) | Рекурсивная валидация через setters |
+| A class (`Filter`, `Address`, …) | Recursive validation through setters |
 
 ---
 
-## Разрешение дополнительных полей (allowExtraFields)
+## Permitting extra fields (allowExtraFields)
 
-По умолчанию бандл отклоняет любые параметры, которые не описаны в Request-классе. Если в `params` передать поле, для которого нет свойства в Request — бандл вернёт ошибку `-32602`.
+By default the bundle rejects any parameter the Request class does not describe. A field in `params` with no matching property returns `-32602`.
 
-Это поведение можно отключить двумя способами:
+That can be switched off in two ways.
 
-### Глобальная настройка
+### Globally
 
-Добавьте параметр `allow_extra_fields: true` в конфигурацию бандла:
+Add `allow_extra_fields: true` to the bundle's configuration:
 
 ```yaml
 # config/packages/ov_json_rpc_api.yaml
@@ -144,11 +147,11 @@ ov_json_rpc_api:
     allow_extra_fields: true
 ```
 
-При включении глобальной настройки **все** JSON-RPC методы будут игнорировать дополнительные поля в запросе. Настройка на уровне атрибута метода при этом игнорируется.
+With the global setting on, **every** JSON-RPC method ignores extra fields in a request, and the per-method attribute setting is ignored.
 
-### Настройка для конкретного метода
+### Per method
 
-Добавьте параметр `allowExtraFields: true` в атрибут `#[JsonRPCAPI]`:
+Add `allowExtraFields: true` to the `#[JsonRPCAPI]` attribute:
 
 ```php
 #[JsonRPCAPI(
@@ -165,13 +168,15 @@ class UpdateProductMethod implements ApiMethodInterface
 }
 ```
 
-Настройка через атрибут работает только когда глобальная настройка `allow_extra_fields` равна `false` (значение по умолчанию).
+The attribute setting applies only while the global `allow_extra_fields` is `false` (its default).
 
-### Приоритет
+### Precedence
 
-| Глобальный конфиг | Атрибут метода | Результат |
-|-------------------|----------------|-----------|
-| `false` (по умолчанию) | `false` (по умолчанию) | Extra-поля **запрещены** |
-| `false` | `true` | Extra-поля **разрешены** для данного метода |
-| `true` | `false` | Extra-поля **разрешены** (глобальный побеждает) |
-| `true` | `true` | Extra-поля **разрешены** |
+| Global config | Method attribute | Result |
+|---------------|------------------|--------|
+| `false` (default) | `false` (default) | Extra fields **rejected** |
+| `false` | `true` | Extra fields **permitted** for that method |
+| `true` | `false` | Extra fields **permitted** (global wins) |
+| `true` | `true` | Extra fields **permitted** |
+
+Since 5.0 `allow_extra_fields` applies identically at any depth. The flag used to be checked once at the top level, while recursive hydration of nested DTOs rejected extra fields unconditionally.

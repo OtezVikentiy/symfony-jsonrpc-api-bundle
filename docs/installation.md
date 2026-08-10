@@ -1,20 +1,22 @@
-# Установка бандла
+[English](installation.md) · [Русский](installation.ru.md)
+
+# Installing the bundle
 
 ---
 
-## Описание
+## What this covers
 
-Пошаговая инструкция по установке и настройке бандла OtezVikentiy JSON-RPC API.
+Step-by-step installation and configuration of the OtezVikentiy JSON-RPC API bundle.
 
 ---
 
-## 1. Установите бандл через Composer
+## 1. Install through Composer
 
 ```bash
 composer require otezvikentiy/json-rpc-api
 ```
 
-## 2. Подключите бандл (не требуется при использовании Symfony Flex)
+## 2. Register the bundle (not needed with Symfony Flex)
 
 ```php
 <?php
@@ -25,9 +27,9 @@ return [
 ];
 ```
 
-## 3. Создайте конфигурационные файлы
+## 3. Create the configuration files
 
-### Маршрутизация
+### Routing
 
 ```yaml
 # config/routes/ov_json_rpc_api.yaml
@@ -35,10 +37,9 @@ ov_json_rpc_api:
     resource: '@OVJsonRPCAPIBundle/config/routes/routes.yaml'
 ```
 
-Бандл зарегистрирует единый маршрут `/api/v{version}`, через который обрабатываются все JSON-RPC запросы.
-Поддерживаются HTTP-методы: POST, GET, PUT, PATCH, DELETE.
+The bundle registers a single route, `/api/v{version}`, through which every JSON-RPC request is handled. The HTTP methods supported are POST, GET, PUT, PATCH, DELETE and OPTIONS.
 
-### Конфигурация бандла
+### Bundle configuration
 
 ```yaml
 # config/packages/ov_json_rpc_api.yaml
@@ -47,7 +48,7 @@ ov_json_rpc_api:
         - localhost
         - api.localhost
         - '*'
-    strict_notifications: true # значение по умолчанию; false — вернуть ответ и на Notification, если результат непустой
+    strict_notifications: true # the default; false returns a response to a Notification too, when the result is non-empty
     swagger:
         api_v1:
             api_version: '1'
@@ -62,7 +63,7 @@ ov_json_rpc_api:
             test_path_variables:
                 - {name: 'domain', value: 'test'}
             auth_token_name: 'X-AUTH-TOKEN'
-            auth_token_test_value: '%env(string:OV_JSON_RPC_API_AUTH_TOKEN)%' #для prod используйте пустое значение
+            auth_token_test_value: '%env(string:OV_JSON_RPC_API_AUTH_TOKEN)%' #leave empty in production
             info:
                 title: 'Some awesome api title here'
                 description: 'Some description about your api here would be appreciated if you like'
@@ -75,28 +76,29 @@ ov_json_rpc_api:
                 licenseUrl: 'https://john-doe.test/mit-license'
 ```
 
-#### Описание параметров конфигурации
+Note that `'*'` cannot be combined with specific origins — see [cors.md](./cors.md). The example above lists both for illustration; in a real configuration choose one or the other.
 
-| Параметр | Описание |
-|----------|----------|
-| `access_control_allow_origin_list` | Список разрешённых CORS-доменов. Используйте `'*'` для разрешения всех |
-| `strict_notifications` | При `true` (по умолчанию) — Notification (запрос без `id`) не получает ответ (строго по JSON-RPC 2.0), даже если `call()` бросил исключение. При `false` — ответ возвращается с `id: null`, если результат непустой |
-| `swagger.*.api_version` | Номер версии API для генерации Swagger |
-| `swagger.*.base_path` | URL production-сервера |
-| `swagger.*.base_path_description` | Описание production-сервера в Swagger |
-| `swagger.*.test_path` | URL тестового сервера |
-| `swagger.*.test_path_description` | Описание тестового сервера в Swagger |
-| `swagger.*.base_path_variables` | Переменные для подстановки в `base_path` |
-| `swagger.*.test_path_variables` | Переменные для подстановки в `test_path` |
-| `swagger.*.auth_token_name` | Имя HTTP-заголовка для токена авторизации |
-| `swagger.*.auth_token_test_value` | Тестовое значение токена. **Сейчас не используется** — генератор берёт из блока авторизации только `auth_token_name`. Ключ принимается и валидируется, но ни на что не влияет |
-| `swagger.*.info` | Информация об API: title, description, contact, license |
+#### The configuration keys
 
-> **Подстановка переменных в path**
+| Key | Description |
+|-----|-------------|
+| `access_control_allow_origin_list` | The list of permitted CORS origins. Use `'*'`, on its own, to permit all |
+| `strict_notifications` | At `true` (the default) a Notification — a request without `id` — receives no response, strictly per JSON-RPC 2.0, even when `call()` threw. At `false` a response with `id: null` is returned when the result is non-empty |
+| `swagger.*.api_version` | The API version number for Swagger generation |
+| `swagger.*.base_path` | The production server URL |
+| `swagger.*.base_path_description` | The production server's description in Swagger |
+| `swagger.*.test_path` | The test server URL |
+| `swagger.*.test_path_description` | The test server's description in Swagger |
+| `swagger.*.base_path_variables` | Variables substituted into `base_path` |
+| `swagger.*.test_path_variables` | Variables substituted into `test_path` |
+| `swagger.*.auth_token_name` | The name of the HTTP header carrying the authorisation token |
+| `swagger.*.auth_token_test_value` | A test value for the token. **Currently unused** — the generator takes only `auth_token_name` from the authorisation block. The key is accepted and validated but affects nothing |
+| `swagger.*.info` | Information about the API: title, description, contact, license |
+
+> **Substituting variables into a path**
 >
-> Параметры `base_path` и `test_path` поддерживают переменные в фигурных скобках.
-> Например, `base_path` может быть задан как `{protocol}://{host}:{port}`, а в секции
-> `base_path_variables` указываются значения для подстановки:
+> `base_path` and `test_path` support variables in braces. `base_path` may be written as
+> `{protocol}://{host}:{port}`, with the values supplied under `base_path_variables`:
 > ```yaml
 > base_path: '{protocol}://{host}:{port}'
 > base_path_variables:
@@ -104,9 +106,9 @@ ov_json_rpc_api:
 >       - {name: 'host', value: 'some.domain'}
 >       - {name: 'port', value: '100500'}
 > ```
-> В результате URL для Swagger будет: `https://some.domain:100500/api/v1`
+> The resulting Swagger URL is `https://some.domain:100500/api/v1`.
 
-### Переменные окружения
+### Environment variables
 
 ```dotenv
 # .env
@@ -118,16 +120,16 @@ OV_JSON_RPC_API_AUTH_TOKEN=2f1f6aee7d994528fde6e47a493cc097
 ###< otezvikentiy/json-rpc-api ###
 ```
 
-| Переменная | Описание |
-|------------|----------|
-| `OV_JSON_RPC_API_SWAGGER_PATH` | Путь для генерации Swagger YAML-файлов (относительно корня проекта) |
-| `OV_JSON_RPC_API_BASE_URL` | URL production-сервера для Swagger-документации |
-| `OV_JSON_RPC_API_TEST_URL` | URL тестового сервера для Swagger-документации |
-| `OV_JSON_RPC_API_AUTH_TOKEN` | Тестовое значение токена авторизации (отображается в Swagger UI) |
+| Variable | Description |
+|----------|-------------|
+| `OV_JSON_RPC_API_SWAGGER_PATH` | Where the Swagger YAML files are generated, relative to the project root |
+| `OV_JSON_RPC_API_BASE_URL` | The production server URL for the Swagger documentation |
+| `OV_JSON_RPC_API_TEST_URL` | The test server URL for the Swagger documentation |
+| `OV_JSON_RPC_API_AUTH_TOKEN` | A test value for the authorisation token, shown in Swagger UI |
 
-## 4. Проверьте установку
+## 4. Verify the installation
 
-Отправьте тестовый запрос:
+Send a test request:
 
 ```bash
 curl -X POST http://localhost/api/v1 \
@@ -135,7 +137,7 @@ curl -X POST http://localhost/api/v1 \
   -d '{"jsonrpc": "2.0", "method": "test", "params": {}, "id": 1}'
 ```
 
-Если метод `test` не зарегистрирован, вы получите корректный JSON-RPC ответ с ошибкой:
+With no method named `test` registered, you get a well-formed JSON-RPC error response:
 
 ```json
 {
@@ -148,12 +150,12 @@ curl -X POST http://localhost/api/v1 \
 }
 ```
 
-Это означает, что бандл установлен и работает корректно.
+That means the bundle is installed and working.
 
-> **Важно:** заголовок `Content-Type: application/json` в примере выше — не косметика, а требование. Для запросов с телом (POST/PUT/PATCH/DELETE) бандл принимает только `application/json`; form-encoded (`application/x-www-form-urlencoded`) и `multipart/form-data` отклоняются с `-32600 Invalid Request` ещё до попытки прочитать тело как JSON-RPC payload. Это закрывает CSRF-вектор: form-encoded — это "simple request" по CORS-спеке, и без этой проверки вредоносная HTML-форма на стороннем сайте могла бы вызывать ваши RPC-методы от имени залогиненного пользователя, используя его cookies, без preflight-запроса.
+> **Important:** the `Content-Type: application/json` header above is a requirement, not decoration. For requests with a body (POST/PUT/PATCH/DELETE) the bundle accepts only `application/json`; form-encoded (`application/x-www-form-urlencoded`) and `multipart/form-data` are rejected with `-32600 Invalid Request` before any attempt to read the body as a JSON-RPC payload. This closes a CSRF vector: form-encoded is a "simple request" under the CORS specification, and without the check a malicious HTML form on a third-party site could call your RPC methods as the logged-in user, using their cookies, with no preflight request.
 
-## Следующие шаги
+## Next steps
 
-- [Базовый пример создания API-метода](./examples/base.md)
-- [Генерация Swagger-документации](./swagger/tags.md)
-- [Настройка безопасности](./security/roles.md)
+- [A basic example of an API method](./examples/base.md)
+- [Generating the Swagger documentation](./swagger/tags.md)
+- [Configuring security](./security/roles.md)
