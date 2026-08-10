@@ -24,6 +24,11 @@ GitHub: https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle
 - **Small dependency footprint.** Only `symfony/*` components and `psr/log` — nothing else is pulled into your project.
 - **Every supported combination is tested.** CI runs the full matrix of PHP 8.2–8.5 against Symfony 6.4, 7 and 8, plus a lowest-dependencies build, a coverage gate and a mutation-testing gate.
 
+Want to see all of this working together? Check the demo application:
+[symfony-jsonrpc-api-demo](https://github.com/OtezVikentiy/symfony-jsonrpc-api-demo) —
+a small task-tracker API showcasing attributes, DTO validation, batches,
+API versioning, OpenAPI generation and log masking.
+
 ---
 
 ## Features
