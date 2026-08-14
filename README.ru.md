@@ -59,7 +59,9 @@ GitHub: https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle
 composer require otezvikentiy/json-rpc-api
 ```
 
-Включите бандл (если не используется Symfony Flex):
+С Symfony Flex на этом установка заканчивается: официальный [contrib-рецепт](https://github.com/symfony/recipes-contrib) подключит бандл, создаст `config/packages/ov_json_rpc_api.yaml` и `config/routes/ov_json_rpc_api.yaml` и добавит переменные окружения в `.env`. Flex запрашивает подтверждение перед выполнением contrib-рецептов; чтобы разрешить их заранее, один раз выполните `composer config extra.symfony.allow-contrib true`. Просмотрите сгенерированный конфиг и адаптируйте под свой проект.
+
+Без Flex всё настраивается вручную. Включите бандл:
 
 ```php
 // config/bundles.php

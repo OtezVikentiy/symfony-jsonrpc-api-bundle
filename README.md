@@ -59,7 +59,9 @@ API versioning, OpenAPI generation and log masking.
 composer require otezvikentiy/json-rpc-api
 ```
 
-Enable the bundle (if not using Symfony Flex):
+With Symfony Flex that is the whole installation: the official [contrib recipe](https://github.com/symfony/recipes-contrib) registers the bundle, creates `config/packages/ov_json_rpc_api.yaml` and `config/routes/ov_json_rpc_api.yaml`, and adds the environment variables to `.env`. Flex asks for confirmation before executing a contrib recipe; to pre-approve them, run `composer config extra.symfony.allow-contrib true` once. Review the generated config and adjust it to your project.
+
+Without Flex, configure everything manually. Enable the bundle:
 
 ```php
 // config/bundles.php

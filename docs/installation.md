@@ -16,6 +16,14 @@ Step-by-step installation and configuration of the OtezVikentiy JSON-RPC API bun
 composer require otezvikentiy/json-rpc-api
 ```
 
+The bundle ships with an official [Symfony Flex contrib recipe](https://github.com/symfony/recipes-contrib). If your project uses Flex, the recipe performs steps 2 and 3 for you: it registers the bundle in `config/bundles.php`, creates `config/packages/ov_json_rpc_api.yaml` and `config/routes/ov_json_rpc_api.yaml`, and adds the environment variables to `.env`. Flex asks for confirmation before executing a contrib recipe; to pre-approve contrib recipes for the project, run once:
+
+```bash
+composer config extra.symfony.allow-contrib true
+```
+
+With Flex you can skip straight to reviewing the generated files — the sections below then serve as a reference for the configuration keys. Without Flex, follow steps 2 and 3 manually.
+
 ## 2. Register the bundle (not needed with Symfony Flex)
 
 ```php
@@ -27,7 +35,7 @@ return [
 ];
 ```
 
-## 3. Create the configuration files
+## 3. Create the configuration files (with Symfony Flex — review the generated ones)
 
 ### Routing
 
