@@ -113,6 +113,29 @@ public function call(UploadFileRequest $request): UploadFileResponse
 }
 ```
 
+> Для `mimeTypes` и `extensions` нужен установленный `symfony/mime` — constraint определяет
+> настоящий тип по содержимому файла, а не верит тому, что заявил клиент. Зависимостью бандла он не
+> является, потому что здесь он не нужен; добавьте его в приложение, если пользуетесь этими опциями.
+
+## Как тестировать метод, принимающий файл
+
+Функциональный тест обязан выставить content type вручную:
+
+```php
+$client->request(
+    'POST',
+    '/api/v1',
+    ['jsonrpc' => json_encode(['jsonrpc' => '2.0', 'method' => 'uploadFile', 'params' => ['title' => 'x'], 'id' => 1])],
+    ['file' => new UploadedFile($path, 'report.pdf', 'application/pdf', null, true)],
+    ['CONTENT_TYPE' => 'multipart/form-data; boundary=----boundary'],
+);
+```
+
+BrowserKit собирает запросы через `Request::create()`, а тот помечает POST как
+`application/x-www-form-urlencoded`, если не сказано иное. Транспорт читается именно из этого
+заголовка, поэтому без пятого аргумента запрос приезжает обычным form post с пустым телом — и
+возвращает `-32600` по причине, никак не связанной с самим тестом.
+
 ## Что отклоняется и почему
 
 | Запрос | Ответ |

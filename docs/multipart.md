@@ -113,6 +113,29 @@ public function call(UploadFileRequest $request): UploadFileResponse
 }
 ```
 
+> `mimeTypes` and `extensions` need `symfony/mime` installed — the constraint guesses the real type
+> from the file's content rather than trusting what the client claimed. It is not a dependency of
+> this bundle, because nothing here needs it; add it to your application if you use those options.
+
+## Testing a method that takes a file
+
+A functional test has to set the content type by hand:
+
+```php
+$client->request(
+    'POST',
+    '/api/v1',
+    ['jsonrpc' => json_encode(['jsonrpc' => '2.0', 'method' => 'uploadFile', 'params' => ['title' => 'x'], 'id' => 1])],
+    ['file' => new UploadedFile($path, 'report.pdf', 'application/pdf', null, true)],
+    ['CONTENT_TYPE' => 'multipart/form-data; boundary=----boundary'],
+);
+```
+
+BrowserKit builds its requests through `Request::create()`, which labels a POST
+`application/x-www-form-urlencoded` unless told otherwise. The transport is read from that header,
+so without the fifth argument the request arrives looking like an ordinary form post with an empty
+body — and comes back `-32600` for a reason that has nothing to do with the test.
+
 ## What is refused, and why
 
 | Request | Answer |
