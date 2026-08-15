@@ -5,10 +5,90 @@ namespace OV\JsonRPCAPIBundle\Tests\Logging;
 use OV\JsonRPCAPIBundle\Core\Logging\SensitiveDataMasker;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use OV\JsonRPCAPIBundle\Tests\Fixtures\TestLogger;
 
 final class SensitiveDataMaskerTest extends TestCase
 {
+    /**
+     * An uploaded file reaches the logger inside params. Encoding it as it stands puts either file
+     * content or a server-side temporary path into a log line, so it is replaced by the three things
+     * worth recording about it.
+     */
+    public function testUploadedFileIsRecordedAsMetadata(): void
+    {
+        $masker = new SensitiveDataMasker(['~^password$~i'], '***', new NullLogger());
+
+        $result = $masker->mask(['params' => ['file' => $this->uploadedFile()]]);
+
+        self::assertSame(
+            ['params' => ['file' => ['originalName' => 'report.pdf', 'size' => 9, 'mimeType' => 'application/pdf']]],
+            $result,
+        );
+    }
+
+    public function testUploadedFileIsDescribedEvenWithNoMaskingPatternsConfigured(): void
+    {
+        // Describing a file is serialization, not masking: switching key masking off must not put
+        // the raw instance back into the log line.
+        $masker = new SensitiveDataMasker([], '***', new NullLogger());
+
+        $result = $masker->mask(['file' => $this->uploadedFile()]);
+
+        self::assertSame(
+            ['file' => ['originalName' => 'report.pdf', 'size' => 9, 'mimeType' => 'application/pdf']],
+            $result,
+        );
+    }
+
+    public function testASensitiveKeyStillWinsOverTheFileDescription(): void
+    {
+        // A file part named after a credential is masked like any other field of that name: the
+        // placeholder says less than the metadata would, which is the direction to err in.
+        $masker = new SensitiveDataMasker(['~signature~i'], '***', new NullLogger());
+
+        $result = $masker->mask(['signature' => $this->uploadedFile()]);
+
+        self::assertSame(['signature' => '***'], $result);
+    }
+
+    public function testAMovedUploadedFileIsDescribedWithoutASize(): void
+    {
+        // getSize() stats the temporary file, and the handler may already have moved it. Reporting
+        // an unknown size beats raising a warning from inside the logger.
+        $masker = new SensitiveDataMasker([], '***', new NullLogger());
+        $file = $this->uploadedFile();
+        unlink($file->getPathname());
+
+        $result = $masker->mask(['file' => $file]);
+
+        self::assertNull($result['file']['size']);
+        self::assertSame('report.pdf', $result['file']['originalName']);
+    }
+
+    private function uploadedFile(): UploadedFile
+    {
+        $path = (string) tempnam(sys_get_temp_dir(), 'ov_masker_');
+        file_put_contents($path, 'PDF-BYTES');
+        $this->tempFiles[] = $path;
+
+        return new UploadedFile($path, 'report.pdf', 'application/pdf', null, true);
+    }
+
+    /** @var list<string> */
+    private array $tempFiles = [];
+
+    protected function tearDown(): void
+    {
+        foreach ($this->tempFiles as $tempFile) {
+            if (is_file($tempFile)) {
+                unlink($tempFile);
+            }
+        }
+
+        $this->tempFiles = [];
+    }
+
     public function testMasksTopLevelKeyMatchingPattern(): void
     {
         $masker = new SensitiveDataMasker(['~^password$~i'], '***', new NullLogger());
