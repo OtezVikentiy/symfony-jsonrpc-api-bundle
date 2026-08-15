@@ -46,6 +46,7 @@ final class RequestHandler
     private const PLAIN_RESPONSE_IN_BATCH_INFO = 'Plain responses are not supported inside a batch request.';
     private const PROCESSOR_NOT_CALLABLE_MESSAGE = 'Internal error.';
     private const PROCESSOR_NOT_CALLABLE_INFO_FORMAT = 'Processor %s does not implement a callable RPC method.';
+    private const MULTIPART_NOT_ACCEPTED_INFO = 'Method does not accept multipart/form-data.';
 
     /**
      * A batch rejected for exceeding max_batch_size is, by definition, attacker-influenced and can be
@@ -76,7 +77,7 @@ final class RequestHandler
     ) {
     }
 
-    public function applyStrategy(HandleBatchInterface $strategy, array $data, int $version, string $methodType): OvResponseInterface
+    public function applyStrategy(HandleBatchInterface $strategy, array $data, int $version, string $methodType, bool $isMultipart = false): OvResponseInterface
     {
         if ($strategy instanceof MultiBatchStrategy && count($data) > $this->maxBatchSize) {
             $call = $this->callLogger->logRequest([
@@ -98,7 +99,7 @@ final class RequestHandler
         }
 
         $isMultiBatch = $strategy instanceof MultiBatchStrategy;
-        $batchProcessor = fn (mixed $item, int $itemVersion, string $itemMethodType): ?OvResponseInterface => $this->processBatch($item, $itemVersion, $itemMethodType, $isMultiBatch);
+        $batchProcessor = fn (mixed $item, int $itemVersion, string $itemMethodType): ?OvResponseInterface => $this->processBatch($item, $itemVersion, $itemMethodType, $isMultiBatch, $isMultipart);
 
         $response = $strategy->handleBatch($data, $version, $methodType, $batchProcessor);
 
@@ -114,6 +115,7 @@ final class RequestHandler
         int $version,
         string $methodType,
         bool $isBatchItem = false,
+        bool $isMultipart = false,
     ): ?OvResponseInterface {
         $call = $this->callLogger->logRequest(is_array($batch) ? $batch : []);
         try {
@@ -127,6 +129,18 @@ final class RequestHandler
 
             if ($methodSpec->getRequestType() !== $methodType) {
                 throw new JRPCException('Invalid Request.', JRPCException::INVALID_REQUEST);
+            }
+
+            // The content-type assertion runs in prepareData(), before any method is known, so this
+            // is the first moment the method's own opt-in can be consulted. Enabling multipart
+            // globally must not silently open every existing method to a transport it was never
+            // written for.
+            if ($isMultipart && !$methodSpec->isAcceptsMultipart()) {
+                throw new JRPCException(
+                    'Invalid Request.',
+                    JRPCException::INVALID_REQUEST,
+                    self::MULTIPART_NOT_ACCEPTED_INFO,
+                );
             }
 
             $this->checkRoles($methodSpec);
@@ -514,7 +528,7 @@ final class RequestHandler
 
             $requestSetter = $methodSpec->getRequestSetters()[$name] ?? null;
             if (!is_null($requestSetter)) {
-                if (class_exists($allParameter['type'])) {
+                if (class_exists($allParameter['type']) && !self::alreadyOfDeclaredType($value, $allParameter['type'])) {
                     if ($value !== null) {
                         try {
                             $value = $this->prepareParametersFromClass($allParameter['type'], $value, $allowExtraFields, 0, $this->transportIsUntyped($methodSpec));
@@ -562,6 +576,21 @@ final class RequestHandler
     }
 
     /**
+     * Whether the transport already produced a value of the type the DTO declares.
+     *
+     * Both nested-DTO branches assume the value is raw JSON - an array of properties, or a string
+     * for a single-argument constructor - and build the declared class out of it. That assumption
+     * does not hold for a value the transport itself constructed: multipart hydration puts an
+     * UploadedFile straight into params, and passing that to prepareParametersFromClass() would
+     * try to build an UploadedFile out of an UploadedFile. Stated as an invariant rather than as an
+     * UploadedFile special case, so any future transport-produced type is covered by the same rule.
+     */
+    private static function alreadyOfDeclaredType(mixed $value, string $type): bool
+    {
+        return $value instanceof $type;
+    }
+
+    /**
      * @param class-string $class
      */
     private function prepareParametersFromClass(string $class, array|string $values, bool $allowExtraFields = false, int $depth = 0, bool $untypedTransport = false): object
@@ -605,7 +634,7 @@ final class RequestHandler
             $setter = $methodsIdx[$setterName];
             $setterParamType = $setter->getParameters()[0]->getType();
             $setterArgumentType = $setterParamType instanceof ReflectionNamedType ? $setterParamType->getName() : 'mixed';
-            if ($setterParamType !== null && class_exists($setterArgumentType)) {
+            if ($setterParamType !== null && class_exists($setterArgumentType) && !self::alreadyOfDeclaredType($value, $setterArgumentType)) {
                 $value = $this->prepareParametersFromClass($setterArgumentType, $value, $allowExtraFields, $depth + 1, $untypedTransport);
             } elseif ($untypedTransport) {
                 $value = $this->coerceFromUntypedTransport($value, $setterArgumentType);
