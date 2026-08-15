@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### Added
+- **File uploads over `multipart/form-data`** — a method can now receive a `Symfony\Component\HttpFoundation\File\UploadedFile` as a top-level parameter. The request carries a `jsonrpc` form field holding the complete JSON-RPC request object (scalar parameters included) plus one part per file, part name = parameter name; everything below the transport adapter stays unchanged, and the response is an ordinary JSON-RPC envelope. Off by default and opt-in twice over: `multipart.enabled` for the application, `acceptsMultipart: true` on `#[JsonRPCAPI]` for the method — a multipart request to a method that does not declare it is `-32600`. Batch stays JSON-only, files live at the top level of `params` only, POST only. The call logger records a file as `{originalName, size, mimeType}` and never as content, and `acceptsMultipart: true` makes the OpenAPI generator publish a `multipart/form-data` request body for that method. **Enabling it re-opens, for the declaring methods only, the CSRF vector the mandatory `Content-Type: application/json` closed in 5.0 — `multipart/form-data` is a CORS "simple request". Read [docs/multipart.md](./docs/multipart.md) before switching it on.**
+- **`multipart.max_file_bytes`** (default `'10Mi'`) and **`multipart.max_files`** (default 10) — per-file and per-request limits, alongside the existing payload/batch/depth ones. `max_payload_bytes` applies to the `jsonrpc` field.
+- **A file-typed parameter is validated by `Assert\File`**, compiled behind `Assert\Type` by the same machinery that produces `Assert\Type('int')` for an `int` field. `max_file_bytes` is enforced there, in Symfony's own size notation (`'10M'`, `'2Mi'`, or a byte count), and every PHP upload error — `upload_max_filesize` exceeded, a partial transfer, a missing temporary directory — becomes `-32602 Invalid params` naming the field instead of an unusable `UploadedFile` reaching the method. `Assert\Type` answers first, so a JSON string path is not accepted where a file belongs.
+
 ## [5.0] - 2026-08-07
 
 A specification-conformance release: a permanent suite written against the

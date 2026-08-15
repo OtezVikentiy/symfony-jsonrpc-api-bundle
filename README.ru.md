@@ -43,6 +43,7 @@ GitHub: https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle
 - Встроенная валидация запросов
 - Ролевой контроль доступа через Symfony Security
 - Поддержка бинарных ответов (изображения, документы)
+- Загрузка файлов через `multipart/form-data` (opt-in, по умолчанию выключено)
 
 ---
 
@@ -279,6 +280,7 @@ src/RPC/V1/
 | [Валидация параметров](./docs/validation.ru.md) | Автоматическая валидация типов, nullable, формат ошибок |
 | [Базовый класс JsonRpcRequest](./docs/json_rpc_request.ru.md) | Метод `toArray()`, рекурсивная сериализация |
 | [Partial updates (JSON Merge Patch)](./docs/partial_updates.ru.md) | `PartialRequestInterface`, `wasProvided()`, RFC 7396 семантика |
+| [Загрузка файлов](./docs/multipart.ru.md) | `multipart/form-data`, `acceptsMultipart`, лимиты и компромисс по CSRF |
 | [Troubleshooting / FAQ](./docs/troubleshooting.ru.md) | Типичные проблемы и их решения |
 | [**Гайд по миграции 4.x → 5.0**](./docs/upgrade-5.0.md) | **Все ломающие изменения 5.0: что сломается и что с этим делать** |
 | [CHANGELOG](./CHANGELOG.ru.md) | История изменений по версиям |

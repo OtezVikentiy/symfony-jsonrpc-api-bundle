@@ -160,7 +160,7 @@ curl -X POST http://localhost/api/v1 \
 
 Это означает, что бандл установлен и работает корректно.
 
-> **Важно:** заголовок `Content-Type: application/json` в примере выше — не косметика, а требование. Для запросов с телом (POST/PUT/PATCH/DELETE) бандл принимает только `application/json`; form-encoded (`application/x-www-form-urlencoded`) и `multipart/form-data` отклоняются с `-32600 Invalid Request` ещё до попытки прочитать тело как JSON-RPC payload. Это закрывает CSRF-вектор: form-encoded — это "simple request" по CORS-спеке, и без этой проверки вредоносная HTML-форма на стороннем сайте могла бы вызывать ваши RPC-методы от имени залогиненного пользователя, используя его cookies, без preflight-запроса.
+> **Важно:** заголовок `Content-Type: application/json` в примере выше — не косметика, а требование. Для запросов с телом (POST/PUT/PATCH/DELETE) бандл принимает только `application/json`; form-encoded (`application/x-www-form-urlencoded`) и `multipart/form-data` отклоняются с `-32600 Invalid Request` ещё до попытки прочитать тело как JSON-RPC payload. Это закрывает CSRF-вектор: form-encoded — это "simple request" по CORS-спеке, и без этой проверки вредоносная HTML-форма на стороннем сайте могла бы вызывать ваши RPC-методы от имени залогиненного пользователя, используя его cookies, без preflight-запроса. Загрузка файлов — единственное намеренное исключение, выключенное по умолчанию и включаемое для каждого метода отдельно, см. [docs/multipart.ru.md](./multipart.ru.md).
 
 ## Следующие шаги
 
