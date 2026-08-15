@@ -19,6 +19,7 @@ use ReflectionProperty;
 use ReflectionType;
 use ReflectionUnionType;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -134,12 +135,18 @@ final class SwaggerSchemaBuilder
                 $requestSchema = new Schema(sprintf('%sRequest', $name));
                 $addIdToGlobalRequest = false;
 
+                $fileParts = [];
+
                 foreach ($method->getRequiredParameters() as $requiredParameter) {
+                    $parameters[$requiredParameter['name']] = $requiredParameter['name'];
+                    if (self::isFileParameter($requiredParameter['type'])) {
+                        $fileParts[$requiredParameter['name']] = ['name' => $requiredParameter['name'], 'required' => true];
+                        continue;
+                    }
                     $type = $this->normalizeType($requiredParameter['type']);
                     $prop = new SchemaProperty($requiredParameter['name'], $type);
                     $requestSchema->addProperty($prop);
                     $requestSchema->addRequired($prop);
-                    $parameters[$requiredParameter['name']] = $requiredParameter['name'];
                 }
 
                 foreach ($method->getAllParameters() as $parameter) {
@@ -147,6 +154,14 @@ final class SwaggerSchemaBuilder
                         $addIdToGlobalRequest = true;
                     }
                     if (isset($parameters[$parameter['name']])) {
+                        continue;
+                    }
+                    // A file has no JSON representation, so it is described as a part of the
+                    // multipart body rather than as a member of the request object the `jsonrpc`
+                    // field carries. Listing it in both would describe the same value twice, in one
+                    // place as something a caller cannot send.
+                    if (self::isFileParameter($parameter['type'])) {
+                        $fileParts[$parameter['name']] ??= ['name' => $parameter['name'], 'required' => false];
                         continue;
                     }
                     $type = $this->normalizeType($parameter['type']);
@@ -169,7 +184,11 @@ final class SwaggerSchemaBuilder
 
                 $this->components[] = $globalRequest;
 
-                $requestBody = new RequestBody(sprintf('%sMainRequest', $name));
+                $requestBody = new RequestBody(
+                    contentRef: sprintf('%sMainRequest', $name),
+                    fileParts: array_values($fileParts),
+                    multipart: $method->isAcceptsMultipart(),
+                );
 
                 $methodRef = new ReflectionClass($method->getMethodClass());
                 $callMethod = $methodRef->getMethod('call');
@@ -428,6 +447,17 @@ final class SwaggerSchemaBuilder
         }
 
         return $requiredPropertiesOfResponse;
+    }
+
+    /**
+     * Whether a declared parameter type is an uploaded file.
+     *
+     * Subclasses included: an application is free to declare its own UploadedFile descendant, and the
+     * transport hands it through untouched, so the schema has to describe it as a file too.
+     */
+    private static function isFileParameter(string $type): bool
+    {
+        return is_a($type, UploadedFile::class, true);
     }
 
     private function normalizeType(string $type): string

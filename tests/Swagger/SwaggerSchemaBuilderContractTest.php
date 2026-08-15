@@ -13,6 +13,7 @@ use OV\JsonRPCAPIBundle\Swagger\SwaggerSchemaBuilder;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Serializer\NameConverter\CamelCaseToSnakeCaseNameConverter;
 use Symfony\Component\Yaml\Yaml;
@@ -265,6 +266,55 @@ final class SwaggerSchemaBuilderContractTest extends TestCase
         $this->expectExceptionMessage('does not exist');
 
         $this->generate([MissingClassMethod::class]);
+    }
+
+    public function testAMultipartMethodPublishesAFormBodyInsteadOfAJsonOne(): void
+    {
+        $document = $this->generate([UploadMethod::class]);
+
+        $content = $document['paths']['/upload']['post']['requestBody']['content'];
+
+        self::assertArrayHasKey('multipart/form-data', $content);
+        self::assertArrayNotHasKey(
+            'application/json',
+            $content,
+            'the file parameters have no JSON form, so a JSON body would describe a request nobody can send',
+        );
+
+        $schema = $content['multipart/form-data']['schema'];
+        self::assertSame('object', $schema['type']);
+        self::assertSame('string', $schema['properties']['jsonrpc']['type']);
+        self::assertSame(['type' => 'string', 'format' => 'binary'], $schema['properties']['file']);
+        self::assertSame(['jsonrpc'], $schema['required'], 'an optional file part is not required');
+    }
+
+    public function testAFileParameterIsLeftOutOfTheJsonRequestSchema(): void
+    {
+        $document = $this->generate([UploadMethod::class]);
+
+        $properties = $document['components']['schemas']['uploadRequest']['properties'] ?? [];
+
+        self::assertArrayHasKey('title', $properties);
+        self::assertArrayNotHasKey('file', $properties, 'a file is described as a part, not as a member of the envelope');
+    }
+
+    public function testARequiredFileParameterIsRequiredInTheFormBody(): void
+    {
+        $document = $this->generate([RequiredUploadMethod::class]);
+
+        $schema = $document['paths']['/required_upload']['post']['requestBody']['content']['multipart/form-data']['schema'];
+
+        self::assertSame(['jsonrpc', 'file'], $schema['required']);
+    }
+
+    public function testAMethodThatDoesNotAcceptMultipartKeepsItsJsonBody(): void
+    {
+        $document = $this->generate([VisibleMethod::class]);
+
+        $content = $document['paths']['/visible']['post']['requestBody']['content'];
+
+        self::assertArrayHasKey('application/json', $content);
+        self::assertArrayNotHasKey('multipart/form-data', $content);
     }
 
     public function testAnAbsentAuthTokenNameOmitsTheSecurityBlocks(): void
@@ -841,5 +891,84 @@ final class MissingClassMethod
     public function call(PlainRequest $request): MissingClassResponse
     {
         return new MissingClassResponse();
+    }
+}
+
+final class UploadRequest
+{
+    private UploadedFile $file;
+    private string $title = '';
+
+    public function getFile(): UploadedFile
+    {
+        return $this->file;
+    }
+
+    public function setFile(UploadedFile $file): void
+    {
+        $this->file = $file;
+    }
+
+    public function getTitle(): string
+    {
+        return $this->title;
+    }
+
+    public function setTitle(string $title): void
+    {
+        $this->title = $title;
+    }
+}
+
+final class UploadResponse
+{
+    private string $ok = '';
+
+    public function getOk(): string
+    {
+        return $this->ok;
+    }
+
+    public function setOk(string $ok): void
+    {
+        $this->ok = $ok;
+    }
+}
+
+#[JsonRPCAPI(methodName: 'upload', type: 'POST', version: 1, acceptsMultipart: true)]
+final class UploadMethod
+{
+    public function call(UploadRequest $request): UploadResponse
+    {
+        return new UploadResponse();
+    }
+}
+
+final class RequiredUploadRequest
+{
+    private UploadedFile $file;
+
+    public function __construct(UploadedFile $file)
+    {
+        $this->file = $file;
+    }
+
+    public function getFile(): UploadedFile
+    {
+        return $this->file;
+    }
+
+    public function setFile(UploadedFile $file): void
+    {
+        $this->file = $file;
+    }
+}
+
+#[JsonRPCAPI(methodName: 'requiredUpload', type: 'POST', version: 1, acceptsMultipart: true)]
+final class RequiredUploadMethod
+{
+    public function call(RequiredUploadRequest $request): UploadResponse
+    {
+        return new UploadResponse();
     }
 }
