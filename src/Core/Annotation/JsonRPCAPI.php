@@ -28,6 +28,7 @@ final readonly class JsonRPCAPI
         private array $roles = [],
         private ?string $group = null,
         private bool $allowExtraFields = false,
+        private bool $acceptsMultipart = false,
     ) {
     }
 
@@ -88,5 +89,11 @@ final readonly class JsonRPCAPI
     public function isAllowExtraFields(): bool
     {
         return $this->allowExtraFields;
+    }
+
+    /** @noinspection PhpUnused */
+    public function isAcceptsMultipart(): bool
+    {
+        return $this->acceptsMultipart;
     }
 }

@@ -69,6 +69,18 @@ final class CompilerPassContractTest extends TestCase
         self::assertFalse($spec->getArgument(8));
     }
 
+    public function testAcceptsMultipartTravelsFromTheAttributeToTheSpec(): void
+    {
+        self::assertTrue($this->specOf(MultipartMethod::class)->getArgument(10));
+    }
+
+    public function testAMethodThatSaysNothingAboutMultipartDoesNotAcceptIt(): void
+    {
+        // The gate is the only thing standing between a globally enabled transport and every method
+        // already written, so the absent argument has to mean "no".
+        self::assertFalse($this->specOf(ExplicitVersionMethod::class)->getArgument(10));
+    }
+
     public function testAMethodTakingNoParameterCompiles(): void
     {
         $container = $this->process(NoParameterMethod::class);
@@ -241,6 +253,15 @@ final class ContractRequest
     public function setTitle(string $title): void
     {
         $this->title = $title;
+    }
+}
+
+#[JsonRPCAPI(methodName: 'multipart', type: 'POST', version: 1, ignoreInSwagger: true, acceptsMultipart: true)]
+final class MultipartMethod
+{
+    public function call(ContractRequest $request): array
+    {
+        return [];
     }
 }
 

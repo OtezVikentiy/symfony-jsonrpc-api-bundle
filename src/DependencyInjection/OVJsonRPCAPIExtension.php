@@ -61,6 +61,12 @@ final class OVJsonRPCAPIExtension extends Extension
         $container->setParameter($this->getAlias() . '.max_dto_depth', $config['max_dto_depth']);
         $container->setParameter($this->getAlias() . '.max_array_param_size', $config['max_array_param_size']);
 
+        // --- multipart ---
+        $multipartCfg = $config['multipart'];
+        $container->setParameter($this->getAlias() . '.multipart.enabled', $multipartCfg['enabled']);
+        $container->setParameter($this->getAlias() . '.multipart.max_file_bytes', $multipartCfg['max_file_bytes']);
+        $container->setParameter($this->getAlias() . '.multipart.max_files', $multipartCfg['max_files']);
+
         // --- logging ---
         $loggingCfg = $config['logging'];
         // Nothing inside the bundle reads this one: the decision it drives is taken here, by
