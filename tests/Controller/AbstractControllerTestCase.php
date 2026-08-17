@@ -41,6 +41,18 @@ abstract class AbstractControllerTestCase extends TestCase
     private ?RequestRawDataHandler $requestRawDataHandler = null;
     private ?ResponseService $responseService = null;
     protected bool $allowExtraFields = false;
+
+    /**
+     * Multipart knobs. A test that leaves them alone builds exactly the JSON request this harness
+     * has always built, so the whole existing suite keeps describing the transport it describes.
+     */
+    protected bool $sendAsMultipart = false;
+    protected bool $omitMultipartEnvelope = false;
+    protected bool $multipartEnabled = false;
+    protected int $multipartMaxFiles = 10;
+
+    /** @var array<string, mixed> */
+    protected array $multipartFiles = [];
     protected bool $useRealValidator = false;
     protected ?JsonRpcCallLoggerInterface $callLoggerOverride = null;
     protected bool $isGranted = true;
@@ -103,7 +115,10 @@ abstract class AbstractControllerTestCase extends TestCase
 
     private function prepareRequestRawDataHandler(): void
     {
-        $this->requestRawDataHandler = new RequestRawDataHandler();
+        $this->requestRawDataHandler = new RequestRawDataHandler(
+            multipartEnabled: $this->multipartEnabled,
+            multipartMaxFiles: $this->multipartMaxFiles,
+        );
     }
 
     private function prepareRequestHandler(): void
@@ -149,6 +164,12 @@ abstract class AbstractControllerTestCase extends TestCase
             $uri .= '?' . http_build_query($queryData);
         }
 
+        if ($this->sendAsMultipart) {
+            $this->request = $this->createMultipartRequest($uri, (string) $body);
+
+            return;
+        }
+
         $this->request = Request::create(
             $uri,
             $methodType,
@@ -157,6 +178,25 @@ abstract class AbstractControllerTestCase extends TestCase
             [],
             ['CONTENT_TYPE' => 'application/json'],
             $body,
+        );
+    }
+
+    /**
+     * The body is left empty on purpose: PHP parses a multipart body into $_POST/$_FILES and leaves
+     * php://input empty, so a Request carrying both would be a request no server ever produces.
+     */
+    private function createMultipartRequest(string $uri, string $envelope): Request
+    {
+        $fields = $this->omitMultipartEnvelope ? [] : ['jsonrpc' => $envelope];
+
+        return Request::create(
+            $uri,
+            Request::METHOD_POST,
+            $fields,
+            [],
+            $this->multipartFiles,
+            ['CONTENT_TYPE' => 'multipart/form-data; boundary=--------boundary'],
+            '',
         );
     }
 

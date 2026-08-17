@@ -52,6 +52,9 @@ final class OVJsonRPCAPIExtensionTest extends TestCase
         $this->assertSame(50, $container->getParameter('ov_json_rpc_api.max_batch_size'));
         $this->assertSame(10, $container->getParameter('ov_json_rpc_api.max_dto_depth'));
         $this->assertSame(1000, $container->getParameter('ov_json_rpc_api.max_array_param_size'));
+        $this->assertFalse($container->getParameter('ov_json_rpc_api.multipart.enabled'));
+        $this->assertSame('10Mi', $container->getParameter('ov_json_rpc_api.multipart.max_file_bytes'));
+        $this->assertSame(10, $container->getParameter('ov_json_rpc_api.multipart.max_files'));
     }
 
     public function testLoadAppliesUserOverrides(): void

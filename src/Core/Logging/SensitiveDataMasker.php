@@ -13,12 +13,17 @@ declare(strict_types=1);
 namespace OV\JsonRPCAPIBundle\Core\Logging;
 
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 final class SensitiveDataMasker implements SensitiveDataMaskerInterface
 {
     private const INVALID_PATTERN_WARNING = 'JsonRpcLogging: invalid sensitive-data masking regex skipped.';
     private const WARNING_CONTEXT_KEY_PATTERN = 'pattern';
     private const MERGE_DELIMITER = "\x01";
+
+    private const FILE_KEY_ORIGINAL_NAME = 'originalName';
+    private const FILE_KEY_SIZE = 'size';
+    private const FILE_KEY_MIME_TYPE = 'mimeType';
 
     /**
      * A backslash before a digit or a `g` is a numbered backreference; `(?(` opens a conditional
@@ -54,10 +59,6 @@ final class SensitiveDataMasker implements SensitiveDataMaskerInterface
 
     public function mask(array $data): array
     {
-        if ($this->keyPatterns === []) {
-            return $data;
-        }
-
         $result = [];
         foreach ($data as $key => $value) {
             if (is_string($key) && $this->keyMatches($key)) {
@@ -65,10 +66,36 @@ final class SensitiveDataMasker implements SensitiveDataMaskerInterface
                 continue;
             }
 
+            // Ahead of the array branch, and deliberately not behind the "no patterns configured"
+            // shortcut this method used to open with: an uploaded file reaches the logger inside
+            // params, and a log line has no business carrying file content or the server-side
+            // temporary path. Describing it is serialization, not masking, so it has to happen even
+            // when nothing is being masked.
+            if ($value instanceof UploadedFile) {
+                $result[$key] = self::describeUploadedFile($value);
+                continue;
+            }
+
             $result[$key] = is_array($value) ? $this->mask($value) : $value;
         }
 
         return $result;
+    }
+
+    /**
+     * @return array{originalName: string, size: int|null, mimeType: string}
+     */
+    private static function describeUploadedFile(UploadedFile $file): array
+    {
+        // isFile() first: getSize() stats the temporary file, which is gone once a handler has moved
+        // it, and a warning raised from inside the logger is a poor way to find that out.
+        $size = $file->isFile() ? $file->getSize() : false;
+
+        return [
+            self::FILE_KEY_ORIGINAL_NAME => $file->getClientOriginalName(),
+            self::FILE_KEY_SIZE => is_int($size) ? $size : null,
+            self::FILE_KEY_MIME_TYPE => $file->getClientMimeType(),
+        ];
     }
 
     private function keyMatches(string $key): bool

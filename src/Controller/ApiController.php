@@ -76,7 +76,8 @@ final class ApiController extends AbstractController
                 BatchStrategyFactory::createBatchStrategy($data),
                 $data,
                 $requestRawDataHandler->getVersion($request),
-                $request->getMethod()
+                $request->getMethod(),
+                $requestRawDataHandler->isMultipartRequest($request),
             );
         } catch (Throwable $e) {
             $call = $callLogger->logRawRequest((string) $request->getContent());

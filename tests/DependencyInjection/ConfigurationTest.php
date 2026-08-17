@@ -37,6 +37,61 @@ final class ConfigurationTest extends TestCase
         $this->assertArrayHasKey('swagger', $config);
     }
 
+    public function testMultipartIsOffByDefaultWithItsOwnLimits(): void
+    {
+        $config = (new Processor())->processConfiguration(new Configuration(), []);
+
+        $this->assertFalse($config['multipart']['enabled'], 'an installation that never receives a file gains no new surface');
+        $this->assertSame('10Mi', $config['multipart']['max_file_bytes'], 'the default reads the way Assert\\File takes it');
+        $this->assertSame(10, $config['multipart']['max_files']);
+    }
+
+    public function testMultipartLimitsCanBeOverridden(): void
+    {
+        $config = (new Processor())->processConfiguration(new Configuration(), [
+            ['multipart' => ['enabled' => true, 'max_file_bytes' => 1024, 'max_files' => 2]],
+        ]);
+
+        $this->assertTrue($config['multipart']['enabled']);
+        $this->assertSame(1024, $config['multipart']['max_file_bytes']);
+        $this->assertSame(2, $config['multipart']['max_files']);
+    }
+
+    public function testMultipartFileSizeAcceptsSymfonysOwnSizeNotation(): void
+    {
+        // The value is handed straight to Assert\File::maxSize, so it takes the spellings the rest
+        // of Symfony takes rather than a bare byte count only.
+        foreach (['512k', '10M', '2Mi', '1G', 4096] as $maxSize) {
+            $config = (new Processor())->processConfiguration(new Configuration(), [
+                ['multipart' => ['max_file_bytes' => $maxSize]],
+            ]);
+
+            $this->assertSame($maxSize, $config['multipart']['max_file_bytes']);
+        }
+    }
+
+    public function testAnUnparseableMultipartFileSizeIsRejected(): void
+    {
+        // Assert\File would throw on this at the first request that carries a file. The container
+        // build is where a typo costs nothing to find.
+        $this->expectException(InvalidConfigurationException::class);
+
+        (new Processor())->processConfiguration(new Configuration(), [
+            ['multipart' => ['max_file_bytes' => '10 megabytes']],
+        ]);
+    }
+
+    public function testAZeroMultipartLimitIsRejected(): void
+    {
+        // A limit of zero refuses every request that carries a file, which is not a configuration
+        // anyone means; multipart.enabled is how the feature is switched off.
+        $this->expectException(InvalidConfigurationException::class);
+
+        (new Processor())->processConfiguration(new Configuration(), [
+            ['multipart' => ['max_files' => 0]],
+        ]);
+    }
+
     public function testProcessWithAccessControlOrigins(): void
     {
         $configuration = new Configuration();

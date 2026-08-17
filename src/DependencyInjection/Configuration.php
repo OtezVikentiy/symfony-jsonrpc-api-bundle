@@ -69,6 +69,22 @@ final class Configuration implements ConfigurationInterface
      */
     private const DEFAULT_LOGGING_MAX_BODY_LENGTH = 8192;
 
+    /**
+     * A single uploaded file is bounded independently of max_payload_bytes: the JSON envelope and a
+     * file part are different kinds of input, and raising the limit for one of them should not raise
+     * it for the other. 10 MiB covers the documents and images an RPC method realistically receives
+     * while keeping the default well below a typical PHP upload_max_filesize.
+     *
+     * Written the way Assert\File takes it, so the default reads as the same thing a user would type.
+     */
+    private const DEFAULT_MULTIPART_MAX_FILE_BYTES = '10Mi';
+
+    /**
+     * Same reasoning as max_batch_size: the number of parts is caller-controlled, so it needs a bound
+     * that does not depend on any single part being small.
+     */
+    private const DEFAULT_MULTIPART_MAX_FILES = 10;
+
     private const ORIGIN_WILDCARD = '*';
 
     /** @noinspection PhpUnused */
@@ -91,6 +107,26 @@ final class Configuration implements ConfigurationInterface
                 ->integerNode('max_batch_size')->min(1)->defaultValue(50)->end()
                 ->integerNode('max_dto_depth')->min(1)->defaultValue(10)->end()
                 ->integerNode('max_array_param_size')->min(1)->defaultValue(1000)->end()
+                ->arrayNode('multipart')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        // Off by default on purpose: an installation that never receives a file gains no
+                        // new surface from this feature, and the content-type assertion keeps refusing
+                        // everything that is not application/json exactly as it did before.
+                        ->booleanNode('enabled')->defaultFalse()->end()
+                        // Scalar, not integer: the value is handed to Assert\File::maxSize, which
+                        // reads Symfony's own size notation - '10M', '2Mi', '512k'. Refusing the
+                        // spelling the rest of Symfony accepts would be a gratuitous difference.
+                        ->scalarNode('max_file_bytes')
+                            ->defaultValue(self::DEFAULT_MULTIPART_MAX_FILE_BYTES)
+                            ->validate()
+                                ->ifTrue(static fn (mixed $maxSize): bool => !self::isValidFileSize($maxSize))
+                                ->thenInvalid('ov_json_rpc_api: multipart.max_file_bytes must be a positive number of bytes or a size such as "10M" or "2Mi", got %s.')
+                            ->end()
+                        ->end()
+                        ->integerNode('max_files')->min(1)->defaultValue(self::DEFAULT_MULTIPART_MAX_FILES)->end()
+                    ->end()
+                ->end()
                 ->arrayNode('logging')
                     ->addDefaultsIfNotSet()
                     ->children()
@@ -185,6 +221,25 @@ final class Configuration implements ConfigurationInterface
         ;
 
         return $treeBuilder;
+    }
+
+    /**
+     * The spellings Assert\File::maxSize accepts, checked here so a typo fails the container build
+     * rather than the first request that carries a file. Symfony's own parser is private to the
+     * constraint, so this mirrors the pattern it applies rather than calling it - and the constraint
+     * is constructed with this value during the same build, which is the real proof.
+     */
+    private static function isValidFileSize(mixed $maxSize): bool
+    {
+        if (is_int($maxSize)) {
+            return $maxSize > 0;
+        }
+
+        if (!is_string($maxSize)) {
+            return false;
+        }
+
+        return preg_match('/^[1-9]\d*+(k|ki|m|mi|g|gi)?$/i', $maxSize) === 1;
     }
 
     /**

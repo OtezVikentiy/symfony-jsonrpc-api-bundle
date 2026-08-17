@@ -34,6 +34,45 @@ final class RequestBodyTest extends TestCase
         );
     }
 
+    public function testMultipartBodyReplacesTheJsonContent(): void
+    {
+        $body = new RequestBody(
+            contentRef: 'uploadMainRequest',
+            fileParts: [['name' => 'file', 'required' => true], ['name' => 'thumb', 'required' => false]],
+            multipart: true,
+        );
+
+        $content = $body->toArray()['content'];
+
+        $this->assertArrayNotHasKey('application/json', $content);
+        $this->assertSame('object', $content['multipart/form-data']['schema']['type']);
+        $this->assertSame(
+            ['jsonrpc', 'file'],
+            $content['multipart/form-data']['schema']['required'],
+        );
+        $this->assertSame(
+            ['type' => 'string', 'format' => 'binary'],
+            $content['multipart/form-data']['schema']['properties']['thumb'],
+        );
+    }
+
+    public function testMultipartEnvelopeFieldPointsAtTheRequestSchema(): void
+    {
+        $body = new RequestBody(contentRef: 'uploadMainRequest', multipart: true);
+
+        $envelope = $body->toArray()['content']['multipart/form-data']['schema']['properties']['jsonrpc'];
+
+        $this->assertSame('string', $envelope['type']);
+        $this->assertStringContainsString('uploadMainRequest', $envelope['description']);
+    }
+
+    public function testFilePartsAreIgnoredWhenTheBodyIsNotMultipart(): void
+    {
+        $body = new RequestBody(contentRef: 'MyRequest', fileParts: [['name' => 'file', 'required' => true]]);
+
+        $this->assertArrayHasKey('application/json', $body->toArray()['content']);
+    }
+
     public function testContentRefStructure(): void
     {
         $body = new RequestBody(contentRef: 'MyRequest');

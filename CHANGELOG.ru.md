@@ -8,6 +8,13 @@
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Загрузка файлов через `multipart/form-data`** — метод может принимать `Symfony\Component\HttpFoundation\File\UploadedFile` как параметр верхнего уровня. Запрос несёт поле формы `jsonrpc` с полным JSON-RPC request object (включая скалярные параметры) плюс по одной части на файл, имя части = имя параметра; всё ниже транспортного адаптера не меняется, ответ — обычный JSON-RPC-конверт. Выключено по умолчанию и включается дважды: `multipart.enabled` для приложения и `acceptsMultipart: true` в `#[JsonRPCAPI]` для метода — multipart-запрос к методу без этого флага даёт `-32600`. Batch остаётся только JSON, файлы — только на верхнем уровне `params`, только POST. Логгер вызовов пишет файл как `{originalName, size, mimeType}` и никогда как содержимое, а `acceptsMultipart: true` заставляет генератор OpenAPI опубликовать для метода тело запроса `multipart/form-data`. **Включение заново открывает — только для объявивших флаг методов — CSRF-вектор, закрытый обязательным `Content-Type: application/json` в 5.0: `multipart/form-data` является CORS «simple request». Прочитайте [docs/multipart.ru.md](./docs/multipart.ru.md) до включения.**
+- **`multipart.max_file_bytes`** (по умолчанию `'10Mi'`) и **`multipart.max_files`** (по умолчанию 10) — лимиты на файл и на запрос, рядом с существующими лимитами payload/batch/depth. `max_payload_bytes` применяется к полю `jsonrpc`.
+- **Параметр-файл валидируется через `Assert\File`**, скомпилированный следом за `Assert\Type` тем же механизмом, который даёт `Assert\Type('int')` для `int`-поля. `max_file_bytes` применяется именно там, в принятой в Symfony записи размера (`'10M'`, `'2Mi'` или число байт), а любая ошибка загрузки PHP — превышен `upload_max_filesize`, обрыв передачи, отсутствие временной папки — становится `-32602 Invalid params` с указанием поля, вместо непригодного `UploadedFile`, доезжающего до метода. `Assert\Type` отвечает первым, поэтому строка-путь из JSON файлом не считается.
+
 ## [5.0] - 2026-08-07
 
 Спецификация-conformance релиз: постоянный набор тестов на соответствие [JSON-RPC 2.0 spec](https://www.jsonrpc.org/specification) нашёл семнадцать отклонений, шестнадцать из которых исправлены здесь. Подробный гайд по миграции — [docs/upgrade-5.0.md](./docs/upgrade-5.0.md).

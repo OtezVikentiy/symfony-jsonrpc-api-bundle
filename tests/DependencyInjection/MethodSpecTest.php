@@ -6,7 +6,9 @@ use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Validation;
 
 final class MethodSpecTest extends TestCase
 {
@@ -36,7 +38,80 @@ final class MethodSpecTest extends TestCase
             plainResponse: $overrides['plainResponse'] ?? false,
             preProcessorExists: $overrides['preProcessorExists'] ?? false,
             postProcessorExists: $overrides['postProcessorExists'] ?? false,
+            allowExtraFields: $overrides['allowExtraFields'] ?? false,
+            acceptsMultipart: $overrides['acceptsMultipart'] ?? false,
+            maxFileBytes: $overrides['maxFileBytes'] ?? null,
         );
+    }
+
+    /**
+     * A file-typed field is checked by Assert\File, not by a size comparison written here. That
+     * constraint is where the eight PHP upload error codes, the size limit and the empty/unreadable
+     * cases already live, and a second implementation of any of them would be the one that rots.
+     */
+    public function testAFileTypedFieldCompilesToTypeThenAssertFile(): void
+    {
+        $spec = $this->createMethodSpec([
+            'validators' => ['file' => ['allowsNull' => false, 'type' => UploadedFile::class]],
+            'maxFileBytes' => '2Mi',
+        ]);
+
+        $compiled = $spec->getCompiledValidators()['file'];
+
+        $this->assertInstanceOf(Assert\Sequentially::class, $compiled);
+        [$type, $file] = $compiled->constraints;
+        $this->assertInstanceOf(Assert\Type::class, $type);
+        $this->assertSame(UploadedFile::class, $type->type);
+        $this->assertInstanceOf(Assert\File::class, $file);
+        $this->assertSame(2097152, $file->maxSize, 'Symfony parses the size notation, this class does not');
+    }
+
+    /**
+     * Sequentially, not a plain pair: Assert\File accepts a string path to an existing file, so
+     * `{"file": "/etc/passwd"}` over plain JSON would satisfy it on its own. Assert\Type answers
+     * first and stops the sequence.
+     */
+    public function testTheTypeCheckComesFirstSoAPathStringCannotPassAsAFile(): void
+    {
+        $spec = $this->createMethodSpec([
+            'validators' => ['file' => ['allowsNull' => false, 'type' => UploadedFile::class]],
+        ]);
+
+        $violations = Validation::createValidator()->validate(
+            ['file' => __FILE__],
+            new Assert\Collection(fields: $spec->getCompiledValidators(), allowExtraFields: true),
+        );
+
+        $this->assertGreaterThan(0, $violations->count(), 'an existing path is still not an uploaded file');
+    }
+
+    public function testAFileFieldWithNoConfiguredLimitLeavesTheSizeToPhp(): void
+    {
+        $spec = $this->createMethodSpec([
+            'validators' => ['file' => ['allowsNull' => false, 'type' => UploadedFile::class]],
+        ]);
+
+        /** @var Assert\Sequentially $compiled */
+        $compiled = $spec->getCompiledValidators()['file'];
+
+        $this->assertNull($compiled->constraints[1]->maxSize);
+    }
+
+    public function testANonFileFieldIsUnaffected(): void
+    {
+        $compiled = $this->createMethodSpec()->getCompiledValidators()['id'];
+
+        $this->assertInstanceOf(Assert\Type::class, $compiled);
+    }
+
+    public function testAcceptsMultipartDefaultsToFalse(): void
+    {
+        $this->assertFalse($this->createMethodSpec()->isAcceptsMultipart());
+    }
+
+    public function testAcceptsMultipartIsCarried(): void
+    {
+        $this->assertTrue($this->createMethodSpec(['acceptsMultipart' => true])->isAcceptsMultipart());
     }
 
     public function testGetMethodClass(): void

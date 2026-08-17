@@ -160,7 +160,7 @@ With no method named `test` registered, you get a well-formed JSON-RPC error res
 
 That means the bundle is installed and working.
 
-> **Important:** the `Content-Type: application/json` header above is a requirement, not decoration. For requests with a body (POST/PUT/PATCH/DELETE) the bundle accepts only `application/json`; form-encoded (`application/x-www-form-urlencoded`) and `multipart/form-data` are rejected with `-32600 Invalid Request` before any attempt to read the body as a JSON-RPC payload. This closes a CSRF vector: form-encoded is a "simple request" under the CORS specification, and without the check a malicious HTML form on a third-party site could call your RPC methods as the logged-in user, using their cookies, with no preflight request.
+> **Important:** the `Content-Type: application/json` header above is a requirement, not decoration. For requests with a body (POST/PUT/PATCH/DELETE) the bundle accepts only `application/json`; form-encoded (`application/x-www-form-urlencoded`) and `multipart/form-data` are rejected with `-32600 Invalid Request` before any attempt to read the body as a JSON-RPC payload. This closes a CSRF vector: form-encoded is a "simple request" under the CORS specification, and without the check a malicious HTML form on a third-party site could call your RPC methods as the logged-in user, using their cookies, with no preflight request. File uploads are the one deliberate exception, off by default and opt-in per method — see [docs/multipart.md](./multipart.md).
 
 ## Next steps
 

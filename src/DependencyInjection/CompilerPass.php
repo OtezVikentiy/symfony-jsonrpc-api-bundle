@@ -41,6 +41,7 @@ final class CompilerPass implements CompilerPassInterface
 {
     private const CALL_METHOD = 'call';
     private const GETTER_PREFIXES = ['get', 'is'];
+    private const MULTIPART_MAX_FILE_BYTES_PARAMETER = 'ov_json_rpc_api.multipart.max_file_bytes';
 
     public function __construct(
         private readonly NameConverterInterface $nameConverter,
@@ -141,6 +142,8 @@ final class CompilerPass implements CompilerPassInterface
                 $preProcessorExists,
                 $postProcessorExists,
                 $metadata['allowExtraFields'],
+                $metadata['acceptsMultipart'],
+                $this->maxFileBytes($container),
             ])->setPublic(true)->setAutowired(true)->setAutoconfigured(true);
 
             if (PHP_VERSION_ID >= 80300) {
@@ -165,6 +168,21 @@ final class CompilerPass implements CompilerPassInterface
         }
     }
 
+    /**
+     * Read once per build, and tolerant of the parameter being absent: a container assembled without
+     * the extension - which is how much of this suite builds one - still has to compile.
+     */
+    private function maxFileBytes(ContainerBuilder $container): int|string|null
+    {
+        if (!$container->hasParameter(self::MULTIPART_MAX_FILE_BYTES_PARAMETER)) {
+            return null;
+        }
+
+        $value = $container->getParameter(self::MULTIPART_MAX_FILE_BYTES_PARAMETER);
+
+        return is_int($value) || is_string($value) ? $value : null;
+    }
+
     private function extractAttributeMetadata(ReflectionClass $reflectionClass, string $className): ?array
     {
         $attributes = $reflectionClass->getAttributes(JsonRPCAPI::class);
@@ -182,6 +200,7 @@ final class CompilerPass implements CompilerPassInterface
                     'version' => $attribute->getArguments()['version'] ?? null,
                     'group' => $attribute->getArguments()['group'] ?? null,
                     'allowExtraFields' => $attribute->getArguments()['allowExtraFields'] ?? false,
+                    'acceptsMultipart' => $attribute->getArguments()['acceptsMultipart'] ?? false,
                 ];
             }
         }
