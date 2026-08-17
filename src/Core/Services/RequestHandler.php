@@ -526,29 +526,9 @@ final class RequestHandler
                 continue;
             }
 
-            $requestSetter = $methodSpec->getRequestSetters()[$name] ?? null;
-            if (!is_null($requestSetter)) {
-                if (class_exists($allParameter['type']) && !self::alreadyOfDeclaredType($value, $allParameter['type'])) {
-                    if ($value !== null) {
-                        try {
-                            $value = $this->prepareParametersFromClass($allParameter['type'], $value, $allowExtraFields, 0, $this->transportIsUntyped($methodSpec));
-                        } catch (InvalidArgumentException|TypeError) {
-                            $invalidTypeErrors[] = sprintf(
-                                self::INVALID_TYPE_MESSAGE_FORMAT,
-                                $name,
-                                $allParameter['type'],
-                            );
-                            continue;
-                        }
-                    }
-                }
-
-                if (is_null($value) && $name === self::POSITIONAL_PARAMS_FIELD) {
-                    $value = $baseRequest->getParams();
-                }
-
+            if (class_exists($allParameter['type']) && !self::alreadyOfDeclaredType($value, $allParameter['type']) && $value !== null) {
                 try {
-                    $requestInstance->$requestSetter($value);
+                    $value = $this->prepareParametersFromClass($allParameter['type'], $value, $allowExtraFields, 0, $this->transportIsUntyped($methodSpec));
                 } catch (InvalidArgumentException|TypeError) {
                     $invalidTypeErrors[] = sprintf(
                         self::INVALID_TYPE_MESSAGE_FORMAT,
@@ -557,10 +537,34 @@ final class RequestHandler
                     );
                     continue;
                 }
+            }
 
-                if ($tracksProvided && $wasProvided) {
-                    $requestInstance->markProvided($name);
+            if (is_null($value) && $name === self::POSITIONAL_PARAMS_FIELD) {
+                $value = $baseRequest->getParams();
+            }
+
+            $requestSetter = $methodSpec->getRequestSetters()[$name] ?? null;
+            try {
+                if ($requestSetter !== null) {
+                    $requestInstance->$requestSetter($value);
+                } elseif ($this->isPublicProperty($requestInstance, $name)) {
+                    if (!$this->isConstructorParameter($methodSpec, $name)) {
+                        $requestInstance->$name = $value;
+                    }
+                } else {
+                    continue;
                 }
+            } catch (InvalidArgumentException|TypeError) {
+                $invalidTypeErrors[] = sprintf(
+                    self::INVALID_TYPE_MESSAGE_FORMAT,
+                    $name,
+                    $allParameter['type'],
+                );
+                continue;
+            }
+
+            if ($tracksProvided && $wasProvided) {
+                $requestInstance->markProvided($name);
             }
         }
 
@@ -588,6 +592,24 @@ final class RequestHandler
     private static function alreadyOfDeclaredType(mixed $value, string $type): bool
     {
         return $value instanceof $type;
+    }
+
+    private function isPublicProperty(object $request, string $name): bool
+    {
+        $reflection = new ReflectionClass($request);
+
+        return $reflection->hasProperty($name) && $reflection->getProperty($name)->isPublic();
+    }
+
+    private function isConstructorParameter(MethodSpec $methodSpec, string $name): bool
+    {
+        foreach ($methodSpec->getRequiredParameters() as $parameter) {
+            if ($parameter['name'] === $name) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -738,8 +760,10 @@ final class RequestHandler
                 continue;
             }
 
-            $getter = $methodSpec->getRequestGetters()[$field];
-            $requestData[$field] = $requestInstance->$getter();
+            $getter = $methodSpec->getRequestGetters()[$field] ?? null;
+            $requestData[$field] = $getter !== null
+                ? $requestInstance->$getter()
+                : $requestInstance->$field;
         }
 
         $allowExtraFields = $this->isExtraFieldsAllowed($methodSpec);

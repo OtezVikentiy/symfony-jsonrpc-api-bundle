@@ -96,6 +96,18 @@ final class CompilerPassContractTest extends TestCase
         self::assertInstanceOf(Definition::class, $spec, 'an untyped setter is not something to refuse over');
     }
 
+    public function testPublicPropertiesCompileWithoutAccessors(): void
+    {
+        $container = $this->process(PublicPropertiesContractMethod::class);
+        $metadata = $this->requestMetadataOf($container, $this->specOf(PublicPropertiesContractMethod::class));
+
+        self::assertSame([], $metadata->getArgument(3), 'public properties need no getters');
+        self::assertSame([], $metadata->getArgument(4), 'public properties need no setters');
+        $validatedProperties = array_keys($metadata->getArgument(6));
+        sort($validatedProperties);
+        self::assertSame(['id', 'label', 'note'], $validatedProperties);
+    }
+
     // ---- what the pass refuses, and how clearly ----
 
     public function testAMethodWithoutCallIsRefusedByName(): void
@@ -374,6 +386,25 @@ final class ScalarParameterMethod
 final class UnversionedMethod
 {
     public function call(ContractRequest $request): array
+    {
+        return [];
+    }
+}
+
+final class PublicPropertiesContractRequest
+{
+    public string $label;
+    public ?string $note = null;
+
+    public function __construct(public readonly int $id)
+    {
+    }
+}
+
+#[JsonRPCAPI(methodName: 'publicPropertiesContract', type: 'POST', version: 1, ignoreInSwagger: true)]
+final class PublicPropertiesContractMethod
+{
+    public function call(PublicPropertiesContractRequest $request): array
     {
         return [];
     }
