@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### Changed
+- **Public Request DTO properties need no getter or setter.** Constructor-promoted properties hydrate through the constructor; other public properties are assigned directly. Private and protected DTO state keeps the existing accessor contract, and strict property-type validation is unchanged.
+
 ## [5.2] - 2026-08-17
 
 A feature release: JSON-RPC methods can now receive file uploads over `multipart/form-data`, opt-in and off by default. Contributed by @tacman (#9), in the shape agreed in #8. Strictly backwards compatible: with the feature off, the default, behaviour is identical to 5.1.
