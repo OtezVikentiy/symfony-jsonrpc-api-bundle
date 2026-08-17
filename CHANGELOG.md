@@ -8,9 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [5.1] - 2026-08-17
+## [5.2] - 2026-08-17
 
-A feature release: JSON-RPC methods can now receive file uploads over `multipart/form-data`, opt-in and off by default. Contributed by @tacman (#9), in the shape agreed in #8. Strictly backwards compatible: with the feature off, the default, behaviour is identical to 5.0.
+A feature release: JSON-RPC methods can now receive file uploads over `multipart/form-data`, opt-in and off by default. Contributed by @tacman (#9), in the shape agreed in #8. Strictly backwards compatible: with the feature off, the default, behaviour is identical to 5.1.
 
 ### Added
 - **File uploads over `multipart/form-data`** — a method can now receive a `Symfony\Component\HttpFoundation\File\UploadedFile` as a top-level parameter. The request carries a `jsonrpc` form field holding the complete JSON-RPC request object (scalar parameters included) plus one part per file, part name = parameter name; everything below the transport adapter stays unchanged, and the response is an ordinary JSON-RPC envelope. Off by default and opt-in twice over: `multipart.enabled` for the application, `acceptsMultipart: true` on `#[JsonRPCAPI]` for the method — a multipart request to a method that does not declare it is `-32600`. Batch stays JSON-only, files live at the top level of `params` only, POST only. The call logger records a file as `{originalName, size, mimeType}` and never as content, and `acceptsMultipart: true` makes the OpenAPI generator publish a `multipart/form-data` request body for that method. **Enabling it re-opens, for the declaring methods only, the CSRF vector the mandatory `Content-Type: application/json` closed in 5.0 — `multipart/form-data` is a CORS "simple request". Read [docs/multipart.md](./docs/multipart.md) before switching it on.**
