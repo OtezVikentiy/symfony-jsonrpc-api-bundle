@@ -1,0 +1,93 @@
+{% extends '@WebProfiler/Profiler/layout.html.twig' %}
+
+{% block toolbar %}
+    {% set icon %}
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M7 7h4v2H7v2L4 8l3-3v2zm10 6h-4v2h4v2l3-3-3-3v2zM5 3h14a2 2 0 0 1 2 2v4h-2V5H5v14h14v-4h2v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/></svg>
+    {% endset %}
+    {% set text %}
+        <div class="sf-toolbar-info-piece">
+            <b>Registered methods</b>
+            <span class="sf-toolbar-status">{{ collector.methodCount }}</span>
+        </div>
+        <div class="sf-toolbar-info-piece">
+            <b>Calls</b>
+            <span class="sf-toolbar-status{% if collector.callCount > 0 %} sf-toolbar-status-yellow{% endif %}">{{ collector.callCount }}</span>
+        </div>
+    {% endset %}
+    {{ include('@WebProfiler/Profiler/toolbar_item.html.twig', {link: profiler_url}) }}
+{% endblock %}
+
+{% block menu %}
+    <span class="label{% if collector.callCount == 0 %} disabled{% endif %}">
+        <span class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M7 7h4v2H7v2L4 8l3-3v2zm10 6h-4v2h4v2l3-3-3-3v2zM5 3h14a2 2 0 0 1 2 2v4h-2V5H5v14h14v-4h2v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/></svg>
+        </span>
+        <strong>JSON-RPC</strong>
+        <span class="count"><span>{{ collector.callCount }}</span></span>
+    </span>
+{% endblock %}
+
+{% block panel %}
+    <h2>JSON-RPC calls</h2>
+
+    {% if collector.callGroups is empty %}
+        <div class="empty empty-panel">
+            <p>No inbound JSON-RPC call was recorded for this request.</p>
+        </div>
+    {% else %}
+        {% for group in collector.callGroups %}
+            <div class="sf-tabs">
+                <div class="tab">
+                    <h3 class="tab-title">{{ group.batch ? 'Batch (' ~ group.calls|length ~ ' calls)' : (group.calls[0].method ?? 'Invalid request') }}</h3>
+                    <div class="tab-content">
+                        {% for call in group.calls %}
+                            <h4>{{ call.method ?? 'Invalid request' }}{% if call.id is not null %} <small>id: {{ call.id }}</small>{% endif %}</h4>
+                            <table>
+                                <tbody>
+                                    <tr><th>Outcome</th><td><span class="status status-{{ call.outcome == 'error' ? 'error' : 'success' }}">{{ call.outcome }}</span>{% if call.errorCode is not null %} ({{ call.errorCode }}){% endif %}</td></tr>
+                                    <tr><th>Duration</th><td>{{ call.durationMs is null ? 'pending' : call.durationMs|number_format(2) ~ ' ms' }}</td></tr>
+                                    <tr><th>Context ID</th><td><code>{{ call.contextId }}</code></td></tr>
+                                    <tr><th>Parameters</th><td><pre>{{ (call.request.params ?? call.request)|json_encode(constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_SLASHES')) }}</pre></td></tr>
+                                    <tr><th>Response</th><td><pre>{{ call.response|json_encode(constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_SLASHES')) }}</pre></td></tr>
+                                </tbody>
+                            </table>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <h2>Registered methods <span class="badge">{{ collector.methodCount }}</span></h2>
+    {% if collector.methods is empty %}
+        <div class="empty empty-panel"><p>No JSON-RPC methods are registered.</p></div>
+    {% else %}
+        {% for method in collector.methods %}
+            <h3>v{{ method.version }} · {{ method.name }}</h3>
+            {% if method.summary %}<p>{{ method.summary }}</p>{% endif %}
+            {% if method.description %}<p class="text-muted">{{ method.description }}</p>{% endif %}
+            <table>
+                <tbody>
+                    <tr><th>Handler</th><td><code>{{ method.class }}</code></td></tr>
+                    <tr><th>Request DTO</th><td><code>{{ method.request ?? 'none' }}</code></td></tr>
+                    <tr><th>Group</th><td>{{ method.group ?? '—' }}</td></tr>
+                    <tr><th>Tags</th><td>{{ method.tags is empty ? '—' : method.tags|join(', ') }}</td></tr>
+                    <tr><th>Roles</th><td>{{ method.roles is empty ? '—' : method.roles|join(', ') }}</td></tr>
+                </tbody>
+            </table>
+            <h4>Parameters</h4>
+            {% if method.parameters is empty %}
+                <p class="text-muted">None</p>
+            {% else %}
+                <table>
+                    <thead><tr><th>Name</th><th>Type</th><th>Requirement</th></tr></thead>
+                    <tbody>
+                    {% for parameter in method.parameters %}
+                        <tr><td><code>{{ parameter.name }}</code></td><td><code>{{ parameter.type }}</code></td><td>{{ parameter.required ? 'required' : 'optional' }}</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endblock %}

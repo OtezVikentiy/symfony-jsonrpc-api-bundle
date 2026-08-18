@@ -6,6 +6,8 @@ use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLogger;
 use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
 use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
 use OV\JsonRPCAPIBundle\DependencyInjection\OVJsonRPCAPIExtension;
+use OV\JsonRPCAPIBundle\Profiler\JsonRpcDataCollector;
+use OV\JsonRPCAPIBundle\Profiler\TraceableJsonRpcCallLogger;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\Container;
@@ -114,6 +116,36 @@ final class OVJsonRPCAPIExtensionTest extends TestCase
             JsonRpcCallLogger::class,
             (string) $container->getAlias(JsonRpcCallLoggerInterface::class),
         );
+    }
+
+    public function testProfilerServicesAreRemovedOutsideDebugWebProfilerContext(): void
+    {
+        $container = new ContainerBuilder();
+        (new OVJsonRPCAPIExtension())->load([], $container);
+
+        self::assertFalse($container->hasDefinition(TraceableJsonRpcCallLogger::class));
+        self::assertFalse($container->hasDefinition(JsonRpcDataCollector::class));
+    }
+
+    public function testProfilerDecoratesCallLoggerInDebugWithWebProfilerBundle(): void
+    {
+        $container = new ContainerBuilder();
+        $container->setParameter('kernel.debug', true);
+        $container->setParameter('kernel.bundles', [
+            'WebProfilerBundle' => 'Symfony\Bundle\WebProfilerBundle\WebProfilerBundle',
+        ]);
+
+        (new OVJsonRPCAPIExtension())->load([], $container);
+
+        self::assertTrue($container->hasDefinition(TraceableJsonRpcCallLogger::class));
+        self::assertSame(
+            JsonRpcCallLoggerInterface::class,
+            $container->getDefinition(TraceableJsonRpcCallLogger::class)->getDecoratedService()[0],
+        );
+        self::assertTrue($container->hasDefinition(JsonRpcDataCollector::class));
+        $tags = $container->getDefinition(JsonRpcDataCollector::class)->getTag('data_collector');
+        self::assertCount(1, $tags);
+        self::assertSame('@OVJsonRPCAPI/data_collector.html.twig', $tags[0]['template']);
     }
 
     public function testLoggerAliasDefaultsToFrameworkLogger(): void

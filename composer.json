@@ -52,7 +52,8 @@
     "infection/infection": "^0.32 || ^0.34",
     "phpstan/phpstan": "^2.0",
     "phpunit/phpunit": "11.*",
-    "symfony/property-access": "^6.4 || ^7.0 || ^8.0"
+    "symfony/property-access": "^6.4 || ^7.0 || ^8.0",
+    "symfony/web-profiler-bundle": "^6.4 || ^7.0 || ^8.0"
   },
   "authors": [
     {
