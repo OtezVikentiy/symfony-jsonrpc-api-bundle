@@ -3,6 +3,8 @@
 namespace OV\JsonRPCAPIBundle\Tests\Controller;
 
 use OV\JsonRPCAPIBundle\Core\Annotation\JsonRPCAPI;
+use OV\JsonRPCAPIBundle\Core\Request\PartialRequestInterface;
+use OV\JsonRPCAPIBundle\Core\Request\TracksProvidedFieldsTrait;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
@@ -70,6 +72,27 @@ final class PublicRequestPropertiesTest extends AbstractControllerTestCase
         self::assertStringContainsString('[label] - This field is missing', $payload['error']['message']);
     }
 
+    public function testPublicPropertyIsTrackedForPartialRequests(): void
+    {
+        $result = $this->executeControllerTest([
+            'jsonrpc' => '2.0',
+            'method' => 'partialPublicProperties',
+            'params' => ['label' => 'provided'],
+            'id' => '1',
+        ], $this->partialMethodSpec());
+
+        self::assertInstanceOf(JsonResponse::class, $result);
+        self::assertSame([
+            'jsonrpc' => '2.0',
+            'result' => [
+                'label' => 'provided',
+                'labelProvided' => true,
+                'noteProvided' => false,
+            ],
+            'id' => '1',
+        ], json_decode((string) $result->getContent(), true));
+    }
+
     private function methodSpec(): MethodSpec
     {
         return new MethodSpec(
@@ -98,6 +121,31 @@ final class PublicRequestPropertiesTest extends AbstractControllerTestCase
             swaggerMetadata: new SwaggerMetadata('', '', false),
         );
     }
+
+    private function partialMethodSpec(): MethodSpec
+    {
+        return new MethodSpec(
+            methodClass: PartialPublicPropertiesMethod::class,
+            requestType: 'POST',
+            methodName: 'partialPublicProperties',
+            requestMetadata: new RequestMetadata(
+                request: PartialPublicPropertiesRequest::class,
+                allParameters: [
+                    ['name' => 'label', 'type' => 'string', 'defaultValue' => null],
+                    ['name' => 'note', 'type' => 'string', 'defaultValue' => null],
+                ],
+                requiredParameters: [],
+                requestGetters: [],
+                requestSetters: [],
+                requestAdders: [],
+                validators: [
+                    'label' => ['allowsNull' => true, 'type' => 'string'],
+                    'note' => ['allowsNull' => true, 'type' => 'string'],
+                ],
+            ),
+            swaggerMetadata: new SwaggerMetadata('', '', false),
+        );
+    }
 }
 
 final class PublicPropertiesRequest
@@ -119,6 +167,27 @@ final class PublicPropertiesMethod
             'id' => $request->id,
             'label' => $request->label,
             'note' => $request->note,
+        ];
+    }
+}
+
+final class PartialPublicPropertiesRequest implements PartialRequestInterface
+{
+    use TracksProvidedFieldsTrait;
+
+    public ?string $label = null;
+    public ?string $note = null;
+}
+
+#[JsonRPCAPI(methodName: 'partialPublicProperties', type: 'POST', version: 1, ignoreInSwagger: true)]
+final class PartialPublicPropertiesMethod
+{
+    public function call(PartialPublicPropertiesRequest $request): array
+    {
+        return [
+            'label' => $request->label,
+            'labelProvided' => $request->wasProvided('label'),
+            'noteProvided' => $request->wasProvided('note'),
         ];
     }
 }

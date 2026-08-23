@@ -521,9 +521,16 @@ final class CompilerPass implements CompilerPassInterface
             $methodsIdx[$method->getName()] = $method;
         }
 
+        $constructorParametersIdx = [];
+        foreach ($requestReflection->getConstructor()?->getParameters() ?? [] as $constructorParameter) {
+            $constructorParametersIdx[$constructorParameter->getName()] = true;
+        }
+
         foreach ($propertiesIdx as $name => $typeData) {
             $property = $requestReflection->getProperty($name);
-            $isPublicProperty = $property->isPublic();
+            $isDirectlyHydratablePublicProperty = $property->isPublic()
+                && !$property->isStatic()
+                && (!$property->isReadOnly() || isset($constructorParametersIdx[$name]));
             // Same candidate list as resolveGetter(), and for a reason: this loop runs first, so a
             // single rigid name here decided the outcome no matter what resolveGetter() would have
             // accepted. A boolean $isActive whose getter is isActive() aborted the build demanding
@@ -531,7 +538,7 @@ final class CompilerPass implements CompilerPassInterface
             // practice. One rule for what counts as a getter, applied in both places.
             $getterName = $this->resolveGetter($requestReflection, $name);
 
-            if (!$isPublicProperty && ($getterName === null || !isset($methodsIdx[$getterName]))) {
+            if (!$isDirectlyHydratablePublicProperty && ($getterName === null || !isset($methodsIdx[$getterName]))) {
                 throw new Exception(
                     sprintf(
                         'Property %s of class %s has no accessible getter (expected one of get%s, is%s, or %s)',
@@ -546,7 +553,7 @@ final class CompilerPass implements CompilerPassInterface
             $getter = $getterName !== null ? ($methodsIdx[$getterName] ?? null) : null;
 
             $setterName = 'set' . ucfirst($name);
-            if (!$isPublicProperty && !isset($methodsIdx[$setterName])) {
+            if (!$isDirectlyHydratablePublicProperty && !isset($methodsIdx[$setterName])) {
                 throw new Exception(
                     sprintf(
                         'Property %s of class %s has no method %s',

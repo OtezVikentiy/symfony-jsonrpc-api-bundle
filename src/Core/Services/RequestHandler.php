@@ -387,6 +387,16 @@ final class RequestHandler
         $tracksProvided = $requestInstance instanceof PartialRequestInterface;
         $allowExtraFields = $this->isExtraFieldsAllowed($methodSpec);
         $invalidTypeErrors = [];
+        $publicProperties = [];
+        foreach ((new ReflectionClass($requestInstance))->getProperties() as $property) {
+            if ($property->isPublic()) {
+                $publicProperties[$property->getName()] = true;
+            }
+        }
+        $constructorParameters = [];
+        foreach ($methodSpec->getRequiredParameters() as $parameter) {
+            $constructorParameters[$parameter['name']] = true;
+        }
 
         foreach ($methodSpec->getAllParameters() as $allParameter) {
             $name = $allParameter['name'];
@@ -547,8 +557,8 @@ final class RequestHandler
             try {
                 if ($requestSetter !== null) {
                     $requestInstance->$requestSetter($value);
-                } elseif ($this->isPublicProperty($requestInstance, $name)) {
-                    if (!$this->isConstructorParameter($methodSpec, $name)) {
+                } elseif (isset($publicProperties[$name])) {
+                    if (!isset($constructorParameters[$name])) {
                         $requestInstance->$name = $value;
                     }
                 } else {
@@ -592,24 +602,6 @@ final class RequestHandler
     private static function alreadyOfDeclaredType(mixed $value, string $type): bool
     {
         return $value instanceof $type;
-    }
-
-    private function isPublicProperty(object $request, string $name): bool
-    {
-        $reflection = new ReflectionClass($request);
-
-        return $reflection->hasProperty($name) && $reflection->getProperty($name)->isPublic();
-    }
-
-    private function isConstructorParameter(MethodSpec $methodSpec, string $name): bool
-    {
-        foreach ($methodSpec->getRequiredParameters() as $parameter) {
-            if ($parameter['name'] === $name) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**
