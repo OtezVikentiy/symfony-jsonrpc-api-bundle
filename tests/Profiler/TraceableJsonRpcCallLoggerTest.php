@@ -14,6 +14,8 @@ use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
 use OV\JsonRPCAPIBundle\Profiler\TraceableJsonRpcCallLogger;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class TraceableJsonRpcCallLoggerTest extends TestCase
 {
@@ -81,6 +83,39 @@ final class TraceableJsonRpcCallLoggerTest extends TestCase
         self::assertStringNotContainsString('still-secret', json_encode($request) ?: '');
     }
 
+    public function testResetClearsAllRecordedCalls(): void
+    {
+        $logger = $this->logger(new NullJsonRpcCallLogger());
+        $logger->logRequest(['method' => 'task.list', 'id' => 1]);
+
+        self::assertCount(1, $logger->getCalls());
+
+        $logger->reset();
+
+        self::assertSame([], $logger->getCalls());
+    }
+
+    public function testItDescribesNonJsonAndNonHttpResponsesWithoutReadingTheirContent(): void
+    {
+        $logger = $this->logger(new NullJsonRpcCallLogger());
+
+        $plainCall = $logger->logRequest(['method' => 'plain', 'id' => 1]);
+        $logger->logResponse($plainCall, new PlainProfilerResponse('not json', 202));
+        $opaqueCall = $logger->logRequest(['method' => 'opaque', 'id' => 2]);
+        $logger->logResponse($opaqueCall, new OpaqueProfilerResponse());
+        $streamedCall = $logger->logRequest(['method' => 'streamed', 'id' => 3]);
+        $logger->logResponse($streamedCall, new StreamedProfilerResponse());
+
+        $calls = $logger->getCalls();
+        self::assertSame('[non-json response, 8 bytes]', $calls[0]['response']);
+        self::assertSame('plain', $calls[0]['outcome']);
+        self::assertSame(202, $calls[0]['statusCode']);
+        self::assertSame('['.OpaqueProfilerResponse::class.']', $calls[1]['response']);
+        self::assertSame('response', $calls[1]['outcome']);
+        self::assertSame('[non-json response, 0 bytes]', $calls[2]['response']);
+        self::assertSame('plain', $calls[2]['outcome']);
+    }
+
     private function logger(JsonRpcCallLoggerInterface $inner): TraceableJsonRpcCallLogger
     {
         return new TraceableJsonRpcCallLogger(
@@ -89,6 +124,18 @@ final class TraceableJsonRpcCallLoggerTest extends TestCase
             new UuidContextIdGenerator(),
         );
     }
+}
+
+final class PlainProfilerResponse extends Response implements OvResponseInterface
+{
+}
+
+final class StreamedProfilerResponse extends StreamedResponse implements OvResponseInterface
+{
+}
+
+final class OpaqueProfilerResponse implements OvResponseInterface
+{
 }
 
 final class RecordingCallLogger implements JsonRpcCallLoggerInterface

@@ -21,6 +21,25 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class JsonRpcDataCollectorTest extends TestCase
 {
+    public function testItKeepsASingleCallOutOfABatch(): void
+    {
+        $traceable = new TraceableJsonRpcCallLogger(
+            new NullJsonRpcCallLogger(),
+            new SensitiveDataMasker([], '***', new NullLogger()),
+            new UuidContextIdGenerator(),
+        );
+        $call = $traceable->logRequest(['method' => 'task.get', 'id' => 1]);
+        $traceable->logResponse($call, new JsonResponse(['jsonrpc' => '2.0', 'result' => [], 'id' => 1]));
+
+        $collector = new JsonRpcDataCollector($traceable, new MethodSpecCollection());
+        $collector->collect(Request::create('/api/v1', 'POST'), new Response());
+
+        self::assertSame(1, $collector->getCallCount());
+        self::assertCount(1, $collector->getCallGroups());
+        self::assertFalse($collector->getCallGroups()[0]['batch']);
+        self::assertCount(1, $collector->getCallGroups()[0]['calls']);
+    }
+
     public function testItGroupsBatchChildrenAndPublishesCompiledRegistryMetadata(): void
     {
         $traceable = new TraceableJsonRpcCallLogger(

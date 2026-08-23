@@ -89,6 +89,8 @@ services:
         decorates: OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface
         arguments:
             $inner: '@OV\JsonRPCAPIBundle\Profiler\TraceableJsonRpcCallLogger.inner'
+        tags:
+            - { name: kernel.reset, method: reset }
 
     OV\JsonRPCAPIBundle\Profiler\JsonRpcDataCollector:
         autoconfigure: false
