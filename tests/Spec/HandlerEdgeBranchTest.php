@@ -78,7 +78,6 @@ final class HandlerEdgeBranchTest extends TestCase
     public function testFieldInitialisationIsProbedSafely(mixed $instance, string $field, bool $expected): void
     {
         $probe = new ReflectionMethod(RequestHandler::class, 'isFieldInitialised');
-        $probe->setAccessible(true);
 
         self::assertSame($expected, $probe->invoke($this->handler(), $instance, $field));
     }
@@ -103,7 +102,6 @@ final class HandlerEdgeBranchTest extends TestCase
     private function describe(\Throwable $failure, array $requiredParameters): string
     {
         $method = new ReflectionMethod(RequestHandler::class, 'describeConstructorFailure');
-        $method->setAccessible(true);
 
         return $method->invoke($this->handler(), $failure, $requiredParameters);
     }

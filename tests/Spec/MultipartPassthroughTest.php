@@ -75,7 +75,6 @@ final class MultipartPassthroughTest extends TestCase
     private function prepareParametersFromClass(string $class, array $values): object
     {
         $method = new ReflectionMethod(RequestHandler::class, 'prepareParametersFromClass');
-        $method->setAccessible(true);
 
         return $method->invoke($this->handler(), $class, $values);
     }
