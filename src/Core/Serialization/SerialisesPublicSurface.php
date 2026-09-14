@@ -107,14 +107,14 @@ trait SerialisesPublicSurface
      */
     private function objectToArray(object $object, SplObjectStorage $visited, int $depth = 0): array
     {
-        if ($visited->contains($object)) {
+        if ($visited->offsetExists($object)) {
             throw new JRPCException(
                 'Cyclic reference detected while serialising the payload.',
                 JRPCException::INTERNAL_ERROR,
             );
         }
 
-        $visited->attach($object);
+        $visited->offsetSet($object);
 
         $reflection = new ReflectionClass($object);
         $result = [];
@@ -144,7 +144,7 @@ trait SerialisesPublicSurface
             $result[$name] = $this->normaliseValue($object->$getter(), $visited, $depth + 1);
         }
 
-        $visited->detach($object);
+        $visited->offsetUnset($object);
 
         return $result;
     }
