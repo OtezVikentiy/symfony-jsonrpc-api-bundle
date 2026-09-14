@@ -47,10 +47,13 @@ final class JsonRpcDataCollectorTest extends TestCase
             new SensitiveDataMasker([], '***', new NullLogger()),
             new UuidContextIdGenerator(),
         );
+        $traceable->beginScope(true);
         $first = $traceable->logRequest(['method' => 'task.get', 'params' => ['id' => 1], 'id' => 1]);
         $traceable->logResponse($first, new JsonResponse(['jsonrpc' => '2.0', 'result' => ['id' => 1], 'id' => 1]));
         $second = $traceable->logRequest(['method' => 'task.get', 'params' => ['id' => 2], 'id' => 2]);
         $traceable->logResponse($second, new JsonResponse(['jsonrpc' => '2.0', 'result' => ['id' => 2], 'id' => 2]));
+
+        $traceable->endScope();
 
         $methods = new MethodSpecCollection();
         $methods->addMethodSpec(1, 'task.get', new MethodSpec(
@@ -68,8 +71,8 @@ final class JsonRpcDataCollectorTest extends TestCase
                 requestSetters: ['id' => 'setId', 'locale' => 'setLocale'],
                 requestAdders: [],
                 validators: [
-                    'id' => ['type' => 'int', 'allowsNull' => false],
-                    'locale' => ['type' => 'string', 'allowsNull' => true],
+                    'id' => ['type' => 'int', 'allowsNull' => true],
+                    'locale' => ['type' => 'string', 'allowsNull' => false],
                 ],
             ),
             swaggerMetadata: new SwaggerMetadata(

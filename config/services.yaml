@@ -89,6 +89,11 @@ services:
         decorates: OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface
         arguments:
             $inner: '@OV\JsonRPCAPIBundle\Profiler\TraceableJsonRpcCallLogger.inner'
+            $maxBodyLength: '%loggingMaxBodyLength%'
+            $skipPlainResponses: '%loggingSkipPlainResponses%'
+            $maxJsonDepth: '%maxJsonDepth%'
+            $maxPayloadBytes: '%maxPayloadBytes%'
+            $requestStack: '@request_stack'
         tags:
             - { name: kernel.reset, method: reset }
 

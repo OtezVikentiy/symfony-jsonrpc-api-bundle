@@ -7,6 +7,7 @@ namespace OV\JsonRPCAPIBundle\Core\Services;
 use InvalidArgumentException;
 use OV\JsonRPCAPIBundle\Core\JRPCException;
 use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
+use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallScopeInterface;
 use OV\JsonRPCAPIBundle\Core\PostProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\PreProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\Request\BaseRequest;
@@ -79,35 +80,41 @@ final class RequestHandler
 
     public function applyStrategy(HandleBatchInterface $strategy, array $data, int $version, string $methodType, bool $isMultipart = false): OvResponseInterface
     {
-        if ($strategy instanceof MultiBatchStrategy && count($data) > $this->maxBatchSize) {
-            $call = $this->callLogger->logRequest([
-                self::LOG_META_BATCH_REJECTED => true,
-                self::LOG_META_BATCH_SIZE => count($data),
-                self::LOG_META_MAX_BATCH_SIZE => $this->maxBatchSize,
-            ]);
-            $err = $this->responseService->prepareErrorResponse(
-                new JRPCException(
-                    'Invalid Request.',
-                    JRPCException::INVALID_REQUEST,
-                    sprintf('Batch size %d exceeds limit %d.', count($data), $this->maxBatchSize),
-                ),
-                null,
-            );
-            $this->callLogger->logResponse($call, $err);
+        $observer = $this->callLogger instanceof JsonRpcCallScopeInterface ? $this->callLogger : null;
+        $observer?->beginScope($strategy instanceof MultiBatchStrategy);
+        try {
+            if ($strategy instanceof MultiBatchStrategy && count($data) > $this->maxBatchSize) {
+                $call = $this->callLogger->logRequest([
+                    self::LOG_META_BATCH_REJECTED => true,
+                    self::LOG_META_BATCH_SIZE => count($data),
+                    self::LOG_META_MAX_BATCH_SIZE => $this->maxBatchSize,
+                ]);
+                $err = $this->responseService->prepareErrorResponse(
+                    new JRPCException(
+                        'Invalid Request.',
+                        JRPCException::INVALID_REQUEST,
+                        sprintf('Batch size %d exceeds limit %d.', count($data), $this->maxBatchSize),
+                    ),
+                    null,
+                );
+                $this->callLogger->logResponse($call, $err);
 
-            return $err;
+                return $err;
+            }
+
+            $isMultiBatch = $strategy instanceof MultiBatchStrategy;
+            $batchProcessor = fn (mixed $item, int $itemVersion, string $itemMethodType): ?OvResponseInterface => $this->processBatch($item, $itemVersion, $itemMethodType, $isMultiBatch, $isMultipart);
+
+            $response = $strategy->handleBatch($data, $version, $methodType, $batchProcessor);
+
+            if ($response instanceof Response) {
+                $response->headers->add($this->headersPreparer->prepareHeaders());
+            }
+
+            return $response;
+        } finally {
+            $observer?->endScope();
         }
-
-        $isMultiBatch = $strategy instanceof MultiBatchStrategy;
-        $batchProcessor = fn (mixed $item, int $itemVersion, string $itemMethodType): ?OvResponseInterface => $this->processBatch($item, $itemVersion, $itemMethodType, $isMultiBatch, $isMultipart);
-
-        $response = $strategy->handleBatch($data, $version, $methodType, $batchProcessor);
-
-        if ($response instanceof Response) {
-            $response->headers->add($this->headersPreparer->prepareHeaders());
-        }
-
-        return $response;
     }
 
     public function processBatch(

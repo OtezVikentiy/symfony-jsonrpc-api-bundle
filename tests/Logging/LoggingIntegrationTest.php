@@ -72,6 +72,29 @@ final class LoggingIntegrationTest extends AbstractControllerTestCase
         );
     }
 
+    public function testProfilerRecordsTheActualBatchBoundary(): void
+    {
+        $traceable = new \OV\JsonRPCAPIBundle\Profiler\TraceableJsonRpcCallLogger(
+            new \OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger(),
+            new SensitiveDataMasker([], '***', new NullLogger()),
+            new UuidContextIdGenerator(),
+        );
+        $this->callLoggerOverride = $traceable;
+        $this->executeControllerTest([
+            ['jsonrpc' => '2.0', 'method' => 'subtract', 'params' => [10, 1], 'id' => 1],
+            ['jsonrpc' => '2.0', 'method' => 'subtract', 'params' => [20, 2], 'id' => 2],
+        ], $this->subtractMethodSpec());
+        $calls = $traceable->getCalls();
+        self::assertCount(2, $calls);
+        self::assertIsInt($calls[0]['batchId']);
+        self::assertSame($calls[0]['batchId'], $calls[1]['batchId']);
+        self::assertSame('result', $calls[0]['outcome']);
+        self::assertSame('result', $calls[1]['outcome']);
+        self::assertLessThan(10000, $calls[0]['durationMs']);
+        $traceable->logRawRequest('rejected after dispatch');
+        self::assertNull($traceable->getCalls()[2]['batchId'], 'Dispatch scope must be closed');
+    }
+
     public function testSingleCallProducesRequestAndResponsePair(): void
     {
         $this->executeControllerTest(

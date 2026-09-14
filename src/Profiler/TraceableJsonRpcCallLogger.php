@@ -6,98 +6,120 @@ namespace OV\JsonRPCAPIBundle\Profiler;
 
 use OV\JsonRPCAPIBundle\Core\Logging\ContextIdGeneratorInterface;
 use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
+use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallScopeInterface;
 use OV\JsonRPCAPIBundle\Core\Logging\LoggedRpcCall;
+use OV\JsonRPCAPIBundle\Core\Logging\LogPayload;
 use OV\JsonRPCAPIBundle\Core\Logging\SensitiveDataMaskerInterface;
 use OV\JsonRPCAPIBundle\Core\Response\OvResponseInterface;
+use OV\JsonRPCAPIBundle\Core\Response\PlainResponseInterface;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Contracts\Service\ResetInterface;
+use Throwable;
+use WeakMap;
 
-/**
- * Debug-only decorator that keeps profiler data independently of PSR-3 logging.
- *
- * @internal
- */
-final class TraceableJsonRpcCallLogger implements JsonRpcCallLoggerInterface, ResetInterface
+/** @internal Debug-only capture independent of PSR-3 logging. Capture failures never affect RPC. */
+final class TraceableJsonRpcCallLogger implements JsonRpcCallLoggerInterface, JsonRpcCallScopeInterface, ResetInterface
 {
-    private const MAX_METHOD_LENGTH = 128;
-
-    private int $nextCallId = 0;
-
-    /**  array<int, int> */
-    private array $scopeKeys = [];
-
-    /** @var array<int, LoggedRpcCall> */
-    private array $innerCalls = [];
-
-    /** @var array<int, array<string, mixed>> */
+    private const OMITTED = '[payload omitted: capture limit exceeded]';
+    private const UNAVAILABLE = '[profiler capture unavailable]';
+    private int $nextScopeId = 0;
+    private array $scopes = [];
+    /** @var WeakMap<LoggedRpcCall, int> */
+    private WeakMap $scopeKeys;
+    /** @var WeakMap<LoggedRpcCall, LoggedRpcCall> */
+    private WeakMap $innerCalls;
+    /** @var WeakMap<Request, list<int>> */
+    private WeakMap $requestKeys;
     private array $calls = [];
 
     public function __construct(
         private readonly JsonRpcCallLoggerInterface $inner,
         private readonly SensitiveDataMaskerInterface $masker,
         private readonly ContextIdGeneratorInterface $contextIdGenerator,
+        private readonly int $maxBodyLength = 4096,
+        private readonly bool $skipPlainResponses = true,
+        private readonly int $maxJsonDepth = 64,
+        private readonly int $maxPayloadBytes = 1048576,
+        private readonly ?RequestStack $requestStack = null,
     ) {
+        $this->reset();
+    }
+
+    public function beginScope(bool $batch): void
+    {
+        $this->scopes[] = [
+            'batchId' => $batch ? ++$this->nextScopeId : null,
+            'request' => $this->requestStack?->getCurrentRequest(),
+        ];
+    }
+
+    public function endScope(): void
+    {
+        array_pop($this->scopes);
     }
 
     public function logRequest(array $rpcCall): LoggedRpcCall
     {
-        $startedAt = microtime(true);
-        $innerCall = $this->inner->logRequest($rpcCall);
-        $method = isset($rpcCall['method']) && is_string($rpcCall['method'])
-            ? substr($rpcCall['method'], 0, self::MAX_METHOD_LENGTH)
-            : $innerCall->method;
-        $call = new LoggedRpcCall(
-            contextId: $innerCall->contextId !== '' ? $innerCall->contextId : $this->contextIdGenerator->generate(),
-            method: $method,
-            startedAt: $startedAt,
-        );
-
-        $this->beginCall($call, $innerCall, $this->masker->mask($rpcCall), $rpcCall['id'] ?? null, false);
+        try {
+            $call = $this->inner->logRequest($rpcCall);
+        } catch (Throwable) {
+            $call = new LoggedRpcCall('', null, microtime(true));
+        }
+        $call = $this->wrapCall($call);
+        try {
+            $this->beginCall($call, $rpcCall, $rpcCall['id'] ?? null);
+        } catch (Throwable) {
+            // The configured masker or context-id generator may fail. Never retain raw data.
+        }
 
         return $call;
     }
 
     public function logRawRequest(string $rawBody): LoggedRpcCall
     {
-        $startedAt = microtime(true);
-        $innerCall = $this->inner->logRawRequest($rawBody);
-        $call = new LoggedRpcCall(
-            contextId: $innerCall->contextId !== '' ? $innerCall->contextId : $this->contextIdGenerator->generate(),
-            method: $innerCall->method,
-            startedAt: $startedAt,
-        );
-
-        $this->beginCall(
-            $call,
-            $innerCall,
-            ['rawBody' => sprintf('[unparseable body, %d bytes]', strlen($rawBody))],
-            null,
-            true,
-        );
+        try {
+            $call = $this->inner->logRawRequest($rawBody);
+        } catch (Throwable) {
+            $call = new LoggedRpcCall('', null, microtime(true));
+        }
+        $call = $this->wrapCall($call);
+        try {
+            $decoded = strlen($rawBody) <= $this->decodeBudget()
+                ? json_decode($rawBody, true, max(1, $this->maxJsonDepth)) : null;
+            $request = is_array($decoded) ? $decoded : ['rawBody' => sprintf(LogPayload::MARKER_UNPARSEABLE_BODY_FORMAT, strlen($rawBody))];
+            $this->beginCall($call, $request, is_array($decoded) ? ($decoded['id'] ?? null) : null);
+        } catch (Throwable) {
+        }
 
         return $call;
     }
 
     public function logResponse(LoggedRpcCall $call, ?OvResponseInterface $response): void
     {
-        $scopeId = spl_object_id($call);
-        $key = $this->scopeKeys[$scopeId] ?? null;
-        $innerCall = $key !== null ? ($this->innerCalls[$key] ?? $call) : $call;
-
         try {
-            $this->inner->logResponse($innerCall, $response);
+            $this->inner->logResponse($this->innerCalls[$call] ?? $call, $response);
+        } catch (Throwable) {
+        }
+        unset($this->innerCalls[$call]);
+        $key = $this->scopeKeys[$call] ?? null;
+        if ($key === null) {
+            return;
+        }
+        try {
+            [$payload, $outcome, $errorCode, $statusCode] = $this->describeResponse($response);
+            $this->calls[$key]['response'] = $payload;
+            $this->calls[$key]['outcome'] = $outcome;
+            $this->calls[$key]['errorCode'] = $errorCode;
+            $this->calls[$key]['statusCode'] = $statusCode;
+        } catch (Throwable) {
+            $this->calls[$key]['response'] = self::UNAVAILABLE;
+            $this->calls[$key]['outcome'] = 'unavailable';
         } finally {
-            if ($key !== null && isset($this->calls[$key])) {
-                $finishedAt = microtime(true);
-                [$payload, $outcome, $errorCode, $statusCode] = $this->describeResponse($response);
-                $this->calls[$key]['response'] = $payload;
-                $this->calls[$key]['outcome'] = $outcome;
-                $this->calls[$key]['errorCode'] = $errorCode;
-                $this->calls[$key]['statusCode'] = $statusCode;
-                $this->calls[$key]['durationMs'] = ($finishedAt - $call->startedAt) * 1000;
-                $this->calls[$key]['finishedAt'] = $finishedAt;
-                unset($this->scopeKeys[$scopeId], $this->innerCalls[$key]);
-            }
+            $this->calls[$key]['durationMs'] = (microtime(true) - $call->startedAt) * 1000;
+            unset($this->scopeKeys[$call]);
         }
     }
 
@@ -107,65 +129,153 @@ final class TraceableJsonRpcCallLogger implements JsonRpcCallLoggerInterface, Re
         return array_values($this->calls);
     }
 
+    /** @return list<array<string, mixed>> */
+    public function getCallsForRequest(Request $request): array
+    {
+        if ($this->requestStack === null) {
+            return $this->getCalls();
+        }
+        $calls = [];
+        foreach ($this->requestKeys[$request] ?? [] as $key) {
+            $calls[] = $this->calls[$key];
+        }
+
+        return $calls;
+    }
+
     public function reset(): void
     {
-        $this->nextCallId = 0;
-        $this->scopeKeys = [];
-        $this->innerCalls = [];
+        $this->nextScopeId = 0;
+        $this->scopes = [];
+        $this->scopeKeys = new WeakMap();
+        $this->innerCalls = new WeakMap();
+        $this->requestKeys = new WeakMap();
         $this->calls = [];
     }
 
-    /** @param array<mixed, mixed> $request */
-    private function beginCall(
-        LoggedRpcCall $call,
-        LoggedRpcCall $innerCall,
-        array $request,
-        mixed $id,
-        bool $raw,
-    ): void {
-        $key = $this->nextCallId++;
-        $this->scopeKeys[spl_object_id($call)] = $key;
-        $this->innerCalls[$key] = $innerCall;
+    private function wrapCall(LoggedRpcCall $innerCall): LoggedRpcCall
+    {
+        $contextId = $innerCall->contextId;
+        if ($contextId === '') {
+            try {
+                $contextId = $this->contextIdGenerator->generate();
+            } catch (Throwable) {
+                $contextId = 'profiler-context-unavailable';
+            }
+        }
+        $call = new LoggedRpcCall($contextId, $innerCall->method, microtime(true));
+        $this->innerCalls[$call] = $innerCall;
+
+        return $call;
+    }
+
+    private function beginCall(LoggedRpcCall $call, array $request, mixed $id): void
+    {
+        $payload = $this->capture($request);
+        $contextId = $call->contextId;
+        $method = isset($request['method']) && is_string($request['method']) ? $request['method'] : $call->method;
+        $key = count($this->calls);
+        $currentRequest = $this->requestStack?->getCurrentRequest();
+        $scope = $this->scopes === [] ? null : $this->scopes[array_key_last($this->scopes)];
         $this->calls[$key] = [
-            'contextId' => $call->contextId,
-            'method' => $call->method,
-            'id' => is_scalar($id) || $id === null ? $id : null,
-            'request' => $request,
+            'contextId' => substr($contextId, 0, 128),
+            'method' => $method === null ? null : substr($method, 0, LogPayload::MAX_METHOD_LENGTH),
+            'id' => is_string($id) ? substr($id, 0, 128) : (is_scalar($id) ? $id : null),
+            'request' => $payload,
             'response' => null,
             'outcome' => 'pending',
             'errorCode' => null,
             'statusCode' => null,
             'durationMs' => null,
-            'startedAt' => $call->startedAt,
-            'finishedAt' => null,
-            'raw' => $raw,
+            'batchId' => $scope !== null && $scope['request'] === $currentRequest ? $scope['batchId'] : null,
         ];
+        $this->scopeKeys[$call] = $key;
+        $request = $this->requestStack?->getCurrentRequest();
+        if ($request !== null) {
+            $keys = $this->requestKeys[$request] ?? [];
+            $keys[] = $key;
+            $this->requestKeys[$request] = $keys;
+        }
     }
 
-    /** @return array{0: mixed, 1: string, 2: int|null, 3: int|null} */
+    private function decodeBudget(): int
+    {
+        return max(1, $this->maxBodyLength > 0 ? min($this->maxBodyLength, $this->maxPayloadBytes) : $this->maxPayloadBytes);
+    }
+
+    private function capture(array $data): array|string
+    {
+        $budget = $this->decodeBudget();
+        if (!$this->fits($data, $budget)) {
+            return self::OMITTED;
+        }
+        $masked = $this->masker->mask($data);
+        $budget = $this->decodeBudget();
+
+        return $this->fits($masked, $budget) ? $masked : self::OMITTED;
+    }
+
+    /** A bounded walk before masking/encoding; never serialize arbitrary objects or recursive arrays. */
+    private function fits(mixed $value, int &$budget, int $depth = 0): bool
+    {
+        if ($depth > $this->maxJsonDepth || --$budget < 0) {
+            return false;
+        }
+        if (is_array($value)) {
+            if (count($value) > $budget) {
+                return false;
+            }
+            foreach ($value as $key => $item) {
+                if (!$this->fits($key, $budget, $depth + 1) || !$this->fits($item, $budget, $depth + 1)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        if ($value instanceof UploadedFile) {
+            // The masker describes uploads; check the resulting description again before storing it.
+            $budget -= 128;
+
+            return $budget >= 0;
+        }
+        if (is_object($value) || is_resource($value)) {
+            return false;
+        }
+        if (is_string($value) && strlen($value) > $budget) {
+            return false;
+        }
+        $encoded = json_encode($value, JSON_INVALID_UTF8_SUBSTITUTE);
+        $budget -= strlen($encoded === false ? '[json-encode-failed]' : $encoded);
+
+        return $budget >= 0;
+    }
+
+    /** @return array{mixed, string, int|null, int|null} */
     private function describeResponse(?OvResponseInterface $response): array
     {
         if ($response === null) {
             return [null, 'notification', null, null];
         }
-
         if (!$response instanceof Response) {
             return [sprintf('[%s]', $response::class), 'response', null, null];
         }
-
         $statusCode = $response->getStatusCode();
         $content = (string) $response->getContent();
-        $decoded = json_decode($content, true);
-        if (!is_array($decoded)) {
-            return [sprintf('[non-json response, %d bytes]', strlen($content)), 'plain', null, $statusCode];
+        $isHttpError = $statusCode >= 400;
+        if ($this->skipPlainResponses && $response instanceof PlainResponseInterface) {
+            return [sprintf(LogPayload::MARKER_PLAIN_RESPONSE_FORMAT, strlen($content)), $isHttpError ? 'error' : 'plain', null, $statusCode];
         }
-
-        $masked = $this->masker->mask($decoded);
+        if (strlen($content) > $this->decodeBudget()) {
+            return [self::OMITTED, $isHttpError ? 'error' : 'omitted', null, $statusCode];
+        }
+        $decoded = json_decode($content, true, max(1, $this->maxJsonDepth));
+        if (!is_array($decoded)) {
+            return [sprintf(LogPayload::MARKER_NON_JSON_RESPONSE_FORMAT, strlen($content)), $isHttpError ? 'error' : 'plain', null, $statusCode];
+        }
         $error = $decoded['error'] ?? null;
-        $errorCode = is_array($error) && isset($error['code']) && is_int($error['code'])
-            ? $error['code']
-            : null;
+        $errorCode = is_array($error) && isset($error['code']) && is_int($error['code']) ? $error['code'] : null;
 
-        return [$masked, array_key_exists('error', $decoded) ? 'error' : 'result', $errorCode, $statusCode];
+        return [$this->capture($decoded), $isHttpError || array_key_exists('error', $decoded) ? 'error' : 'result', $errorCode, $statusCode];
     }
 }

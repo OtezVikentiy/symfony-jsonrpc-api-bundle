@@ -44,11 +44,12 @@
                             <h4>{{ call.method ?? 'Invalid request' }}{% if call.id is not null %} <small>id: {{ call.id }}</small>{% endif %}</h4>
                             <table>
                                 <tbody>
-                                    <tr><th>Outcome</th><td><span class="status status-{{ call.outcome == 'error' ? 'error' : (call.outcome in ['pending', 'notification'] ? 'warning' : 'success') }}">{{ call.outcome }}</span>{% if call.errorCode is not null %} ({{ call.errorCode }}){% endif %}</td></tr>
+                                    <tr><th>Outcome</th><td><span class="status status-{{ call.outcome == 'error' ? 'error' : (call.outcome in ['pending', 'notification', 'omitted', 'unavailable'] ? 'warning' : 'success') }}">{{ call.outcome }}</span>{% if call.errorCode is not null %} ({{ call.errorCode }}){% endif %}</td></tr>
                                     <tr><th>Duration</th><td>{{ call.durationMs is null ? 'pending' : call.durationMs|number_format(2) ~ ' ms' }}</td></tr>
+                                    <tr><th>HTTP status</th><td>{{ call.statusCode ?? '—' }}</td></tr>
                                     <tr><th>Context ID</th><td><code>{{ call.contextId }}</code></td></tr>
-                                    <tr><th>Parameters</th><td><pre>{{ (call.request.params ?? call.request)|json_encode(constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_SLASHES')) }}</pre></td></tr>
-                                    <tr><th>Response</th><td><pre>{{ call.response|json_encode(constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_SLASHES')) }}</pre></td></tr>
+                                    <tr><th>Parameters</th><td><pre>{{ (call.request.params ?? call.request)|json_encode(constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_SLASHES') b-or constant('JSON_INVALID_UTF8_SUBSTITUTE')) }}</pre></td></tr>
+                                    <tr><th>Response</th><td><pre>{{ call.response|json_encode(constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_SLASHES') b-or constant('JSON_INVALID_UTF8_SUBSTITUTE')) }}</pre></td></tr>
                                 </tbody>
                             </table>
                         {% endfor %}

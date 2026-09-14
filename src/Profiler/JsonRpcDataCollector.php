@@ -22,9 +22,9 @@ final class JsonRpcDataCollector extends DataCollector
 
     public function collect(Request $request, Response $response, ?Throwable $exception = null): void
     {
-        $calls = $this->callLogger->getCalls();
+        $calls = $this->callLogger->getCallsForRequest($request);
         $this->data = [
-            'methods' => $this->normaliseMethods($this->methodSpecs->getAllMethods()),
+            'methods' => $calls === [] ? [] : $this->normaliseMethods($this->methodSpecs->getAllMethods()),
             'callGroups' => $this->groupCalls($calls),
             'callCount' => count($calls),
         ];
@@ -70,14 +70,14 @@ final class JsonRpcDataCollector extends DataCollector
         foreach ($methods as $version => $versionMethods) {
             ksort($versionMethods);
             foreach ($versionMethods as $name => $method) {
-                $validators = $method->getValidators();
+                $required = array_column($method->getRequiredParameters(), null, 'name');
                 $parameters = [];
                 foreach ($method->getAllParameters() as $parameter) {
                     $parameterName = $parameter['name'];
                     $parameters[] = [
                         'name' => $parameterName,
                         'type' => $parameter['type'],
-                        'required' => !($validators[$parameterName]['allowsNull'] ?? false),
+                        'required' => isset($required[$parameterName]),
                     ];
                 }
 
@@ -92,8 +92,6 @@ final class JsonRpcDataCollector extends DataCollector
                     'tags' => $method->getTags() ?? [],
                     'group' => $method->getGroup(),
                     'roles' => $method->getRoles(),
-                    'plainResponse' => $method->isPlainResponse(),
-                    'ignoredInSwagger' => $method->isIgnoreInSwagger(),
                 ];
             }
         }
@@ -101,38 +99,18 @@ final class JsonRpcDataCollector extends DataCollector
         return $normalised;
     }
 
-    /**
-     * One HTTP request can carry either one JSON-RPC call or one batch. The logger is reset between
-     * kernel requests, so more than one recorded call necessarily belongs to the same batch.
-     *
-     * @param list<array<string, mixed>> $calls
-     *
-     * @return list<array<string, mixed>>
-     */
+    /** @param list<array<string, mixed>> $calls */
     private function groupCalls(array $calls): array
     {
-        if ($calls === []) {
-            return [];
+        $groups = [];
+        foreach ($calls as $index => $call) {
+            $batchId = is_int($call['batchId']) ? $call['batchId'] : null;
+            $key = $batchId === null ? 'call-' . $index : 'batch-' . $batchId;
+            $groups[$key] ??= ['batch' => $batchId !== null, 'calls' => []];
+            unset($call['batchId']);
+            $groups[$key]['calls'][] = $call;
         }
 
-        $firstStart = null;
-        $lastFinish = null;
-        foreach ($calls as $call) {
-            if (is_float($call['startedAt'])) {
-                $firstStart = $firstStart === null ? $call['startedAt'] : min($firstStart, $call['startedAt']);
-            }
-            if (is_float($call['finishedAt'])) {
-                $lastFinish = $lastFinish === null ? $call['finishedAt'] : max($lastFinish, $call['finishedAt']);
-            }
-        }
-        $durationMs = $firstStart !== null && $lastFinish !== null
-            ? ($lastFinish - $firstStart) * 1000
-            : null;
-
-        return [[
-            'batch' => count($calls) > 1,
-            'calls' => $calls,
-            'durationMs' => $durationMs,
-        ]];
+        return array_values($groups);
     }
 }
