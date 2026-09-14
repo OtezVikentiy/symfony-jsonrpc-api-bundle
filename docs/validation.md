@@ -129,6 +129,8 @@ final class Request
 }
 ```
 
+Accessor-free hydration applies only to top-level request classes. Nested DTOs still need setters and a constructor callable without arguments. Class-typed promoted properties are not supported without accessors; use a nested DTO property with accessors instead. Public static, non-promoted readonly, asymmetric-set and hooked properties keep the accessor requirement.
+
 Private and protected properties continue to require public accessors. Type validation is unchanged and still comes from each declared property type. A default on a constructor parameter alone does not make the field optional to validation; put the default on the property (a promoted constructor default alone does not count) or make its type nullable.
 
 ---

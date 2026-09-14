@@ -18,6 +18,7 @@ use OV\JsonRPCAPIBundle\Core\PostProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\PreProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\Response\PlainResponseInterface;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestHydration;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use ReflectionClass;
@@ -116,6 +117,7 @@ final class CompilerPass implements CompilerPassInterface
                     $requestAnalysis['requestSetters'],
                     $requestAnalysis['requestAdders'],
                     $requestAnalysis['validators'],
+                    RequestHydration::forClass($requestAnalysis['requestClass']),
                 ])->setPublic(false);
 
             $swaggerMetadataId = 'OV_JSON_RPC_API_SWG_' . $serviceIdSuffix;
@@ -521,16 +523,9 @@ final class CompilerPass implements CompilerPassInterface
             $methodsIdx[$method->getName()] = $method;
         }
 
-        $constructorParametersIdx = [];
-        foreach ($requestReflection->getConstructor()?->getParameters() ?? [] as $constructorParameter) {
-            $constructorParametersIdx[$constructorParameter->getName()] = true;
-        }
-
         foreach ($propertiesIdx as $name => $typeData) {
             $property = $requestReflection->getProperty($name);
-            $isDirectlyHydratablePublicProperty = $property->isPublic()
-                && !$property->isStatic()
-                && (!$property->isReadOnly() || isset($constructorParametersIdx[$name]));
+            $isDirectlyHydratablePublicProperty = RequestHydration::strategy($property) !== null;
             // Same candidate list as resolveGetter(), and for a reason: this loop runs first, so a
             // single rigid name here decided the outcome no matter what resolveGetter() would have
             // accepted. A boolean $isActive whose getter is isActive() aborted the build demanding
@@ -564,28 +559,17 @@ final class CompilerPass implements CompilerPassInterface
                 );
             }
             $setter = $methodsIdx[$setterName] ?? null;
-            if ($setter === null) {
-                $validatorsIdx[$name] = $typeData;
-
-                continue;
-            }
-            $setterParamType = $setter->getParameters()[0]->getType();
-            if ($setterParamType === null) {
-                continue;
-            }
-            if (!$setterParamType instanceof ReflectionNamedType || $setterParamType->getName() !== $typeData['type']) {
-                throw new Exception(
-                    sprintf(
-                        'Property %s of method %s has invalid data type in setter %s',
-                        $name,
-                        $requestReflection->getName(),
-                        $setter->getName(),
-                    ),
-                );
+            $setterParamType = $setter?->getParameters()[0]->getType();
+            if ($setterParamType !== null && (!$setterParamType instanceof ReflectionNamedType || $setterParamType->getName() !== $typeData['type'])) {
+                throw new Exception(sprintf(
+                    'Property %s of method %s has invalid data type in setter %s',
+                    $name,
+                    $requestReflection->getName(),
+                    $setter->getName(),
+                ));
             }
             if ($getter === null) {
                 $validatorsIdx[$name] = $typeData;
-
                 continue;
             }
 

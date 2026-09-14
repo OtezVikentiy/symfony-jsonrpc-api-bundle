@@ -9,6 +9,8 @@ namespace OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
  */
 final readonly class RequestMetadata
 {
+    private array $hydrationStrategies;
+
     public function __construct(
         private ?string $request,
         private array $allParameters,
@@ -17,7 +19,14 @@ final readonly class RequestMetadata
         private array $requestSetters,
         private array $requestAdders,
         private array $validators,
+        ?array $hydrationStrategies = null,
     ) {
+        $this->hydrationStrategies = $hydrationStrategies ?? RequestHydration::forClass($request);
+    }
+
+    public function getHydrationStrategies(): array
+    {
+        return $this->hydrationStrategies;
     }
 
     public function getRequest(): ?string
