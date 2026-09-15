@@ -5,6 +5,8 @@
          colors="true"
          failOnDeprecation="true"
          failOnNotice="true"
+         failOnPhpunitDeprecation="true"
+         failOnPhpunitWarning="true"
          failOnWarning="true"
 >
     <testsuites>
