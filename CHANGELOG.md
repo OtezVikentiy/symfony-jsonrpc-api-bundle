@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Symfony Profiler integration.** In debug applications with WebProfilerBundle enabled, the toolbar exposes registered JSON-RPC methods and inbound calls with masked parameters/responses, outcomes, error codes, durations, batch grouping, and matching log context ids. Collection is independent of `logging.enabled` and the services are removed outside the debug profiler environment. See [docs/profiler.md](./docs/profiler.md).
+
 ## [5.2] - 2026-08-17
 
 A feature release: JSON-RPC methods can now receive file uploads over `multipart/form-data`, opt-in and off by default. Contributed by @tacman (#9), in the shape agreed in #8. Strictly backwards compatible: with the feature off, the default, behaviour is identical to 5.1.

@@ -85,6 +85,21 @@ services:
     OV\JsonRPCAPIBundle\Core\Logging\ContextIdGeneratorInterface:
         alias: OV\JsonRPCAPIBundle\Core\Logging\UuidContextIdGenerator
 
+    OV\JsonRPCAPIBundle\Profiler\TraceableJsonRpcCallLogger:
+        decorates: OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface
+        arguments:
+            $inner: '@OV\JsonRPCAPIBundle\Profiler\TraceableJsonRpcCallLogger.inner'
+            $maxBodyLength: '%loggingMaxBodyLength%'
+            $skipPlainResponses: '%loggingSkipPlainResponses%'
+            $maxJsonDepth: '%maxJsonDepth%'
+            $maxPayloadBytes: '%maxPayloadBytes%'
+            $requestStack: '@request_stack'
+        tags:
+            - { name: kernel.reset, method: reset }
+
+    OV\JsonRPCAPIBundle\Profiler\JsonRpcDataCollector:
+        autoconfigure: false
+
     ov_json_rpc_api.logger:
         alias: 'logger'
         public: false
