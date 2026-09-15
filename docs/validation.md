@@ -114,6 +114,27 @@ Sending an unexpected field inside `filter` returns an error:
 
 ---
 
+## Public request properties
+
+A public property is itself an accessible request surface, so it does not need a ceremonial getter or setter. Constructor-promoted properties are populated by the constructor; public properties outside the constructor are written directly during hydration:
+
+```php
+final class Request
+{
+    public ?string $locale = null;
+
+    public function __construct(public readonly array $hashes)
+    {
+    }
+}
+```
+
+Accessor-free hydration applies only to top-level request classes. Nested DTOs still need setters and a constructor callable without arguments. Class-typed promoted properties are not supported without accessors; use a nested DTO property with accessors instead. Public static, non-promoted readonly, asymmetric-set and hooked properties keep the accessor requirement.
+
+Private and protected properties continue to require public accessors. Type validation is unchanged and still comes from each declared property type. A default on a constructor parameter alone does not make the field optional to validation; put the default on the property (a promoted constructor default alone does not count) or make its type nullable.
+
+---
+
 ## Binding getters, setters and adders to DTO fields
 
 The bundle matches a request parameter to a method of the Request class **by the exact property name**, not by substring. For a property `$userId` it resolves the getter `getUserId()`/`isUserId()`, the setter `setUserId()`, and — where one exists — an adder whose name comes from the property name through `Symfony\Component\String\Inflector\EnglishInflector` (`$categories` → `addCategory()`; `$children` → `addChild()`). Binding used to go through `str_contains()`, which let `getUserId()` accidentally satisfy both `userId` and `id`: if a Request class held `id` and `userId` at once, the validator for `id` could end up checking the value of `userId`. From 5.0 that ambiguity is impossible: binding is strictly by name, and an unbound method simply does not resolve.

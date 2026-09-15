@@ -17,6 +17,7 @@ use OV\JsonRPCAPIBundle\Core\Response\PlainResponseInterface;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler\HandleBatchInterface;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler\MultiBatchStrategy;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestHydration;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpecCollection;
 use Psr\Log\LoggerInterface;
 use ReflectionClass;
@@ -289,7 +290,9 @@ final class RequestHandler
         $untypedTransport = $this->transportIsUntyped($methodSpec);
         $constructorParams = [];
         foreach ($methodSpec->getRequiredParameters() as $requiredParameter) {
-            $value = $baseRequest->getParams()[$requiredParameter['name']] ?? ($requiredParameter['defaultValue'] ?? null);
+            $value = $this->isPositionalPayloadFor($requiredParameter['name'], $baseRequest)
+                ? $baseRequest->getParams()
+                : ($baseRequest->getParams()[$requiredParameter['name']] ?? ($requiredParameter['defaultValue'] ?? null));
             $constructorParams[] = $untypedTransport
                 ? $this->coerceFromUntypedTransport($value, $requiredParameter['type'])
                 : $value;
@@ -387,6 +390,7 @@ final class RequestHandler
         $tracksProvided = $requestInstance instanceof PartialRequestInterface;
         $allowExtraFields = $this->isExtraFieldsAllowed($methodSpec);
         $invalidTypeErrors = [];
+        $strategies = $methodSpec->getRequestMetadata()->getHydrationStrategies();
 
         foreach ($methodSpec->getAllParameters() as $allParameter) {
             $name = $allParameter['name'];
@@ -414,6 +418,17 @@ final class RequestHandler
                 $value = $this->coerceFromUntypedTransport($value, $allParameter['type']);
             }
 
+            $requestSetter = $methodSpec->getRequestSetters()[$name] ?? null;
+            $strategy = $strategies[$name] ?? null;
+            if ($requestSetter === null && ($strategy === RequestHydration::PROMOTED
+                || ($strategy === RequestHydration::CONSTRUCTOR_OBJECT && isset($requestInstance->$name)))) {
+                // The constructor already wrote this value. Do not convert it a second time.
+                if ($tracksProvided && $wasProvided) {
+                    $requestInstance->markProvided($name);
+                }
+                continue;
+            }
+
             $requestAdder = $methodSpec->getRequestAdders()[$name] ?? null;
 
             // The `|| is_array($value)` is what lets an empty list through. !empty([]) is false, so
@@ -437,9 +452,13 @@ final class RequestHandler
                 // "No items" is an answer; the setter is what states it.
                 if ($value === []) {
                     $collectionSetter = $methodSpec->getRequestSetters()[$name] ?? null;
-                    if (!is_null($collectionSetter)) {
+                    if ($collectionSetter !== null || $strategy !== null) {
                         try {
-                            $requestInstance->$collectionSetter([]);
+                            if ($collectionSetter !== null) {
+                                $requestInstance->$collectionSetter([]);
+                            } else {
+                                $requestInstance->$name = [];
+                            }
                         } catch (InvalidArgumentException|TypeError) {
                             // A collection held in an object rather than an array - a Doctrine
                             // ArrayCollection, or any custom type - rejects the empty array its
@@ -526,29 +545,13 @@ final class RequestHandler
                 continue;
             }
 
-            $requestSetter = $methodSpec->getRequestSetters()[$name] ?? null;
-            if (!is_null($requestSetter)) {
-                if (class_exists($allParameter['type']) && !self::alreadyOfDeclaredType($value, $allParameter['type'])) {
-                    if ($value !== null) {
-                        try {
-                            $value = $this->prepareParametersFromClass($allParameter['type'], $value, $allowExtraFields, 0, $this->transportIsUntyped($methodSpec));
-                        } catch (InvalidArgumentException|TypeError) {
-                            $invalidTypeErrors[] = sprintf(
-                                self::INVALID_TYPE_MESSAGE_FORMAT,
-                                $name,
-                                $allParameter['type'],
-                            );
-                            continue;
-                        }
-                    }
-                }
+            if ($requestSetter === null && $strategy === null) {
+                continue;
+            }
 
-                if (is_null($value) && $name === self::POSITIONAL_PARAMS_FIELD) {
-                    $value = $baseRequest->getParams();
-                }
-
+            if (class_exists($allParameter['type']) && !self::alreadyOfDeclaredType($value, $allParameter['type']) && $value !== null) {
                 try {
-                    $requestInstance->$requestSetter($value);
+                    $value = $this->prepareParametersFromClass($allParameter['type'], $value, $allowExtraFields, 0, $this->transportIsUntyped($methodSpec));
                 } catch (InvalidArgumentException|TypeError) {
                     $invalidTypeErrors[] = sprintf(
                         self::INVALID_TYPE_MESSAGE_FORMAT,
@@ -557,10 +560,29 @@ final class RequestHandler
                     );
                     continue;
                 }
+            }
 
-                if ($tracksProvided && $wasProvided) {
-                    $requestInstance->markProvided($name);
+            if (is_null($value) && $name === self::POSITIONAL_PARAMS_FIELD) {
+                $value = $baseRequest->getParams();
+            }
+
+            try {
+                if ($requestSetter !== null) {
+                    $requestInstance->$requestSetter($value);
+                } else {
+                    $requestInstance->$name = $value;
                 }
+            } catch (InvalidArgumentException|TypeError) {
+                $invalidTypeErrors[] = sprintf(
+                    self::INVALID_TYPE_MESSAGE_FORMAT,
+                    $name,
+                    $allParameter['type'],
+                );
+                continue;
+            }
+
+            if ($tracksProvided && $wasProvided) {
+                $requestInstance->markProvided($name);
             }
         }
 
@@ -738,8 +760,10 @@ final class RequestHandler
                 continue;
             }
 
-            $getter = $methodSpec->getRequestGetters()[$field];
-            $requestData[$field] = $requestInstance->$getter();
+            $getter = $methodSpec->getRequestGetters()[$field] ?? null;
+            $requestData[$field] = $getter !== null
+                ? $requestInstance->$getter()
+                : $requestInstance->$field;
         }
 
         $allowExtraFields = $this->isExtraFieldsAllowed($methodSpec);

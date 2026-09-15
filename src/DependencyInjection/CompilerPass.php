@@ -18,6 +18,7 @@ use OV\JsonRPCAPIBundle\Core\PostProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\PreProcessorInterface;
 use OV\JsonRPCAPIBundle\Core\Response\PlainResponseInterface;
 use OV\JsonRPCAPIBundle\Core\Services\RequestHandler;
+use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestHydration;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\RequestMetadata;
 use OV\JsonRPCAPIBundle\DependencyInjection\MethodSpec\SwaggerMetadata;
 use ReflectionClass;
@@ -116,6 +117,7 @@ final class CompilerPass implements CompilerPassInterface
                     $requestAnalysis['requestSetters'],
                     $requestAnalysis['requestAdders'],
                     $requestAnalysis['validators'],
+                    RequestHydration::forClass($requestAnalysis['requestClass']),
                 ])->setPublic(false);
 
             $swaggerMetadataId = 'OV_JSON_RPC_API_SWG_' . $serviceIdSuffix;
@@ -286,12 +288,10 @@ final class CompilerPass implements CompilerPassInterface
             foreach ($allParameters as $index => $allParameter) {
                 $propertyName = $allParameter['name'];
 
-                // getValidatorsForRequest(), two lines up, walks the same properties through the
-                // same resolver and refuses any that has no accessible getter - naming the three
-                // forms it looked for. A second check here could never fire, and the message it
-                // carried was the worse of the two: it spelled the candidates literally, as
-                // "getX, isX, or x", rather than for the property at hand.
-                $requestGetters[$propertyName] = (string) $this->resolveGetter($methodRequestReflection, $propertyName);
+                $getter = $this->resolveGetter($methodRequestReflection, $propertyName);
+                if ($getter !== null) {
+                    $requestGetters[$propertyName] = $getter;
+                }
 
                 $setter = $this->resolveMethod($methodRequestReflection, 'set' . ucfirst($propertyName));
                 if ($setter !== null) {
@@ -524,6 +524,8 @@ final class CompilerPass implements CompilerPassInterface
         }
 
         foreach ($propertiesIdx as $name => $typeData) {
+            $property = $requestReflection->getProperty($name);
+            $isDirectlyHydratablePublicProperty = RequestHydration::strategy($property) !== null;
             // Same candidate list as resolveGetter(), and for a reason: this loop runs first, so a
             // single rigid name here decided the outcome no matter what resolveGetter() would have
             // accepted. A boolean $isActive whose getter is isActive() aborted the build demanding
@@ -531,7 +533,7 @@ final class CompilerPass implements CompilerPassInterface
             // practice. One rule for what counts as a getter, applied in both places.
             $getterName = $this->resolveGetter($requestReflection, $name);
 
-            if ($getterName === null || !isset($methodsIdx[$getterName])) {
+            if (!$isDirectlyHydratablePublicProperty && ($getterName === null || !isset($methodsIdx[$getterName]))) {
                 throw new Exception(
                     sprintf(
                         'Property %s of class %s has no accessible getter (expected one of get%s, is%s, or %s)',
@@ -543,10 +545,10 @@ final class CompilerPass implements CompilerPassInterface
                     ),
                 );
             }
-            $getter = $methodsIdx[$getterName];
+            $getter = $getterName !== null ? ($methodsIdx[$getterName] ?? null) : null;
 
             $setterName = 'set' . ucfirst($name);
-            if (!isset($methodsIdx[$setterName])) {
+            if (!$isDirectlyHydratablePublicProperty && !isset($methodsIdx[$setterName])) {
                 throw new Exception(
                     sprintf(
                         'Property %s of class %s has no method %s',
@@ -556,21 +558,21 @@ final class CompilerPass implements CompilerPassInterface
                     ),
                 );
             }
-            $setter = $methodsIdx[$setterName];
-            $setterParamType = $setter->getParameters()[0]->getType();
-            if ($setterParamType === null) {
+            $setter = $methodsIdx[$setterName] ?? null;
+            $setterParamType = $setter?->getParameters()[0]->getType();
+            if ($setterParamType !== null && (!$setterParamType instanceof ReflectionNamedType || $setterParamType->getName() !== $typeData['type'])) {
+                throw new Exception(sprintf(
+                    'Property %s of method %s has invalid data type in setter %s',
+                    $name,
+                    $requestReflection->getName(),
+                    $setter->getName(),
+                ));
+            }
+            if ($getter === null) {
+                $validatorsIdx[$name] = $typeData;
                 continue;
             }
-            if (!$setterParamType instanceof ReflectionNamedType || $setterParamType->getName() !== $typeData['type']) {
-                throw new Exception(
-                    sprintf(
-                        'Property %s of method %s has invalid data type in setter %s',
-                        $name,
-                        $requestReflection->getName(),
-                        $setter->getName(),
-                    ),
-                );
-            }
+
             $getterReturnType = $getter->getReturnType();
             if (!$getterReturnType instanceof ReflectionNamedType || $getterReturnType->getName() !== $typeData['type']) {
                 throw new Exception(
