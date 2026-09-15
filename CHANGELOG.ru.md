@@ -8,7 +8,7 @@
 
 ---
 
-## [Unreleased]
+## [5.3] - 2026-09-15
 
 ### Добавлено
 - **Интеграция с Symfony Profiler.** В debug-приложении с включённым WebProfilerBundle toolbar показывает зарегистрированные JSON-RPC методы и входящие вызовы с замаскированными параметрами/ответами, результатом, кодами ошибок, длительностью, группировкой batch и context id из логов. Сбор не зависит от `logging.enabled`, а вне debug profiler окружения сервисы удаляются. См. [docs/profiler.ru.md](./docs/profiler.ru.md).

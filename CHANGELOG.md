@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [5.3] - 2026-09-15
 
 ### Added
 - **Symfony Profiler integration.** In debug applications with WebProfilerBundle enabled, the toolbar exposes registered JSON-RPC methods and inbound calls with masked parameters/responses, outcomes, error codes, durations, batch grouping, and matching log context ids. Collection is independent of `logging.enabled` and the services are removed outside the debug profiler environment. See [docs/profiler.md](./docs/profiler.md).
