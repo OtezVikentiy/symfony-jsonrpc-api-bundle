@@ -32,6 +32,7 @@ use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\Yaml\Yaml;
 
 class SwaggerGenerateTest extends TestCase
 {
@@ -100,8 +101,12 @@ class SwaggerGenerateTest extends TestCase
     public function testExecute()
     {
         $this->commandTester->execute([]);
-        file_put_contents(__DIR__.'/swagger_generate_test_fixture.yaml', $this->commandTester->getDisplay());
-        $this->assertEquals(file_get_contents(__DIR__.'/swagger_generate_test_fixture.yaml'), $this->commandTester->getDisplay());
+        // Compare the parsed documents: symfony/yaml lays out nested lists differently across the
+        // supported versions, so a byte comparison would hold for one row of the CI matrix only.
+        $this->assertSame(
+            Yaml::parseFile(__DIR__ . '/swagger_generate_test_fixture.yaml'),
+            Yaml::parse($this->commandTester->getDisplay()),
+        );
     }
 
     private function prepareMethodSpecCollection(): MethodSpecCollection
