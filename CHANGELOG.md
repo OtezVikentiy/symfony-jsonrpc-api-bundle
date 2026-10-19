@@ -14,6 +14,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Public Request DTO properties need no getter or setter.** Constructor-promoted properties hydrate through the constructor; other public properties are assigned directly. Private and protected DTO state keeps the existing accessor contract, and strict property-type validation is unchanged.
 - **A setter without a parameter type no longer switches off the property's checks.** On 5.3 such a property was left out of validation entirely, so every value sent for it was refused with -32602 as an unexpected field. It is now validated against its declared type like any other property. The getter is checked too: a getter whose return type does not match the property now fails the container build, so a DTO of that shape that built on 5.3 may no longer build.
 
+## [5.3] - 2026-09-15
+
+### Added
+- **Symfony Profiler integration.** In debug applications with WebProfilerBundle enabled, the toolbar exposes registered JSON-RPC methods and inbound calls with masked parameters/responses, outcomes, error codes, durations, batch grouping, and matching log context ids. Collection is independent of `logging.enabled` and the services are removed outside the debug profiler environment. See [docs/profiler.md](./docs/profiler.md).
+
 ## [5.2] - 2026-08-17
 
 A feature release: JSON-RPC methods can now receive file uploads over `multipart/form-data`, opt-in and off by default. Contributed by @tacman (#9), in the shape agreed in #8. Strictly backwards compatible: with the feature off, the default, behaviour is identical to 5.1.

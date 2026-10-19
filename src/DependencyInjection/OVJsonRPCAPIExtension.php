@@ -17,6 +17,8 @@ use OV\JsonRPCAPIBundle\Core\ApiMethodInterface;
 use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLogger;
 use OV\JsonRPCAPIBundle\Core\Logging\JsonRpcCallLoggerInterface;
 use OV\JsonRPCAPIBundle\Core\Logging\NullJsonRpcCallLogger;
+use OV\JsonRPCAPIBundle\Profiler\JsonRpcDataCollector;
+use OV\JsonRPCAPIBundle\Profiler\TraceableJsonRpcCallLogger;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -96,7 +98,30 @@ final class OVJsonRPCAPIExtension extends Extension
             $container->setAlias(JsonRpcCallLoggerInterface::class, (string) $loggingCfg['call_logger_service']);
         }
 
+        $this->configureProfiler($container);
+
         $container->registerForAutoconfiguration(ApiMethodInterface::class)->addTag('ov.rpc.method');
+    }
+
+    private function configureProfiler(ContainerBuilder $container): void
+    {
+        $debug = $container->hasParameter('kernel.debug') && (bool) $container->getParameter('kernel.debug');
+        $bundles = $container->hasParameter('kernel.bundles') ? $container->getParameter('kernel.bundles') : [];
+        $webProfilerEnabled = is_array($bundles)
+            && in_array('Symfony\Bundle\WebProfilerBundle\WebProfilerBundle', $bundles, true);
+
+        if ($debug && $webProfilerEnabled) {
+            $container->getDefinition(JsonRpcDataCollector::class)->addTag('data_collector', [
+                'id' => 'ov_json_rpc_api',
+                'template' => '@OVJsonRPCAPI/data_collector.html.twig',
+                'priority' => 200,
+            ]);
+
+            return;
+        }
+
+        $container->removeDefinition(TraceableJsonRpcCallLogger::class);
+        $container->removeDefinition(JsonRpcDataCollector::class);
     }
 
     public function getAlias(): string

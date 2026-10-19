@@ -28,9 +28,6 @@ final class JsonRpcCallLogger implements JsonRpcCallLoggerInterface
     private const FALLBACK_CONTEXT_ID = '00000000-0000-0000-0000-000000000000';
 
     private const MARKER_NOTIFICATION = '[no response - notification]';
-    private const MARKER_PLAIN_RESPONSE_FORMAT = '[plain response, %d bytes]';
-    private const MARKER_NON_JSON_RESPONSE_FORMAT = '[non-json response, %d bytes]';
-    private const MARKER_UNPARSEABLE_BODY_FORMAT = '[unparseable body, %d bytes]';
     private const MARKER_JSON_ENCODE_FAILED = '[json-encode-failed]';
     private const MARKER_TRUNCATED_FORMAT = '...[truncated, %d total bytes]';
 
@@ -38,13 +35,6 @@ final class JsonRpcCallLogger implements JsonRpcCallLoggerInterface
 
     private const LOG_MESSAGE_RESPONSE_FAILURE = 'JsonRpcCallLogger failed in logResponse';
     private const LOG_MESSAGE_INTERNAL_FAILURE = 'JsonRpcCallLogger internal failure';
-
-    /**
-     * Method names are attacker-controlled and read before any request validation runs, so they are
-     * bounded independently of max_body_length: a 128-character method name is already generous for
-     * any real RPC method, and it keeps a single field from becoming an unbounded log-injection vector.
-     */
-    private const MAX_METHOD_LENGTH = 128;
 
     /**
      * Default depth for logRawRequest()'s speculative json_decode when the caller does not supply one,
@@ -106,7 +96,7 @@ final class JsonRpcCallLogger implements JsonRpcCallLoggerInterface
                 $method = $this->extractMethod($decoded);
                 $body = $this->encodeBody($this->masker->mask($decoded));
             } else {
-                $body = sprintf(self::MARKER_UNPARSEABLE_BODY_FORMAT, $totalLength);
+                $body = sprintf(LogPayload::MARKER_UNPARSEABLE_BODY_FORMAT, $totalLength);
             }
 
             $call = new LoggedRpcCall(
@@ -145,7 +135,7 @@ final class JsonRpcCallLogger implements JsonRpcCallLoggerInterface
             return null;
         }
 
-        return substr($data[self::RPC_METHOD_KEY], 0, self::MAX_METHOD_LENGTH);
+        return substr($data[self::RPC_METHOD_KEY], 0, LogPayload::MAX_METHOD_LENGTH);
     }
 
     /**
@@ -161,12 +151,12 @@ final class JsonRpcCallLogger implements JsonRpcCallLoggerInterface
         $content = $response instanceof Response ? (string) $response->getContent() : '';
 
         if ($this->skipPlainResponses && $response instanceof PlainResponseInterface) {
-            return [sprintf(self::MARKER_PLAIN_RESPONSE_FORMAT, strlen($content)), false];
+            return [sprintf(LogPayload::MARKER_PLAIN_RESPONSE_FORMAT, strlen($content)), false];
         }
 
         $decoded = json_decode($content, true);
         if (!is_array($decoded)) {
-            return [sprintf(self::MARKER_NON_JSON_RESPONSE_FORMAT, strlen($content)), false];
+            return [sprintf(LogPayload::MARKER_NON_JSON_RESPONSE_FORMAT, strlen($content)), false];
         }
 
         $isErrorResponse = array_key_exists(self::RESPONSE_ERROR_KEY, $decoded);
