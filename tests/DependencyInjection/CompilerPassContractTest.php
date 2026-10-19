@@ -96,6 +96,28 @@ final class CompilerPassContractTest extends TestCase
         self::assertInstanceOf(Definition::class, $spec, 'an untyped setter is not something to refuse over');
     }
 
+    public function testPublicPropertiesCompileWithoutAccessors(): void
+    {
+        $container = $this->process(PublicPropertiesContractMethod::class);
+        $metadata = $this->requestMetadataOf($container, $this->specOf(PublicPropertiesContractMethod::class));
+
+        self::assertSame([], $metadata->getArgument(3), 'public properties need no getters');
+        self::assertSame([], $metadata->getArgument(4), 'public properties need no setters');
+        $validatedProperties = array_keys($metadata->getArgument(6));
+        sort($validatedProperties);
+        self::assertSame(['id', 'label', 'note'], $validatedProperties);
+    }
+
+    public function testPublicPropertiesMayHaveOnlyAGetterOrOnlyASetter(): void
+    {
+        $container = $this->process(PublicPropertiesWithOneAccessorMethod::class);
+        $metadata = $this->requestMetadataOf($container, $this->specOf(PublicPropertiesWithOneAccessorMethod::class));
+
+        self::assertSame(['getterOnly' => 'getGetterOnly'], $metadata->getArgument(3));
+        self::assertSame(['setterOnly' => 'setSetterOnly'], $metadata->getArgument(4));
+        self::assertSame(['getterOnly', 'setterOnly'], array_keys($metadata->getArgument(6)));
+    }
+
     // ---- what the pass refuses, and how clearly ----
 
     public function testAMethodWithoutCallIsRefusedByName(): void
@@ -136,6 +158,24 @@ final class CompilerPassContractTest extends TestCase
         $this->expectExceptionMessage('has no accessible getter (expected one of getSecret, isSecret, or secret)');
 
         $this->process(NoGetterAnywhereMethod::class);
+    }
+
+    public function testReadonlyPublicPropertyWithoutConstructorHydrationIsRefusedAtCompileTime(): void
+    {
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Property token of class');
+        $this->expectExceptionMessage('has no accessible getter');
+
+        $this->process(ReadonlyPublicPropertyMethod::class);
+    }
+
+    public function testStaticPublicPropertyIsRefusedAtCompileTime(): void
+    {
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Property token of class');
+        $this->expectExceptionMessage('has no accessible getter');
+
+        $this->process(StaticPublicPropertyMethod::class);
     }
 
     /**
@@ -374,6 +414,78 @@ final class ScalarParameterMethod
 final class UnversionedMethod
 {
     public function call(ContractRequest $request): array
+    {
+        return [];
+    }
+}
+
+final class PublicPropertiesContractRequest
+{
+    public string $label;
+    public ?string $note = null;
+
+    public function __construct(public readonly int $id)
+    {
+    }
+}
+
+final class PublicPropertiesWithOneAccessorRequest
+{
+    public string $getterOnly;
+    public string $setterOnly;
+
+    public function getGetterOnly(): string
+    {
+        return $this->getterOnly;
+    }
+
+    public function setSetterOnly(string $setterOnly): void
+    {
+        $this->setterOnly = $setterOnly;
+    }
+}
+
+#[JsonRPCAPI(methodName: 'publicPropertiesWithOneAccessor', type: 'POST', version: 1, ignoreInSwagger: true)]
+final class PublicPropertiesWithOneAccessorMethod
+{
+    public function call(PublicPropertiesWithOneAccessorRequest $request): array
+    {
+        return [];
+    }
+}
+
+final class ReadonlyPublicPropertyRequest
+{
+    public readonly string $token;
+}
+
+#[JsonRPCAPI(methodName: 'readonlyPublicProperty', type: 'POST', version: 1, ignoreInSwagger: true)]
+final class ReadonlyPublicPropertyMethod
+{
+    public function call(ReadonlyPublicPropertyRequest $request): array
+    {
+        return [];
+    }
+}
+
+final class StaticPublicPropertyRequest
+{
+    public static string $token;
+}
+
+#[JsonRPCAPI(methodName: 'staticPublicProperty', type: 'POST', version: 1, ignoreInSwagger: true)]
+final class StaticPublicPropertyMethod
+{
+    public function call(StaticPublicPropertyRequest $request): array
+    {
+        return [];
+    }
+}
+
+#[JsonRPCAPI(methodName: 'publicPropertiesContract', type: 'POST', version: 1, ignoreInSwagger: true)]
+final class PublicPropertiesContractMethod
+{
+    public function call(PublicPropertiesContractRequest $request): array
     {
         return [];
     }
