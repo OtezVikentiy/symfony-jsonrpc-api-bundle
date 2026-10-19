@@ -12,7 +12,7 @@ The simplest way to create a JSON-RPC API method. It demonstrates the main piece
 
 ## Request
 
-The Request class describes the incoming parameters. Parameters passed to the constructor become **required**. The remaining properties are filled through setters and are optional.
+The Request class describes the incoming parameters. Parameters passed to the constructor become **required**. The remaining properties are filled through setters and are optional. A public property needs no setter at all: see [Public request properties](../validation.md#public-request-properties).
 
 ```php
 <?php

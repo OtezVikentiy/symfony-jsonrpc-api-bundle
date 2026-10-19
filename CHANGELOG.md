@@ -8,10 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [5.4] - 2026-10-19
+
+A feature release: a Request DTO can declare its parameters as public properties, with no getter or setter per field. Contributed by @tacman (#12), closing #11. Upgrading from 5.3 needs no changes unless a Request DTO has a setter without a parameter type - see Changed.
+
+### Added
+- **Public Request DTO properties need no getter or setter.** Constructor-promoted properties hydrate through the constructor; other public properties are assigned directly. Private and protected DTO state keeps the existing accessor contract, and strict property-type validation is unchanged. This applies to the top-level request class only; nested DTOs keep their setters. See [docs/validation.md](./docs/validation.md#public-request-properties).
 
 ### Changed
-- **Public Request DTO properties need no getter or setter.** Constructor-promoted properties hydrate through the constructor; other public properties are assigned directly. Private and protected DTO state keeps the existing accessor contract, and strict property-type validation is unchanged.
 - **A setter without a parameter type no longer switches off the property's checks.** On 5.3 such a property was left out of validation entirely, so every value sent for it was refused with -32602 as an unexpected field. It is now validated against its declared type like any other property. The getter is checked too: a getter whose return type does not match the property now fails the container build, so a DTO of that shape that built on 5.3 may no longer build.
 
 ## [5.3] - 2026-09-15
