@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 - **Public Request DTO properties need no getter or setter.** Constructor-promoted properties hydrate through the constructor; other public properties are assigned directly. Private and protected DTO state keeps the existing accessor contract, and strict property-type validation is unchanged.
+- **A setter without a parameter type no longer switches off the property's checks.** On 5.3 such a property was left out of validation entirely, so every value sent for it was refused with -32602 as an unexpected field. It is now validated against its declared type like any other property. The getter is checked too: a getter whose return type does not match the property now fails the container build, so a DTO of that shape that built on 5.3 may no longer build.
 
 ## [5.2] - 2026-08-17
 

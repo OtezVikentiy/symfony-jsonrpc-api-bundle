@@ -46,6 +46,11 @@ final class PublicHydrationReviewTest extends AbstractControllerTestCase
         $this->assertResult(CollectionReviewMethod::class, ['items' => []], []);
     }
 
+    public function testPromotedCollectionWithAdderConvertsElements(): void
+    {
+        $this->assertResult(PromotedAdderReviewMethod::class, ['items' => [['sku' => 'a'], ['sku' => 'b']]], ['a', 'b']);
+    }
+
     public function testConstructorBuiltObjectIsNotConvertedAgain(): void
     {
         $this->assertResult(FilterReviewMethod::class, ['filter' => ['label' => 'ready']], 'ready');
@@ -136,6 +141,39 @@ class CollectionReviewMethod
     public function call(CollectionReviewRequest $request): array
     {
         return $request->items;
+    }
+}
+class ReviewItem
+{
+    private string $sku;
+
+    public function getSku(): string
+    {
+        return $this->sku;
+    }
+
+    public function setSku(string $sku): void
+    {
+        $this->sku = $sku;
+    }
+}
+class PromotedAdderReviewRequest
+{
+    public function __construct(public array $items = [])
+    {
+    }
+
+    public function addItem(ReviewItem $item): void
+    {
+        $this->items[] = $item;
+    }
+}
+#[JsonRPCAPI(methodName: 'promotedAdderReview', type: 'POST', version: 1)]
+class PromotedAdderReviewMethod
+{
+    public function call(PromotedAdderReviewRequest $request): array
+    {
+        return array_map(static fn (ReviewItem $item): string => $item->getSku(), $request->items);
     }
 }
 class ReviewFilter

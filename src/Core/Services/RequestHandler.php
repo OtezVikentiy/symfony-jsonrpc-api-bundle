@@ -288,11 +288,20 @@ final class RequestHandler
     private function instantiateRequest(MethodSpec $methodSpec, BaseRequest $baseRequest, string $requestClass): object
     {
         $untypedTransport = $this->transportIsUntyped($methodSpec);
+        $strategies = $methodSpec->getRequestMetadata()->getHydrationStrategies();
         $constructorParams = [];
         foreach ($methodSpec->getRequiredParameters() as $requiredParameter) {
-            $value = $this->isPositionalPayloadFor($requiredParameter['name'], $baseRequest)
+            $name = $requiredParameter['name'];
+            if (($strategies[$name] ?? null) === RequestHydration::PROMOTED && isset($methodSpec->getRequestAdders()[$name])) {
+                // The adder fills this collection element by element after construction. Handing
+                // the constructor the raw list as well left the decoded arrays in front of the
+                // converted objects, and the method read both.
+                $constructorParams[] = $requiredParameter['defaultValue'] ?? [];
+                continue;
+            }
+            $value = $this->isPositionalPayloadFor($name, $baseRequest)
                 ? $baseRequest->getParams()
-                : ($baseRequest->getParams()[$requiredParameter['name']] ?? ($requiredParameter['defaultValue'] ?? null));
+                : ($baseRequest->getParams()[$name] ?? ($requiredParameter['defaultValue'] ?? null));
             $constructorParams[] = $untypedTransport
                 ? $this->coerceFromUntypedTransport($value, $requiredParameter['type'])
                 : $value;
@@ -419,8 +428,9 @@ final class RequestHandler
             }
 
             $requestSetter = $methodSpec->getRequestSetters()[$name] ?? null;
+            $requestAdder = $methodSpec->getRequestAdders()[$name] ?? null;
             $strategy = $strategies[$name] ?? null;
-            if ($requestSetter === null && ($strategy === RequestHydration::PROMOTED
+            if ($requestSetter === null && (($strategy === RequestHydration::PROMOTED && $requestAdder === null)
                 || ($strategy === RequestHydration::CONSTRUCTOR_OBJECT && isset($requestInstance->$name)))) {
                 // The constructor already wrote this value. Do not convert it a second time.
                 if ($tracksProvided && $wasProvided) {
@@ -428,8 +438,6 @@ final class RequestHandler
                 }
                 continue;
             }
-
-            $requestAdder = $methodSpec->getRequestAdders()[$name] ?? null;
 
             // The `|| is_array($value)` is what lets an empty list through. !empty([]) is false, so
             // [] used to fall to the setter branch - where CompilerPass has already rewritten the
