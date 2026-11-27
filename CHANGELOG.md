@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### Added
+- **PHP 8.6 support.** The manifest now accepts PHP 8.6, and the CI matrix runs the full suite on it against every supported Symfony branch. Reported by @tacman (#25).
+
 ## [5.4] - 2026-10-19
 
 A feature release: a Request DTO can declare its parameters as public properties, with no getter or setter per field. Contributed by @tacman (#12), closing #11. Upgrading from 5.3 needs no changes unless a Request DTO has a setter without a parameter type - see Changed.

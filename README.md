@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle/actions/workflows/ci.yml/badge.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle/actions/workflows/ci.yml)
 [![Latest Stable Version](https://img.shields.io/packagist/v/otezvikentiy/json-rpc-api.svg)](https://packagist.org/packages/otezvikentiy/json-rpc-api)
-[![PHP Version](https://img.shields.io/badge/php-8.2%20--%208.5-8892BF.svg)](https://php.net/)
+[![PHP Version](https://img.shields.io/badge/php-8.2%20--%208.6-8892BF.svg)](https://php.net/)
 [![Symfony Version](https://img.shields.io/badge/symfony-%5E6.4%20%7C%7C%20%5E7.0%20%7C%7C%20%5E8.0-000000.svg)](https://symfony.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Coverage](https://img.shields.io/badge/coverage-99%25-brightgreen.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle/actions/workflows/ci.yml)
@@ -22,7 +22,7 @@ GitHub: https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle
 - **Safe defaults.** Payload, nesting and batch limits, error sanitization, CORS whitelisting and log masking work out of the box; every deliberate trade-off is written down in [SECURITY.md](./SECURITY.md).
 - **Documentation from the same source of truth.** OpenAPI/Swagger documentation is generated from the same attributes and DTOs the runtime uses, so it cannot drift away from the actual behaviour.
 - **Small dependency footprint.** Only `symfony/*` components and `psr/log` — nothing else is pulled into your project.
-- **Every supported combination is tested.** CI runs the full matrix of PHP 8.2–8.5 against Symfony 6.4, 7 and 8, plus a lowest-dependencies build, a coverage gate and a mutation-testing gate.
+- **Every supported combination is tested.** CI runs the full matrix of PHP 8.2–8.6 against Symfony 6.4, 7 and 8, plus a lowest-dependencies build, a coverage gate and a mutation-testing gate.
 
 Want to see all of this working together? Check the demo application:
 [symfony-jsonrpc-api-demo](https://github.com/OtezVikentiy/symfony-jsonrpc-api-demo) —
@@ -50,7 +50,7 @@ API versioning, OpenAPI generation and log masking.
 
 ## Requirements
 
-- PHP 8.2 – 8.5
+- PHP 8.2 – 8.6
 - Symfony ^6.4 || ^7.0 || ^8.0
 
 ---

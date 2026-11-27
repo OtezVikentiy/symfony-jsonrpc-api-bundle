@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle/actions/workflows/ci.yml/badge.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle/actions/workflows/ci.yml)
 [![Latest Stable Version](https://img.shields.io/packagist/v/otezvikentiy/json-rpc-api.svg)](https://packagist.org/packages/otezvikentiy/json-rpc-api)
-[![PHP Version](https://img.shields.io/badge/php-8.2%20--%208.5-8892BF.svg)](https://php.net/)
+[![PHP Version](https://img.shields.io/badge/php-8.2%20--%208.6-8892BF.svg)](https://php.net/)
 [![Symfony Version](https://img.shields.io/badge/symfony-%5E6.4%20%7C%7C%20%5E7.0%20%7C%7C%20%5E8.0-000000.svg)](https://symfony.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Coverage](https://img.shields.io/badge/coverage-99%25-brightgreen.svg)](https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle/actions/workflows/ci.yml)
@@ -22,7 +22,7 @@ GitHub: https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle
 - **Безопасные значения по умолчанию.** Лимиты на размер и вложенность payload, санитизация ошибок, CORS-whitelist и маскирование логов работают из коробки; каждый осознанный компромисс описан в [SECURITY.md](./SECURITY.ru.md).
 - **Документация из того же источника, что и код.** OpenAPI/Swagger генерируется из тех же атрибутов и DTO, которые использует рантайм, поэтому не может разойтись с фактическим поведением.
 - **Минимум зависимостей.** Только компоненты `symfony/*` и `psr/log` — ничего лишнего в ваш проект не приезжает.
-- **Каждая заявленная комбинация версий проверяется.** CI гоняет полную матрицу PHP 8.2–8.5 на Symfony 6.4, 7 и 8, плюс сборку на минимальных версиях зависимостей, порог покрытия и порог мутационного тестирования.
+- **Каждая заявленная комбинация версий проверяется.** CI гоняет полную матрицу PHP 8.2–8.6 на Symfony 6.4, 7 и 8, плюс сборку на минимальных версиях зависимостей, порог покрытия и порог мутационного тестирования.
 
 Посмотреть всё это в действии можно в демо-приложении:
 [symfony-jsonrpc-api-demo](https://github.com/OtezVikentiy/symfony-jsonrpc-api-demo) —
@@ -50,7 +50,7 @@ GitHub: https://github.com/OtezVikentiy/symfony-jsonrpc-api-bundle
 
 ## Требования
 
-- PHP 8.2 – 8.5
+- PHP 8.2 – 8.6
 - Symfony ^6.4 || ^7.0 || ^8.0
 
 ---
