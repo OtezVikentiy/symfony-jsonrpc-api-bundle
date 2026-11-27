@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [5.5] - 2026-11-27
 
 ### Added
 - **PHP 8.6 support.** The manifest now accepts PHP 8.6, and the CI matrix runs the full suite on it against every supported Symfony branch. Reported by @tacman (#25).
