@@ -35,20 +35,24 @@ final class InvalidJsonRequestTest extends AbstractControllerTestCase
             ),
         );
 
-        $responseData = [
-            'jsonrpc' => '2.0',
-            'error' => [
-                'code' => -32700,
-                'message' => 'Parse error. Additional info: Syntax error'
-            ],
-            'id' => null,
-        ];
-
         $this->setValidateMethodExpectation('never');
         $result = $this->executeControllerTest($data, $methodSpec);
 
         $this->assertInstanceOf(JsonResponse::class, $result);
         $this->assertEquals(200, $result->getStatusCode());
-        $this->assertEquals(json_encode($responseData), $result->getContent());
+
+        // JSON-RPC 2.0 spec 5.1: invalid JSON -> -32700 Parse error. The tail of
+        // the message is JsonException's own text - docs/upgrade-4.0.md documents
+        // it as "or other text from JsonException" - and PHP 8.6 appends the error
+        // location ("Syntax error near location 1:40"). So the structure and the
+        // version-independent prefix are the requirement; the exact full string
+        // never was and is pinned no more.
+        $decoded = json_decode($result->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame(['jsonrpc', 'error', 'id'], array_keys($decoded));
+        $this->assertSame('2.0', $decoded['jsonrpc']);
+        $this->assertNull($decoded['id']);
+        $this->assertSame(['code', 'message'], array_keys($decoded['error']));
+        $this->assertSame(-32700, $decoded['error']['code']);
+        $this->assertStringStartsWith('Parse error. Additional info: Syntax error', $decoded['error']['message']);
     }
 }
