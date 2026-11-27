@@ -23,6 +23,15 @@ updates:
       interval: monthly
     commit-message:
       prefix: "build"
+    # The declared PHP range starts at 8.2 and the CI matrix installs dev tooling
+    # on 8.2, but phpunit 12 needs PHP >= 8.3 (13 needs >= 8.4.1) and infection
+    # 0.35 needs ^8.3 - the group PR #20 died on exactly that. Drop these
+    # ignores when the minimum PHP is raised past 8.3.
+    ignore:
+      - dependency-name: phpunit/phpunit
+        versions: [">= 12"]
+      - dependency-name: infection/infection
+        versions: [">= 0.35"]
     groups:
       dev-tooling:
         dependency-type: development
